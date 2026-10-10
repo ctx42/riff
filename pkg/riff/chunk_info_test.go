@@ -36,23 +36,6 @@ func infoChunkTextLenOdd(t tester.T) io.Reader {
 	return src
 }
 
-func infoChunkThree(t tester.T) io.Reader {
-	t.Helper()
-	src := &bytes.Buffer{}
-	writeUint32BE(t, src, LabIART)               // ( 0) 4 - Chunk ID
-	writeUint32LE(t, src, 4)                     // ( 4) 4 - Chunk size
-	writeBytes(t, src, []byte{'a', 'r', 't', 0}) // ( 8) 4 - Text
-	writeUint32BE(t, src, LabICOP)               // (12) 4 - Chunk ID
-	writeUint32LE(t, src, 3)                     // (16) 4 - Chunk size
-	writeBytes(t, src, []byte{'c', 'p', 0})      // (20) 3 - Text
-	writeBytes(t, src, []byte{0})                // (23) 1 - Padding byte
-	writeUint32BE(t, src, LabICMT)               // (24) 4 - Chunk ID
-	writeUint32LE(t, src, 4)                     // (28) 4 - Chunk size
-	writeBytes(t, src, []byte{'c', 'm', 't', 0}) // (32) 4 - Text
-	// Total length: 8+4+8+3+1+8+4=36
-	return src
-}
-
 func Test_INFO(t *testing.T) {
 	// --- When ---
 	have := INFO(LabIART)

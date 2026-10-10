@@ -130,7 +130,7 @@ func Test_ChunkDATA_Duration(t *testing.T) {
 		// --- Given ---
 		ch := DATA()
 		ch.size = 88200
-		ch.data = bytes.Repeat([]byte{0}, 88200)
+		ch.data = make([]byte, 88200)
 
 		// --- When ---
 		have := ch.Duration(88200)
@@ -317,7 +317,7 @@ func Test_ChunkDATA_Reset(t *testing.T) {
 	// --- Given ---
 	ch := DATA(WithLoadData())
 	ch.size = 88200
-	err := ch.SetData(bytes.Repeat([]byte{0}, 88200))
+	err := ch.SetData(make([]byte, 88200))
 	assert.NoError(t, err)
 
 	// --- When ---

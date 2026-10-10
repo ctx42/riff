@@ -77,7 +77,7 @@ func Example_rawChunk() {
 		panic(err)
 	}
 
-	fmt.Println(body)
+	fmt.Printf("%v\n", body)
 	// Output:
 	// [1 0 1 0 34 86 0 0 68 172 0 0 2 0 16 0]
 }
@@ -101,7 +101,7 @@ func Example_dataChunk() {
 		panic(err)
 	}
 
-	fmt.Println(buf)
+	fmt.Printf("%v\n", buf)
 	// Output:
 	// [76 0 75 0 77 0 73 0 74 0]
 }
