@@ -133,6 +133,18 @@ func Test_Chunks_Remove(t *testing.T) {
 		assert.Equal(t, 14, len(chsIDs))
 	})
 
+	t.Run("receiver unchanged", func(t *testing.T) {
+		// --- Given ---
+		chs := Chunks{RAWC(1), RAWC(2), RAWC(3)}
+
+		// --- When ---
+		have := chs.Remove(2)
+
+		// --- Then ---
+		assert.Equal(t, []uint32{1, 3}, have.IDs())
+		assert.Equal(t, []uint32{1, 2, 3}, chs.IDs())
+	})
+
 	t.Run("key does not exist", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
