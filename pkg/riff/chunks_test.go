@@ -116,17 +116,27 @@ func Test_Chunks_Remove(t *testing.T) {
 		// --- Given ---
 		rif := New()
 		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
-		chsIDs := rif.Chunks().IDs()
 
 		// --- When ---
 		have := rif.Chunks().Remove(IDfmt).IDs()
 
 		// --- Then ---
-		for i := 1; i < len(have); i++ {
-			assert.Equal(t, chsIDs[i+1], have[i])
+		want := []uint32{
+			0x62657874, // bext
+			IDdata,     // data
+			0x4146416e, // AFAn
+			IDJUNK,     // JUNK
+			IDJUNK,     // JUNK
+			IDJUNK,     // JUNK
+			IDJUNK,     // JUNK
+			IDJUNK,     // JUNK
+			IDJUNK,     // JUNK
+			IDJUNK,     // JUNK
+			IDLIST,     // LIST
+			0x41466d64, // AFmd
+			IDID3,      // ID3+
 		}
-		assert.Equal(t, len(chsIDs)-1, len(have))
-		assert.Equal(t, 14, len(chsIDs))
+		assert.Equal(t, want, have)
 	})
 
 	t.Run("all chunks with ID", func(t *testing.T) {
