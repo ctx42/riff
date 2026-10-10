@@ -148,6 +148,49 @@ func Test_ChunkLIST_Type_unknown(t *testing.T) {
 	assert.Equal(t, LabIART, sub.ID())
 }
 
+func Test_ChunkLIST_ReadFrom_Empty(t *testing.T) {
+	// --- Given ---
+	reg := NewRegistry(RAWCMake(WithLoadData()))
+
+	src := &bytes.Buffer{}
+	test.WriteUint32LE(t, src, 4)      // ( 0) 4 - Chunk size
+	test.WriteUint32BE(t, src, IDINFO) // ( 4) 4 - Type
+
+	ch := LIST(reg, WithLoadData())
+
+	// --- When ---
+	n, err := ch.ReadFrom(src)
+
+	// --- Then ---
+	assert.NoError(t, err)
+	assert.Equal(t, int64(8), n)
+	assert.Equal(t, IDINFO, ch.Type())
+	assert.Len(t, 0, ch.Chunks())
+}
+
+func Test_ChunkLIST_ReadFrom_SizeMismatch(t *testing.T) {
+	// --- Given ---
+	reg := NewRegistry(RAWCMake(WithLoadData()))
+
+	src := &bytes.Buffer{}
+	test.WriteUint32LE(t, src, 13)        // ( 0) 4 - Chunk size
+	test.WriteUint32BE(t, src, IDUNKN)    // ( 4) 4 - Type
+	test.ReadFrom(t, src, Uint32(IDUNKN)) // ( 8) 4 - Chunk ID
+	test.WriteUint32LE(t, src, 1)         // (12) 4 - Chunk size
+	test.WriteBytes(t, src, []byte{1, 0}) // (16) 2 - Data and padding
+
+	ch := LIST(reg, WithLoadData())
+
+	// --- When ---
+	n, err := ch.ReadFrom(src)
+
+	// --- Then ---
+	want := "error decoding LIST:ABCD chunk: chunk size mismatch"
+	assert.ErrorEqual(t, want, err)
+	assert.ErrorIs(t, ErrChunkSizeMismatch, err)
+	assert.Equal(t, int64(18), n)
+}
+
 func Test_ChunkLIST_ReadFrom_LimitError(t *testing.T) {
 	// --- Given ---
 	reg := NewRegistry(RAWCMake(WithLoadData()))

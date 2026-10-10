@@ -94,11 +94,8 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 		mkr = RAWCMake(WithOpts(ch.opts))
 	}
 
-	for {
-		if cr.Count()-4 >= int64(ch.size) {
-			return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, ch.ListType), ErrChunkSizeMismatch)
-		}
-
+	// Decode sub-chunks until all bytes declared in size are read.
+	for cr.Count()-4 < int64(ch.size) {
 		var id uint32
 		if err = ReadChunkID(cr, &id); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, ch.ListType), err)
@@ -115,11 +112,10 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 			return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, id), err)
 		}
 		ch.chunks = append(ch.chunks, dec)
+	}
 
-		// Break the loop if we read all bytes declared in size.
-		if cr.Count()-4 == int64(ch.size) {
-			break
-		}
+	if cr.Count()-4 > int64(ch.size) {
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, ch.ListType), ErrChunkSizeMismatch)
 	}
 
 	return cr.Count(), nil
