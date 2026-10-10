@@ -20,8 +20,8 @@ const IDsmpl uint32 = 0x736d706c
 // counting the ID, the sample loops, and the sampler data.
 const SMPLChunkSize uint32 = 36
 
-// SampleLoopCntSize is the size of a single sample loop in bytes.
-const SampleLoopCntSize uint32 = 24
+// SampleLoopSize is the size of a single sample loop in bytes.
+const SampleLoopSize uint32 = 24
 
 // smplStatic represents chunk static data (always there).
 // This struct is defined separately to allow for binary
@@ -148,7 +148,7 @@ func (ch *ChunkSMPL) Raw() bool      { return false }
 // Size returns the chunk size computed from its current content.
 func (ch *ChunkSMPL) Size() uint32 {
 	return SMPLChunkSize +
-		uint32(len(ch.SampleLoops))*SampleLoopCntSize +
+		uint32(len(ch.SampleLoops))*SampleLoopSize +
 		uint32(len(ch.sampleData))
 }
 
@@ -172,7 +172,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	// We trust size more than SamplerDataCnt.
-	loops := int64(ch.SampleLoopCnt) * int64(SampleLoopCntSize)
+	loops := int64(ch.SampleLoopCnt) * int64(SampleLoopSize)
 	extra := int64(size) - int64(SMPLChunkSize) - loops
 	if extra < 0 {
 		return cr.Count(), fmt.Errorf(
@@ -209,7 +209,7 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 	size := ch.Size()
 
 	ch.SampleLoopCnt = uint32(len(ch.SampleLoops))
-	ch.SamplerDataCnt = ch.SampleLoopCnt*SampleLoopCntSize +
+	ch.SamplerDataCnt = ch.SampleLoopCnt*SampleLoopSize +
 		uint32(len(ch.sampleData))
 
 	n, err := WriteIDAndSize(w, IDsmpl, size)
@@ -227,7 +227,7 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 		if err = binary.Write(w, le, ch.SampleLoops[i]); err != nil {
 			return sum, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), err)
 		}
-		sum += int64(SampleLoopCntSize)
+		sum += int64(SampleLoopSize)
 	}
 
 	if len(ch.sampleData) > 0 {
