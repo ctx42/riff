@@ -123,7 +123,6 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		sub := ch.Chunks()[0]
 		assert.SameType(t, &ChunkLABL{}, sub)
 		assert.Equal(t, IDlabl, sub.ID())
-
 		sub = ch.Chunks()[1]
 		assert.SameType(t, &ChunkLTXT{}, sub)
 		assert.Equal(t, IDltxt, sub.ID())
