@@ -68,29 +68,29 @@ func (ch *ChunkLABL) Label() io.Reader {
 func (ch *ChunkLABL) ReadFrom(r io.Reader) (int64, error) {
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
-		return 0, fmt.Errorf(errFmtDecode, linkids(IDINFO, IDlabl), err)
+		return 0, fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
 	}
 	ch.size = size
 
 	if ch.size < LABLChunkSize {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDlabl), ErrTooShort)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), ErrTooShort)
 	}
 
 	if err := binary.Read(cr, le, &ch.CuePointID); err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDlabl), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
 	}
 
 	// Subtract the cue point ID field size.
 	ch.label, err = readBytes(cr, ch.label, int(ch.size-LABLChunkSize))
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDlabl), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
 	}
 
 	// If the length of label bytes is odd, it means the padding byte was added
 	// to the end.
 	_, err = ReadPaddingIf(cr, ch.size)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDlabl), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
 	}
 
 	return cr.Count(), nil
@@ -102,24 +102,24 @@ func (ch *ChunkLABL) WriteTo(w io.Writer) (int64, error) {
 	n, err := WriteIDAndSize(w, IDlabl, ch.size)
 	sum += n
 	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDlabl), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 
 	if err = binary.Write(w, le, ch.CuePointID); err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDlabl), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 	sum += int64(LABLChunkSize)
 
 	in, err := w.Write(ch.label)
 	sum += int64(in)
 	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDlabl), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 
 	n, err = WritePaddingIf(w, ch.size)
 	sum += n
 	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDlabl), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 
 	return sum, nil

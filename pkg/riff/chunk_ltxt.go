@@ -103,29 +103,29 @@ func (ch *ChunkLTXT) Text() io.Reader {
 func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
-		return 0, fmt.Errorf(errFmtDecode, linkids(IDINFO, IDltxt), err)
+		return 0, fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
 	}
 	ch.size = size
 
 	if ch.size < LTXTChunkSize {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDltxt), ErrTooShort)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), ErrTooShort)
 	}
 
 	if err := binary.Read(cr, le, &ch.ltxtStatic); err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDltxt), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
 	}
 
 	tl := int(ch.size - LTXTChunkSize) // Subtract ltxtStatic fields size.
 	ch.text, err = readBytes(cr, ch.text, tl)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDltxt), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
 	}
 
 	// If the length of text bytes is odd, it means the padding byte was added
 	// to the end.
 	_, err = ReadPaddingIf(cr, ch.size)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDltxt), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
 	}
 	return cr.Count(), nil
 }
@@ -136,24 +136,24 @@ func (ch *ChunkLTXT) WriteTo(w io.Writer) (int64, error) {
 	n, err := WriteIDAndSize(w, IDltxt, ch.size)
 	sum += n
 	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDltxt), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 
 	if err = binary.Write(w, le, ch.ltxtStatic); err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDltxt), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 	sum += int64(LTXTChunkSize)
 
 	in, err := w.Write(ch.text)
 	sum += int64(in)
 	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDltxt), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 
 	n, err = WritePaddingIf(w, ch.size)
 	sum += n
 	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, IDltxt), err)
+		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 
 	return sum, nil

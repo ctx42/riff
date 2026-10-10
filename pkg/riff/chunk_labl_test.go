@@ -119,7 +119,7 @@ func Test_ChunkLABL_ReadFrom_TooShortError(t *testing.T) {
 
 	// --- Then ---
 	assert.ErrorIs(t, ErrTooShort, err)
-	assert.ErrorContain(t, "INFO:labl chunk", err)
+	assert.ErrorContain(t, "adtl:labl chunk", err)
 	assert.Equal(t, int64(4), n)
 }
 

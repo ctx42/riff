@@ -141,7 +141,7 @@ func Test_ChunkLTXT_ReadFrom_TooShortError(t *testing.T) {
 
 	// --- Then ---
 	assert.ErrorIs(t, ErrTooShort, err)
-	assert.ErrorContain(t, "INFO:ltxt chunk", err)
+	assert.ErrorContain(t, "adtl:ltxt chunk", err)
 	assert.Equal(t, int64(4), n)
 }
 
