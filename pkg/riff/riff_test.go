@@ -12,6 +12,7 @@ import (
 	"github.com/ctx42/riff/internal/test"
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testkit/pkg/oskit"
 	"github.com/ctx42/testkit/pkg/testkit"
 )
 
@@ -120,7 +121,7 @@ func Test_RIFF_ReadFrom_SmokeTest(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.pth, func(t *testing.T) {
 			// --- Given ---
-			fil := must.Value(os.Open(tc.pth))
+			fil := oskit.Open(t, tc.pth)
 
 			// --- When ---
 			n, err := rif.ReadFrom(fil)
@@ -138,8 +139,7 @@ func Test_RIFF_ReadFrom_SmokeTest(t *testing.T) {
 func Test_RIFF_CorrectingSize(t *testing.T) {
 	// --- Given ---
 	rif := New(WithLoadData())
-	_, err := rif.ReadFrom(must.Value(os.Open("testdata/bwf.wav")))
-	assert.NoError(t, err)
+	must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
 
 	// --- When ---
 	dst := &bytes.Buffer{}
@@ -195,8 +195,7 @@ func Test_RIFF_WriteTo_SmokeTest(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.pth, func(t *testing.T) {
 			// --- Given ---
-			_, err := rif.ReadFrom(must.Value(os.Open(tc.pth)))
-			assert.NoError(t, err)
+			must.Value(rif.ReadFrom(oskit.Open(t, tc.pth)))
 
 			// --- When ---
 			buf := &bytes.Buffer{}
@@ -223,7 +222,7 @@ func Test_Compose(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
-		_, _ = rif.ReadFrom(must.Value(os.Open("testdata/bwf.wav")))
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
 		chs := rif.Chunks()
 
 		// --- When ---
@@ -237,7 +236,7 @@ func Test_Compose(t *testing.T) {
 	t.Run("size ok", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
-		_, _ = rif.ReadFrom(must.Value(os.Open("testdata/bwf.wav")))
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
 		chs := rif.Chunks()
 
 		// --- When ---
@@ -253,7 +252,7 @@ func Test_Modify(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
-		_, _ = rif.ReadFrom(must.Value(os.Open("testdata/bwf.wav")))
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
 		s := rif.Size()
 		chs := rif.Chunks()
 		f := chs.First(IDfmt)
@@ -327,7 +326,7 @@ func Benchmark_RIFFReuse(b *testing.B) {
 		b.Run(tc.pth, func(b *testing.B) {
 			b.StopTimer()
 			buf := must.Value(memfs.NewFile("file"))
-			_, err := buf.ReadFrom(must.Value(os.Open(tc.pth)))
+			_, err := buf.ReadFrom(oskit.Open(b, tc.pth))
 			if err != nil {
 				b.Fatal(err)
 			}
