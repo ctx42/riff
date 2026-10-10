@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ctx42/testing/pkg/assert"
-	"github.com/ctx42/testing/pkg/kit/iokit"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testkit/pkg/iokit"
 
 	"github.com/ctx42/riff/internal/test"
 )

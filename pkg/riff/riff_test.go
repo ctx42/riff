@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/ctx42/memfs/pkg/memfs"
-	"github.com/ctx42/testing/pkg/assert"
-	"github.com/ctx42/testing/pkg/kit"
-	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/riff/internal/test"
+	"github.com/ctx42/testing/pkg/assert"
+	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testkit/pkg/testkit"
 )
 
 func Test_RIFF_New(t *testing.T) {
@@ -132,7 +132,7 @@ func Test_RIFF_CorrectingSize(t *testing.T) {
 
 	assert.Equal(t, int64(27074), n)
 	assert.Equal(t, uint32(27074), rif.Size()+8)
-	assert.Equal(t, "ebdf4fefcbbb804b44cddbc50521ba29f833e05c", kit.SHA1Reader(dst))
+	assert.Equal(t, "ebdf4fefcbbb804b44cddbc50521ba29f833e05c", testkit.SHA1Reader(dst))
 }
 
 func Test_RIFF_WriteTo_SmokeTest(t *testing.T) {
@@ -196,7 +196,7 @@ func Test_RIFF_WriteTo_SmokeTest(t *testing.T) {
 			assert.Equal(t, tc.size, n)
 			size := int64(RealSize(rif.Size()) + 8)
 			assert.Equal(t, tc.size, size)
-			assert.Equal(t, tc.hash, kit.SHA1Reader(buf))
+			assert.Equal(t, tc.hash, testkit.SHA1Reader(buf))
 		})
 	}
 }

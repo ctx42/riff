@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
-	"github.com/ctx42/testing/pkg/kit/iokit"
 	"github.com/ctx42/testing/pkg/mock"
+	"github.com/ctx42/testkit/pkg/iokit"
 )
 
 func Test_StrToID(t *testing.T) {

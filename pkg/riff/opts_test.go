@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/ctx42/memfs/pkg/memfs"
+	"github.com/ctx42/riff/internal/test"
 	"github.com/ctx42/testing/pkg/assert"
-	"github.com/ctx42/testing/pkg/kit/iokit"
 	"github.com/ctx42/testing/pkg/mock"
 	"github.com/ctx42/testing/pkg/must"
-	"github.com/ctx42/riff/internal/test"
+	"github.com/ctx42/testkit/pkg/iokit"
 )
 
 func Test_NewOpts(t *testing.T) {
