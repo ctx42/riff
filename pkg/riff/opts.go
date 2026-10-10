@@ -18,26 +18,26 @@ type OptsFn func(*Opts)
 
 // WithSizeLimit is an option setting maximal size of chunk in bytes.
 func WithSizeLimit(size uint32) OptsFn {
-	return func(o *Opts) { o.sizeLimit = size }
+	return func(opt *Opts) { opt.sizeLimit = size }
 }
 
 // WithLoadData is an option setting that causes chunks' content to be loaded.
 func WithLoadData() OptsFn {
-	return func(o *Opts) { o.loadData = true }
+	return func(opt *Opts) { opt.loadData = true }
 }
 
 // WithIgnoreSize is an option setting that ignores declare chunk size and allows
 // to read more bytes. It also allows to fix main chunk size declaration.
 func WithIgnoreSize() OptsFn {
-	return func(o *Opts) { o.ignoreDeclaredSize = true }
+	return func(opt *Opts) { opt.ignoreDeclaredSize = true }
 }
 
 // WithOpts applies all values from given options.
 func WithOpts(opts Opts) OptsFn {
-	return func(o *Opts) {
-		o.sizeLimit = opts.sizeLimit
-		o.ignoreDeclaredSize = opts.ignoreDeclaredSize
-		o.loadData = opts.loadData
+	return func(opt *Opts) {
+		opt.sizeLimit = opts.sizeLimit
+		opt.ignoreDeclaredSize = opts.ignoreDeclaredSize
+		opt.loadData = opts.loadData
 	}
 }
 
@@ -62,27 +62,27 @@ type Opts struct {
 }
 
 // LoadData getter.
-func (o *Opts) LoadData() bool {
-	return o.loadData
+func (opt *Opts) LoadData() bool {
+	return opt.loadData
 }
 
 // IgnoreDeclaredSize getter.
-func (o *Opts) IgnoreDeclaredSize() bool {
-	return o.ignoreDeclaredSize
+func (opt *Opts) IgnoreDeclaredSize() bool {
+	return opt.ignoreDeclaredSize
 }
 
 // NewOpts crates Opts instance.
 func NewOpts(fns ...OptsFn) Opts {
-	opts := Opts{}
+	opt := Opts{}
 	for _, fn := range fns {
-		fn(&opts)
+		fn(&opt)
 	}
-	return opts
+	return opt
 }
 
 // ChunkReader reads first 4 bytes from reader as chunk size. Checks size
 // constrains and return reader which should be used to read chunk's content.
-func (o *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
+func (opt *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
 	var size uint32
 	if err := binary.Read(r, le, &size); err != nil {
 		return nil, 0, err
@@ -92,18 +92,18 @@ func (o *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
 	if size == math.MaxUint32 {
 		return nil, 0, ErrTooLarge
 	}
-	if o.sizeLimit != 0 && o.sizeLimit < RealSize(size) {
+	if opt.sizeLimit != 0 && opt.sizeLimit < RealSize(size) {
 		return nil, 0, ErrTooLarge
 	}
 
 	cr := NewChunkReader(r)
 	cr.setOffset(4) // Already read chunk size.
 
-	if !o.IgnoreDeclaredSize() {
+	if !opt.IgnoreDeclaredSize() {
 		cr.setLimit(int64(RealSize(size)))
 	}
-	if o.IgnoreDeclaredSize() && o.sizeLimit != 0 {
-		cr.setLimit(int64(o.sizeLimit))
+	if opt.IgnoreDeclaredSize() && opt.sizeLimit != 0 {
+		cr.setLimit(int64(opt.sizeLimit))
 	}
 
 	return cr, size, nil
