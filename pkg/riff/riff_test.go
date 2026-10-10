@@ -5,6 +5,7 @@ package riff
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"testing"
 
@@ -90,6 +91,31 @@ func Test_Compose(t *testing.T) {
 }
 
 func Test_RIFF_ReadFrom(t *testing.T) {
+	t.Run("error - empty input", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+
+		// --- When ---
+		n, err := rif.ReadFrom(bytes.NewReader(nil))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error decoding RIFF chunk: EOF", err)
+		assert.ErrorIs(t, io.EOF, err)
+		assert.Equal(t, int64(0), n)
+	})
+
+	t.Run("error - not RIFF", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+
+		// --- When ---
+		n, err := rif.ReadFrom(bytes.NewReader([]byte("RIFX")))
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrNotRIFF, err)
+		assert.Equal(t, int64(4), n)
+	})
+
 	t.Run("zero value", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewReader(must.Value(os.ReadFile("testdata/kick.wav")))

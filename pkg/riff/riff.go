@@ -172,7 +172,7 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	var id uint32
 
 	if err = ReadChunkID(r, &id); err != nil {
-		return 0, err
+		return 0, fmt.Errorf(errFmtDecode, Uint32(IDRIFF), err)
 	}
 
 	if id != IDRIFF {
