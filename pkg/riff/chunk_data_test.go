@@ -119,7 +119,7 @@ func Test_ChunkDATA_SetData(t *testing.T) {
 		err := ch.SetData([]byte{0, 1, 2})
 
 		// --- Then ---
-		assert.ErrorIs(t, err, ErrSkipDataMode)
+		assert.ErrorIs(t, ErrSkipDataMode, err)
 		assert.Equal(t, uint32(0), ch.Size())
 		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
 	})
@@ -248,7 +248,7 @@ func Test_ChunkDATA_WriteTo(t *testing.T) {
 		n, err := ch.WriteTo(&bytes.Buffer{})
 
 		// --- Then ---
-		assert.ErrorIs(t, err, ErrSkipDataMode)
+		assert.ErrorIs(t, ErrSkipDataMode, err)
 		assert.Equal(t, int64(0), n)
 	})
 

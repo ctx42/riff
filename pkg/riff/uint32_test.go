@@ -42,7 +42,7 @@ func Test_Uint32_Read(t *testing.T) {
 		n, err := Uint32(IDUNKN).Read(dst)
 
 		// --- Then ---
-		assert.ErrorIs(t, err, io.EOF)
+		assert.ErrorIs(t, io.EOF, err)
 		assert.Equal(t, 4, n)
 		assert.Equal(t, []byte{0x41, 0x42, 0x43, 0x44}, dst)
 	})

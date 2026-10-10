@@ -90,7 +90,7 @@ func Test_ReadChunkID(t *testing.T) {
 		err := ReadChunkID(src, &id)
 
 		// --- Then ---
-		assert.ErrorIs(t, err, iokit.ErrRead)
+		assert.ErrorIs(t, iokit.ErrRead, err)
 		assert.Equal(t, uint32(0), id)
 	})
 }
@@ -158,7 +158,7 @@ func Test_ReadPaddingIf(t *testing.T) {
 		n, err := ReadPaddingIf(src, 3)
 
 		// --- Then ---
-		assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 		assert.Equal(t, int64(0), n)
 	})
 }
@@ -187,7 +187,7 @@ func Test_WriteIDAndSize(t *testing.T) {
 		n, err := WriteIDAndSize(dst, IDRIFF, 124)
 
 		// --- Then ---
-		assert.ErrorIs(t, err, iokit.ErrWrite)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
 		assert.Equal(t, int64(0), n)
 		want := []byte{0x52, 0x49, 0x46}
 		assert.Equal(t, want, buf.Bytes())
@@ -202,7 +202,7 @@ func Test_WriteIDAndSize(t *testing.T) {
 		n, err := WriteIDAndSize(dst, IDRIFF, 124)
 
 		// --- Then ---
-		assert.ErrorIs(t, err, iokit.ErrWrite)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
 		assert.Equal(t, int64(4), n)
 		want := []byte{0x52, 0x49, 0x46, 0x46, 0x7c}
 		assert.Equal(t, want, buf.Bytes())
@@ -246,7 +246,7 @@ func Test_WritePaddingIf(t *testing.T) {
 		n, err := WritePaddingIf(dst, 123)
 
 		// --- Then ---
-		assert.ErrorIs(t, err, iokit.ErrWrite)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
 		assert.Equal(t, int64(0), n)
 		assert.Equal(t, []byte(nil), buf.Bytes())
 	})
