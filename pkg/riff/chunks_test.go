@@ -129,6 +129,17 @@ func Test_Chunks_Remove(t *testing.T) {
 		assert.Equal(t, 14, len(chsIDs))
 	})
 
+	t.Run("all chunks with ID", func(t *testing.T) {
+		// --- Given ---
+		chs := Chunks{RAWC(1), RAWC(2), RAWC(1)}
+
+		// --- When ---
+		have := chs.Remove(1)
+
+		// --- Then ---
+		assert.Equal(t, []uint32{2}, have.IDs())
+	})
+
 	t.Run("receiver unchanged", func(t *testing.T) {
 		// --- Given ---
 		chs := Chunks{RAWC(1), RAWC(2), RAWC(3)}
