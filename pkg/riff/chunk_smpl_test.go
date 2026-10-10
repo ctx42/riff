@@ -336,6 +336,50 @@ func Test_ChunkSMPL_ReadFrom_InvalidSizeError(t *testing.T) {
 	assert.Equal(t, int64(40), n)
 }
 
+func Test_ChunkSMPL_ReadFrom_TruncatedData(t *testing.T) {
+	// --- Given ---
+	src := smplWithoutLoopsWithData(t)
+	test.Skip4B(t, src) // Skip chunk ID.
+
+	// --- When ---
+	n, err := SMPL().ReadFrom(io.LimitReader(src, 42))
+
+	// --- Then ---
+	assert.ErrorEqual(t, "error decoding smpl chunk: unexpected EOF", err)
+	assert.Equal(t, int64(42), n)
+}
+
+func Test_ChunkSMPL_ReadFrom_TruncatedLoop(t *testing.T) {
+	// --- Given ---
+	src := smplWithLoopsNoData(t)
+	test.Skip4B(t, src) // Skip chunk ID.
+
+	// --- When ---
+	n, err := SMPL().ReadFrom(io.LimitReader(src, 50))
+
+	// --- Then ---
+	assert.ErrorEqual(t, "error decoding smpl chunk: unexpected EOF", err)
+	assert.Equal(t, int64(50), n)
+}
+
+func Test_ChunkSMPL_ReadFrom_LoopCountOverflow(t *testing.T) {
+	// --- Given ---
+	src := &bytes.Buffer{}
+	test.WriteUint32LE(t, src, 44) // ( 0) 4 - Chunk size
+	for range 7 {
+		test.WriteUint32LE(t, src, 0) // ( 4) 28 - Manufacturer to SMPTEOffset
+	}
+	test.WriteUint32LE(t, src, 0x0AAAAAAB) // (32) 4 - SampleLoopCnt
+	test.WriteUint32LE(t, src, 0)          // (36) 4 - SamplerData
+	test.WriteBytes(t, src, make([]byte, 8))
+
+	// --- When ---
+	_, err := SMPL().ReadFrom(src)
+
+	// --- Then ---
+	assert.ErrorIs(t, ErrChunkSizeMismatch, err)
+}
+
 func Test_ChunkSMPL_ReadFrom_LimitError(t *testing.T) {
 	// --- Given ---
 	src := smplWithoutLoopsWithData(t)

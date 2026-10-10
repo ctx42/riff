@@ -169,7 +169,8 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	// We trust size more than SamplerDataCnt.
-	extra := int(size) - int(SMPLChunkSize) - int(ch.SampleLoopCnt*SampleLoopCntSize)
+	loops := int64(ch.SampleLoopCnt) * int64(SampleLoopCntSize)
+	extra := int64(size) - int64(SMPLChunkSize) - loops
 	if extra < 0 {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), ErrChunkSizeMismatch)
 	}
@@ -177,14 +178,14 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	for i := 0; i < int(ch.SampleLoopCnt); i++ {
 		loop := &SampleLoop{}
 		if err := binary.Read(cr, le, loop); err != nil {
-			return 0, fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
+			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 		}
 		ch.SampleLoops = append(ch.SampleLoops, loop)
 	}
 
-	ch.sampleData, err = readBytes(cr, ch.sampleData, extra)
+	ch.sampleData, err = readBytes(cr, ch.sampleData, int(extra))
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDdata), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 	}
 
 	_, err = ReadPaddingIf(cr, size)
