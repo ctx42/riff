@@ -86,7 +86,8 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint16(6), ch.Dialect)
 		assert.Equal(t, uint16(7), ch.CodePage)
 		assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.text)
-		assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Text())))
+		text := must.Value(io.ReadAll(ch.Text()))
+		assert.Equal(t, []byte{'a', 'b', 'c'}, text)
 		assert.True(t, isAllRead(src))
 	})
 
@@ -124,8 +125,10 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 			src := ltxtChunkTextLenEven(t)
 			skip4B(t, src) // Skip chunk ID.
 
+			ch := LTXT()
+
 			// --- When ---
-			_, err := LTXT().ReadFrom(io.LimitReader(src, int64(i)))
+			_, err := ch.ReadFrom(io.LimitReader(src, int64(i)))
 
 			// --- Then ---
 			assert.Error(t, err)

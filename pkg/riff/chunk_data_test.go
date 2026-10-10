@@ -222,8 +222,10 @@ func Test_ChunkDATA_ReadFrom(t *testing.T) {
 			src := dataChunkOdd(t)
 			skip4B(t, src) // Skip chunk ID.
 
+			ch := DATA(WithLoadData())
+
 			// --- When ---
-			_, err := DATA(WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
+			_, err := ch.ReadFrom(io.LimitReader(src, int64(i)))
 
 			// --- Then ---
 			if !assert.Error(t, err) {

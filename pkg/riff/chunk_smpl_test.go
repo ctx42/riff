@@ -102,7 +102,8 @@ func smplWithLoopsWithData(t tester.T) io.Reader {
 	return src
 }
 
-// smplInvalidSize declares one SampleLoop but chunk size declares only 36 bytes.
+// smplInvalidSize declares one SampleLoop but the chunk size declares only
+// 36 bytes.
 func smplInvalidSize(t tester.T) io.Reader {
 	t.Helper()
 	src := &bytes.Buffer{}
@@ -227,7 +228,8 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(0), ch.SampleLoopCnt)
 		assert.Equal(t, uint32(3), ch.SamplerDataCnt)
 		assert.Len(t, 0, ch.SampleLoops)
-		assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.SamplerData())))
+		data := must.Value(io.ReadAll(ch.SamplerData()))
+		assert.Equal(t, []byte{0, 1, 2}, data)
 		assert.True(t, isAllRead(src))
 	})
 
@@ -295,7 +297,8 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(12), ch.SampleLoops[0].End)
 		assert.Equal(t, uint32(13), ch.SampleLoops[0].Fraction)
 		assert.Equal(t, uint32(14), ch.SampleLoops[0].PlayCnt)
-		assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.SamplerData())))
+		data := must.Value(io.ReadAll(ch.SamplerData()))
+		assert.Equal(t, []byte{0, 1, 2}, data)
 		assert.True(t, isAllRead(src))
 	})
 
@@ -329,8 +332,10 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 			src := smplWithLoopsNoData(t)
 			skip4B(t, src) // Skip chunk ID.
 
+			ch := SMPL()
+
 			// --- When ---
-			_, err := SMPL().ReadFrom(io.LimitReader(src, int64(i)))
+			_, err := ch.ReadFrom(io.LimitReader(src, int64(i)))
 
 			// --- Then ---
 			assert.Error(t, err)

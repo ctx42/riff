@@ -165,7 +165,10 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		n, err := rif.ReadFrom(src)
 
 		// --- Then ---
-		want := "error reading RIFF offset 24: error decoding RAWC:dddd chunk: unexpected EOF"
+		want := "" +
+			"error reading RIFF offset 24: " +
+			"error decoding RAWC:dddd chunk: " +
+			"unexpected EOF"
 		assert.ErrorContain(t, want, err)
 		assert.Equal(t, int64(24), n)
 		assert.Equal(t, uint32(4), rif.Size())
@@ -278,7 +281,10 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		n, err := rif.ReadFrom(src)
 
 		// --- Then ---
-		want := "error reading RIFF offset 20: error decoding RAWC:dddd chunk: size too large"
+		want := "" +
+			"error reading RIFF offset 20: " +
+			"error decoding RAWC:dddd chunk: " +
+			"size too large"
 		assert.ErrorContain(t, want, err)
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, uint32(16), rif.Size())
@@ -301,7 +307,10 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		n, err := rif.ReadFrom(src)
 
 		// --- Then ---
-		want := "error reading RIFF offset 23: error decoding RAWC:dddd chunk: unexpected EOF"
+		want := "" +
+			"error reading RIFF offset 23: " +
+			"error decoding RAWC:dddd chunk: " +
+			"unexpected EOF"
 		assert.ErrorContain(t, want, err)
 		assert.Equal(t, int64(23), n)
 		assert.Equal(t, uint32(4), rif.Size())
@@ -384,7 +393,8 @@ func Test_RIFF_WriteTo(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(27074), n)
 		assert.Equal(t, uint32(27074), rif.Size()+8)
-		assert.Equal(t, "ebdf4fefcbbb804b44cddbc50521ba29f833e05c", testkit.SHA1Reader(dst))
+		want := "ebdf4fefcbbb804b44cddbc50521ba29f833e05c"
+		assert.Equal(t, want, testkit.SHA1Reader(dst))
 	})
 }
 
@@ -396,35 +406,147 @@ func Test_RIFF_WriteTo_tabular(t *testing.T) {
 		size int64
 		hash string
 	}{
-		{"testdata/11k16bitpcm.wav", 304578, "5f90c25e3993819fc8765e87cb262751548ce71c"},
-		{"testdata/11k8bitpcm.wav", 152312, "96ae9bec8dfcd366918387e05b21b114fd3e54e4"},
-		{"testdata/11kadpcm.wav", 77252, "3be2a0c1ffebae0636fc77f8ef8f701be8a7de9e"},
-		{"testdata/11kgsm.wav", 31000, "019860d50c93ac790f0bcffaa23df418236da075"},
-		{"testdata/11kulaw.wav", 152326, "8288b2123bfc102e97ed849c659b29df1e5519b7"},
-		{"testdata/32bit.wav", 352844, "46bc96f0953df4f6f36053e65733f5e32d276167"},
-		{"testdata/8bit.wav", 88244, "ef28c1a4fc75b0e4630499b1899bef244c837424"},
-		{"testdata/8k16bitpcm.wav", 221026, "c853aa623e1a3b717fa452665f078b5b0dbf3139"},
-		{"testdata/8k8bitpcm.wav", 110532, "118c7c2d55a6bbaf55543cd8e405be146f41666d"},
-		{"testdata/8kadpcm.wav", 56072, "119f54e8cf5469d6eba0cb7a97a91ca2597faeec"},
-		{"testdata/8kcelp.wav", 8350, "e534f24ce1177a9db1d538ddb5c523125854b7a5"},
-		{"testdata/8kgsm.wav", 22550, "6b97716f68ec2d11d2fc5ef28642a2a78f39c376"},
-		{"testdata/8kmp316.wav", 27386, "da10b9c9c4f71b7f661feebf023fdb22f492b437"},
-		{"testdata/8kmp38.wav", 13584, "85da88b8fa13ea4bbee491389125729b40203682"},
-		{"testdata/8ksbc12.wav", 19658, "35036ceba255622883b5b3c948e13eb1e7184a4e"},
-		{"testdata/8ktruespeech.wav", 14842, "1be8b839cbf0135d6b330b5a5b3d63f65c1daae9"},
-		{"testdata/8kulaw.wav", 110546, "5205e7e836c2f50da1261c32649532e4fee2cdaf"},
-		{"testdata/bass.wav", 143786, "5c547df0f3d24da873d92e28ca3ecd22b83ad92b"},
-		{"testdata/dirty-kick-24b441k.wav", 132136, "61b6cebfe073f34a81bc4352e69b5a044b07e188"},
-		{"testdata/flloop.wav", 434838, "d12b046588af5475d846dd4a72f957cf03a33591"},
-		{"testdata/junkKick.wav", 83084, "5974547313bcb8804618a3048f6902a429d62a4e"},
-		{"testdata/kick-16b441k.wav", 31692, "1d7dbd0fe12ce2f8ec33ef5f90e271125a83ea94"},
+		{
+			"testdata/11k16bitpcm.wav",
+			304578,
+			"5f90c25e3993819fc8765e87cb262751548ce71c",
+		},
+		{
+			"testdata/11k8bitpcm.wav",
+			152312,
+			"96ae9bec8dfcd366918387e05b21b114fd3e54e4",
+		},
+		{
+			"testdata/11kadpcm.wav",
+			77252,
+			"3be2a0c1ffebae0636fc77f8ef8f701be8a7de9e",
+		},
+		{
+			"testdata/11kgsm.wav",
+			31000,
+			"019860d50c93ac790f0bcffaa23df418236da075",
+		},
+		{
+			"testdata/11kulaw.wav",
+			152326,
+			"8288b2123bfc102e97ed849c659b29df1e5519b7",
+		},
+		{
+			"testdata/32bit.wav",
+			352844,
+			"46bc96f0953df4f6f36053e65733f5e32d276167",
+		},
+		{
+			"testdata/8bit.wav",
+			88244,
+			"ef28c1a4fc75b0e4630499b1899bef244c837424",
+		},
+		{
+			"testdata/8k16bitpcm.wav",
+			221026,
+			"c853aa623e1a3b717fa452665f078b5b0dbf3139",
+		},
+		{
+			"testdata/8k8bitpcm.wav",
+			110532,
+			"118c7c2d55a6bbaf55543cd8e405be146f41666d",
+		},
+		{
+			"testdata/8kadpcm.wav",
+			56072,
+			"119f54e8cf5469d6eba0cb7a97a91ca2597faeec",
+		},
+		{
+			"testdata/8kcelp.wav",
+			8350,
+			"e534f24ce1177a9db1d538ddb5c523125854b7a5",
+		},
+		{
+			"testdata/8kgsm.wav",
+			22550,
+			"6b97716f68ec2d11d2fc5ef28642a2a78f39c376",
+		},
+		{
+			"testdata/8kmp316.wav",
+			27386,
+			"da10b9c9c4f71b7f661feebf023fdb22f492b437",
+		},
+		{
+			"testdata/8kmp38.wav",
+			13584,
+			"85da88b8fa13ea4bbee491389125729b40203682",
+		},
+		{
+			"testdata/8ksbc12.wav",
+			19658,
+			"35036ceba255622883b5b3c948e13eb1e7184a4e",
+		},
+		{
+			"testdata/8ktruespeech.wav",
+			14842,
+			"1be8b839cbf0135d6b330b5a5b3d63f65c1daae9",
+		},
+		{
+			"testdata/8kulaw.wav",
+			110546,
+			"5205e7e836c2f50da1261c32649532e4fee2cdaf",
+		},
+		{
+			"testdata/bass.wav",
+			143786,
+			"5c547df0f3d24da873d92e28ca3ecd22b83ad92b",
+		},
+		{
+			"testdata/dirty-kick-24b441k.wav",
+			132136,
+			"61b6cebfe073f34a81bc4352e69b5a044b07e188",
+		},
+		{
+			"testdata/flloop.wav",
+			434838,
+			"d12b046588af5475d846dd4a72f957cf03a33591",
+		},
+		{
+			"testdata/junkKick.wav",
+			83084,
+			"5974547313bcb8804618a3048f6902a429d62a4e",
+		},
+		{
+			"testdata/kick-16b441k.wav",
+			31692,
+			"1d7dbd0fe12ce2f8ec33ef5f90e271125a83ea94",
+		},
 		{"testdata/kick.wav", 9012, "cfa0812a881c3d3f2a2783b5b7a6d2ba62f7a1aa"},
-		{"testdata/listChunkInHeader.wav", 104196, "9d722b63acf00c0031a5aaf7b3f73291321aafe3"},
-		{"testdata/listinfo.wav", 176720, "8dd085ecf49c1ca781857dd1f26b16b636b7ab07"},
-		{"testdata/misaligned-chunk.wav", 3441572, "dda435791002e772da033e3e7f09a3854c9e8d76"},
-		{"testdata/padded24b.wav", 24908, "25b88e9afdc533be201b4393bc489cbfa61ec2e7"},
-		{"testdata/sample.avi", 230264, "8f30db3104fafec017241b63fbba6588ee8cd5b4"},
-		{"testdata/sample.rmi", 29640, "aa4cdab911e956439f8553772b56cd01993e9e12"},
+		{
+			"testdata/listChunkInHeader.wav",
+			104196,
+			"9d722b63acf00c0031a5aaf7b3f73291321aafe3",
+		},
+		{
+			"testdata/listinfo.wav",
+			176720,
+			"8dd085ecf49c1ca781857dd1f26b16b636b7ab07",
+		},
+		{
+			"testdata/misaligned-chunk.wav",
+			3441572,
+			"dda435791002e772da033e3e7f09a3854c9e8d76",
+		},
+		{
+			"testdata/padded24b.wav",
+			24908,
+			"25b88e9afdc533be201b4393bc489cbfa61ec2e7",
+		},
+		{
+			"testdata/sample.avi",
+			230264,
+			"8f30db3104fafec017241b63fbba6588ee8cd5b4",
+		},
+		{
+			"testdata/sample.rmi",
+			29640,
+			"aa4cdab911e956439f8553772b56cd01993e9e12",
+		},
 	}
 
 	for _, tc := range tt {

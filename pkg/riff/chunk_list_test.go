@@ -132,7 +132,9 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 	t.Run("adtl list with registered decoder", func(t *testing.T) {
 		// --- Given ---
 		reg := NewRegistry(RAWCMake(WithLoadData()))
-		reg.Register(IDlabl, func() Chunk { return RAWC(IDlabl, WithLoadData()) })
+		reg.Register(IDlabl, func() Chunk {
+			return RAWC(IDlabl, WithLoadData())
+		})
 
 		src := listChunkTypeAdtl(t)
 		skip4B(t, src) // Skip chunk ID.
@@ -256,8 +258,10 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 			src := listChunkTypeINFO(t)
 			skip4B(t, src) // Skip chunk ID.
 
+			ch := LIST(reg, WithLoadData())
+
 			// --- When ---
-			_, err := LIST(reg, WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
+			_, err := ch.ReadFrom(io.LimitReader(src, int64(i)))
 
 			// --- Then ---
 			if !assert.Error(t, err) {

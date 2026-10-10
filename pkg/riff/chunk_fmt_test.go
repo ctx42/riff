@@ -193,19 +193,49 @@ func Test_ChunkFMT_SetExtra_tabular(t *testing.T) {
 	}{
 		{"fmtWithoutExtraBytes1", fmtChunkWithoutExtraBytes, []byte{}, 16},
 		{"fmtWithoutExtraBytes2", fmtChunkWithoutExtraBytes, []byte{5, 6}, 20},
-		{"fmtWithoutExtraBytes3", fmtChunkWithoutExtraBytes, []byte{5, 6, 7}, 22},
+		{
+			"fmtWithoutExtraBytes3",
+			fmtChunkWithoutExtraBytes,
+			[]byte{5, 6, 7},
+			22,
+		},
 
 		{"fmtWithExtraBytesEven1", fmtChunkWithExtraBytesEven, []byte{}, 16},
-		{"fmtWithExtraBytesEven2", fmtChunkWithExtraBytesEven, []byte{5, 6}, 20},
-		{"fmtWithExtraBytesEven3", fmtChunkWithExtraBytesEven, []byte{5, 6, 7}, 22},
+		{
+			"fmtWithExtraBytesEven2",
+			fmtChunkWithExtraBytesEven,
+			[]byte{5, 6},
+			20,
+		},
+		{
+			"fmtWithExtraBytesEven3",
+			fmtChunkWithExtraBytesEven,
+			[]byte{5, 6, 7},
+			22,
+		},
 
 		{"fmtWithExtraBytesOdd1", fmtChunkWithExtraBytesOdd, []byte{}, 16},
 		{"fmtWithExtraBytesOdd2", fmtChunkWithExtraBytesOdd, []byte{5, 6}, 20},
-		{"fmtWithExtraBytesOdd3", fmtChunkWithExtraBytesOdd, []byte{5, 6, 7}, 22},
+		{
+			"fmtWithExtraBytesOdd3",
+			fmtChunkWithExtraBytesOdd,
+			[]byte{5, 6, 7},
+			22,
+		},
 
 		{"fmtWithExtraOfZeroLen1", fmtChunkWithExtraOfZeroLen, []byte{}, 18},
-		{"fmtWithExtraOfZeroLen2", fmtChunkWithExtraOfZeroLen, []byte{5, 6}, 20},
-		{"fmtWithExtraOfZeroLen3", fmtChunkWithExtraOfZeroLen, []byte{5, 6, 7}, 22},
+		{
+			"fmtWithExtraOfZeroLen2",
+			fmtChunkWithExtraOfZeroLen,
+			[]byte{5, 6},
+			20,
+		},
+		{
+			"fmtWithExtraOfZeroLen3",
+			fmtChunkWithExtraOfZeroLen,
+			[]byte{5, 6, 7},
+			22,
+		},
 	}
 
 	for _, tc := range tt {
@@ -375,8 +405,10 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 			src := fmtChunkWithExtraBytesOdd(t)
 			skip4B(t, src) // Skip chunk ID.
 
+			ch := FMT()
+
 			// --- When ---
-			_, err := FMT().ReadFrom(io.LimitReader(src, int64(i)))
+			_, err := ch.ReadFrom(io.LimitReader(src, int64(i)))
 
 			// --- Then ---
 			if !assert.Error(t, err) {

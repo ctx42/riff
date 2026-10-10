@@ -55,7 +55,8 @@ func Test_Uint32_Read(t *testing.T) {
 		n, err := Uint32(IDUNKN).Read(dst)
 
 		// --- Then ---
-		assert.ErrorEqual(t, "buffer too small for uint32: length too short", err)
+		want := "buffer too small for uint32: length too short"
+		assert.ErrorEqual(t, want, err)
 		assert.ErrorIs(t, ErrTooShort, err)
 		assert.Equal(t, 0, n)
 	})

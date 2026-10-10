@@ -68,7 +68,8 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(8), ch.Size())
 		assert.Equal(t, uint32(123), ch.CuePointID)
 		assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.label)
-		assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Label())))
+		label := must.Value(io.ReadAll(ch.Label()))
+		assert.Equal(t, []byte{'a', 'b', 'c'}, label)
 		assert.True(t, isAllRead(src))
 	})
 
@@ -100,8 +101,10 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 			src := lablChunkTextLenEven(t)
 			skip4B(t, src) // Skip chunk ID.
 
+			ch := LABL()
+
 			// --- When ---
-			_, err := LABL().ReadFrom(io.LimitReader(src, int64(i)))
+			_, err := ch.ReadFrom(io.LimitReader(src, int64(i)))
 
 			// --- Then ---
 			if !assert.Error(t, err) {

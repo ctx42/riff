@@ -83,7 +83,8 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 		assert.Equal(t, LabIART, ch.ID())
 		assert.Equal(t, uint32(4), ch.Size())
 		assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.text)
-		assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Text())))
+		text := must.Value(io.ReadAll(ch.Text()))
+		assert.Equal(t, []byte{'a', 'b', 'c'}, text)
 		assert.True(t, isAllRead(src))
 	})
 
@@ -128,8 +129,10 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 			src := infoChunkTextLenEven(t)
 			skip4B(t, src) // Skip chunk ID.
 
+			ch := INFO(LabIART)
+
 			// --- When ---
-			_, err := INFO(LabIART).ReadFrom(io.LimitReader(src, int64(i)))
+			_, err := ch.ReadFrom(io.LimitReader(src, int64(i)))
 
 			// --- Then ---
 			if !assert.Error(t, err) {
