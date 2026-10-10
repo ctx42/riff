@@ -1,47 +1,55 @@
 [![Go](https://github.com/ctx42/riff/actions/workflows/go.yml/badge.svg)](https://github.com/ctx42/riff/actions/workflows/go.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/ctx42/riff.svg)](https://pkg.go.dev/github.com/ctx42/riff/pkg/riff)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ctx42/riff)](https://goreportcard.com/report/github.com/ctx42/riff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
 # riff
 
 RIFF file decoder and encoder for Go.
 
-Package provides low level tools for working with files in Resource Interchange
-File Format (RIFF).
+The `riff` package reads and writes files in the Resource Interchange File
+Format (RIFF), the container behind WAVE, AVI, and RMID files. It decodes a
+file into a list of chunks you can inspect, edit, and encode back, and lets
+you register your own decoders for chunks it does not know.
 
-Supported chunks:
+## Features
 
-* RIFF
-    * data
-    * fmt
-    * LIST
-        * INFO
-        * adtl
-            * labl
-            * ltxt
-    * smpl
+- **Built-in chunk decoders**:
+  - `fmt ` — audio format
+  - `data` — audio samples
+  - `LIST` with `INFO` (tags) or `adtl` (`labl` and `ltxt` labels)
+  - `smpl` — sampler loops
+- **Unknown chunks kept**: chunks without a decoder are read as raw chunks
+  (`ChunkRAWC`); with `WithLoadData` a decode, edit, encode round trip
+  preserves them.
+- **Metadata-only mode**: by default chunk bodies such as audio samples are
+  skipped, not loaded.
+- **Custom decoders**: implement the `Chunk` interface and register it in a
+  `Registry`.
+- **Reusable instances**: one `RIFF` value decodes many files, reusing its
+  chunk decoders.
 
-Package provides a way to register custom decoders for chunks not yet supported.
+## Prerequisites
+
+Go 1.26 or later.
 
 ## Installation
 
-```
+```sh
 go get github.com/ctx42/riff
 ```
 
-## Examples
+## Usage
 
-See more examples in [examples_test.go](pkg/riff/examples_test.go).
+Import the package from `github.com/ctx42/riff/pkg/riff`. More runnable
+examples are in [examples_test.go](pkg/riff/examples_test.go).
 
-### Print fmt chunk info
+### Print the audio format
 
 ```go
 package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -49,62 +57,37 @@ import (
 )
 
 func main() {
-	// Open file.
-	src, err := os.Open("path")
+	src, err := os.Open("sample.wav")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer src.Close()
 
-	// Create RIFF instance, read only metadata.
+	// Decode chunks, reading only the metadata (the default).
 	rif := riff.New()
-
-	// Decode chunks.
-	_, err = rif.ReadFrom(src)
-	if err != nil {
+	if _, err = rif.ReadFrom(src); err != nil {
 		log.Fatal(err)
 	}
 
-	// Get all sub-chunks.
-	chs := rif.Chunks()
-
-	// Check the file has chunk we are interested in.
-	if chs.Count(riff.IDfmt) == 0 {
-		fmt.Printf(
-			"chunk %s not present in the file %s\n",
-			riff.Uint32(riff.IDfmt),
-			src.Name(),
-		)
-		return
+	chi := rif.Chunks().First(riff.IDfmt)
+	if chi == nil {
+		log.Fatal("no fmt chunk")
 	}
-
-	// Get the first fmt chunk.
-	// There should be only one of those in RIFF file,
-	// decoding would error out if there were more than one.
-	chi := chs.First(riff.IDfmt)
-
-	// Cast to concrete type.
 	ch := chi.(*riff.ChunkFMT)
 
-	fmt.Printf("Chunk fmt\n")
-	fmt.Printf(" - Compression Code: %#04x\n", ch.CompCode)
-	fmt.Printf(" - Channel Count: %d\n", ch.ChannelCnt)
-	fmt.Printf(" - Sample Rate: %d\n", ch.SampleRate)
-	fmt.Printf(" - Average Bit Rate: %d\n", ch.AvgByteRate)
-	fmt.Printf(" - Block Align: %d\n", ch.BlockAlign)
-	fmt.Printf(" - Bits Per Sample: %d\n", ch.BitsPerSample)
-
-	extra, err := io.ReadAll(ch.Extra())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf(" - Extra fmt Bytes: %v\n", extra)
-	fmt.Println()
+	fmt.Printf("Compression Code: %#04x\n", ch.CompCode)
+	fmt.Printf("Channel Count: %d\n", ch.ChannelCnt)
+	fmt.Printf("Sample Rate: %d\n", ch.SampleRate)
+	fmt.Printf("Average Byte Rate: %d\n", ch.AvgByteRate)
+	fmt.Printf("Block Align: %d\n", ch.BlockAlign)
+	fmt.Printf("Bits Per Sample: %d\n", ch.BitsPerSample)
 }
 ```
 
-### Reuse instance when decoding multiple files.
+### Edit and save a file
+
+Decode with `WithLoadData` so the chunk bodies are loaded and can be written
+back.
 
 ```go
 package main
@@ -117,138 +100,103 @@ import (
 )
 
 func main() {
-	// Create RIFF instance, read only metadata.
-	rif := riff.New()
+	src, err := os.Open("sample.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer src.Close()
 
-	for _, pth := range []string{"pth1", "pth2", "pth3"} {
-		src, err := os.Open(pth)
-		if err != nil {
-			log.Fatal(err)
-		}
+	rif := riff.New(riff.WithLoadData())
+	if _, err = rif.ReadFrom(src); err != nil {
+		log.Fatal(err)
+	}
 
-		_, err = rif.ReadFrom(src)
-		if err != nil {
-			log.Fatal(err)
-		}
+	chi := rif.Chunks().First(riff.IDfmt)
+	if chi == nil {
+		log.Fatal("no fmt chunk")
+	}
+	chi.(*riff.ChunkFMT).SampleRate = 44100
 
-		// Work on RIFF instance.
-
-		err = src.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
+	dst, err := os.Create("edited.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err = rif.WriteTo(dst); err != nil {
+		log.Fatal(err)
+	}
+	if err = dst.Close(); err != nil {
+		log.Fatal(err)
 	}
 }
 ```
 
-### Register custom chunk decoders.
+### Decode only selected chunks
+
+Build a `Registry` with the decoders you need and pass it to `Bare`. Chunks
+without a registered decoder are read as `ChunkRAWC`.
 
 ```go
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+
 	"github.com/ctx42/riff/pkg/riff"
 )
 
-func main()  {
-	// Create registry and tell it what to use to handle unknown chunks.
-	reg := riff.NewRegistry(riff.RAWCMake())
+func main() {
+	src, err := os.Open("sample.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer src.Close()
 
-	// Register one or more custom decoders.
+	reg := riff.NewRegistry(riff.RAWCMake())
 	reg.Register(riff.IDfmt, riff.FMTMake())
 
-	// Create RIFF decoder.
-	_ = riff.Bare(reg)
+	rif := riff.Bare(reg)
+	if _, err = rif.ReadFrom(src); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, ch := range rif.Chunks() {
+		fmt.Printf("%s %T\n", riff.Uint32(ch.ID()), ch)
+	}
 }
 ```
 
-In the example above only "fmt " chunks will be decoded. The rest will be 
-skipped by `ChunkRAWC` decoder.
+### Options
 
-### Save edits
+Pass options to `New`, `Bare`, or a chunk maker such as `RAWCMake`.
 
-```go
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"github.com/ctx42/riff/pkg/riff"
-)
-
-func main() {
-	// Open file.
-	src, err := os.Open("path")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer src.Close()
-
-	// Create RIFF instance, load chunks' content.
-	rif := riff.New(riff.WithLoadData())
-
-	// Decode chunks.
-	_, err = rif.ReadFrom(src)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Get all sub-chunks.
-	chs := rif.Chunks()
-
-	// Check the file has chunk we are interested in.
-	if chs.Count(riff.IDfmt) == 0 {
-		fmt.Printf(
-			"chunk %s not present in the file %s\n",
-			riff.Uint32(riff.IDfmt),
-			src.Name(),
-		)
-		return
-	}
-
-	// Get the first fmt chunk.
-	// There should be only one of those in RIFF file,
-	// decoding would error out if there were more than one.
-	chi := chs.First(riff.IDfmt)
-
-	// Cast to concrete type.
-	ch := chi.(*riff.ChunkFMT)
-
-	// Edit values.
-	ch.SampleRate = 44100
-
-	dst, err := os.Create("new_file")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = rif.WriteTo(dst)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-```
+| Option             | Effect                                                  |
+|--------------------|---------------------------------------------------------|
+| `WithLoadData()`   | Load chunk bodies; required to write a file back.       |
+| `WithSizeLimit(n)` | Reject chunks larger than `n` bytes with `ErrTooLarge`. |
+| `WithIgnoreSize()` | Read past declared chunk sizes; correct the RIFF size.  |
 
 ## FAQ
 
-### Can I reuse RIFF instance for multiple files?
+### Can I reuse a RIFF instance for multiple files?
 
-Yes.
+Yes. `ReadFrom` resets the instance before decoding, so the chunks of the
+previous file are no longer valid after the next call.
 
-### Is the library thread safe?
+### Is the library safe for concurrent use?
 
-No. It's up to the user to handle concurrency.
+No. Use one `RIFF` instance per goroutine or synchronize access yourself.
 
-### How do I create custom decoder for chunk X?
+### How do I decode a chunk the package does not support?
 
-Implement interface [Chunk](pkg/riff/chunk.go) and register it. See example above.
+Implement the [Chunk](pkg/riff/chunk.go) interface and register a `Maker` for
+its ID, as in [Decode only selected chunks](#decode-only-selected-chunks).
 
-### How unsupported chunks are handled?
+### What happens to unsupported chunks?
 
-Not supported chunks are decoded and encoded by `ChunkRAWC` so it's still
-possible to decode -> edit -> encode a file with not supported chunks. 
+They are decoded and encoded by `ChunkRAWC`. Decode with `WithLoadData` to
+keep their bodies so a decode, edit, encode round trip preserves them.
 
 ## License
 
