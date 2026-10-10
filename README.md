@@ -1,8 +1,11 @@
-## RIFF file decoder and encoder
-
+[![Go](https://github.com/ctx42/riff/actions/workflows/go.yml/badge.svg)](https://github.com/ctx42/riff/actions/workflows/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ctx42/riff.svg)](https://pkg.go.dev/github.com/ctx42/riff/pkg/riff)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ctx42/riff)](https://goreportcard.com/report/github.com/ctx42/riff)
-[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/ctx42/riff/pkg/riff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
+# riff
+
+RIFF file decoder and encoder for Go.
 
 Package provides low level tools for working with files in Resource Interchange
 File Format (RIFF).
@@ -17,7 +20,7 @@ Supported chunks:
         * adtl
             * labl
             * ltxt
-    * sampl
+    * smpl
 
 Package provides a way to register custom decoders for chunks not yet supported.
 
@@ -240,7 +243,7 @@ No. It's up to the user to handle concurrency.
 
 ### How do I create custom decoder for chunk X?
 
-Implement interface [Chunk](chunk.go) and register it. See example above.
+Implement interface [Chunk](pkg/riff/chunk.go) and register it. See example above.
 
 ### How unsupported chunks are handled?
 
