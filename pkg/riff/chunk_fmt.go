@@ -62,10 +62,6 @@ type fmtStatic struct {
 // ChunkFMT represents a format chunk containing information about
 // how the waveform data is stored.
 type ChunkFMT struct {
-	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
-	size uint32
-
 	fmtStatic
 
 	// Extra bytes.
@@ -85,11 +81,20 @@ type ChunkFMT struct {
 }
 
 func (ch *ChunkFMT) ID() uint32     { return IDfmt }
-func (ch *ChunkFMT) Size() uint32   { return ch.size }
 func (ch *ChunkFMT) Type() uint32   { return 0 }
 func (ch *ChunkFMT) Multi() bool    { return false }
 func (ch *ChunkFMT) Chunks() Chunks { return nil }
 func (ch *ChunkFMT) Raw() bool      { return false }
+
+// Size returns the chunk size computed from its current content.
+func (ch *ChunkFMT) Size() uint32 {
+	size := FMTChunkSize
+	if len(ch.extra) > 0 || ch.WriteZeroExtra {
+		// Add two bytes for the extra format bytes size.
+		size += 2 + RealSize(uint32(len(ch.extra)))
+	}
+	return size
+}
 
 // FMTMake is a Maker function for creating ChunkFMT instances.
 func FMTMake(opts ...OptsFn) Maker {
@@ -112,17 +117,8 @@ func (ch *ChunkFMT) Extra() io.Reader {
 
 // SetExtra set extra format bytes.
 func (ch *ChunkFMT) SetExtra(extra []byte) {
-	el := len(extra)
-	ch.extra = grow(ch.extra, el)
+	ch.extra = grow(ch.extra, len(extra))
 	copy(ch.extra, extra)
-
-	ch.size = FMTChunkSize
-	if el > 0 {
-		ch.size += 2 + RealSize(uint32(el))
-	}
-	if el == 0 && ch.WriteZeroExtra {
-		ch.size += 2
-	}
 }
 
 // Duration returns file duration given data size ds.
@@ -137,9 +133,8 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 	}
-	ch.size = size
 
-	if ch.size < FMTChunkSize {
+	if size < FMTChunkSize {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), ErrTooShort)
 	}
 
@@ -147,7 +142,7 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 	}
 
-	if ch.size > FMTChunkSize {
+	if size > FMTChunkSize {
 		// The first uint16 value in the byte slice is the uint16 length of
 		// extra format bytes that will not be part of the ch.extra.
 		//
@@ -159,7 +154,7 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 		}
 
-		extra := uint32(ch.size-FMTChunkSize) - 2 // Subtract uint16 size.
+		extra := uint32(size-FMTChunkSize) - 2 // Subtract uint16 size.
 		if extra == 0 {
 			ch.WriteZeroExtra = true
 		}
@@ -181,7 +176,7 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 		}
 	}
 
-	_, err = ReadPaddingIf(cr, ch.size)
+	_, err = ReadPaddingIf(cr, size)
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 	}
@@ -192,12 +187,8 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 func (ch *ChunkFMT) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
-	size := FMTChunkSize
+	size := ch.Size()
 	eln := len(ch.extra)
-	if eln > 0 || ch.WriteZeroExtra {
-		// Adding 2 for extra format bytes size.
-		size += RealSize(uint32(eln)) + 2
-	}
 
 	n, err := WriteIDAndSize(w, IDfmt, size)
 	sum += n
@@ -231,7 +222,7 @@ func (ch *ChunkFMT) WriteTo(w io.Writer) (int64, error) {
 		}
 	}
 
-	n, err = WritePaddingIf(w, ch.size)
+	n, err = WritePaddingIf(w, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)
@@ -241,7 +232,6 @@ func (ch *ChunkFMT) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (ch *ChunkFMT) Reset() {
-	ch.size = 0
 	ch.CompCode = 0
 	ch.ChannelCnt = 0
 	ch.SampleRate = 0

@@ -127,7 +127,7 @@ func Test_ChunkFMT_FMT(t *testing.T) {
 
 	// --- Then ---
 	assert.Equal(t, IDfmt, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
+	assert.Equal(t, FMTChunkSize, ch.Size())
 	assert.Equal(t, uint32(0), ch.Type())
 	assert.False(t, ch.Multi())
 	assert.Nil(t, ch.Chunks())
@@ -335,7 +335,7 @@ func Test_ChunkFMT_Reset(t *testing.T) {
 	ch.Reset()
 
 	// --- Then ---
-	assert.Equal(t, uint32(0), ch.Size())
+	assert.Equal(t, FMTChunkSize, ch.Size())
 	assert.Equal(t, CompNone, ch.CompCode)
 	assert.Equal(t, uint16(0), ch.ChannelCnt)
 	assert.Equal(t, uint32(0), ch.SampleRate)
@@ -494,6 +494,49 @@ func Test_ChunkFMT_CreateAndWrite(t *testing.T) {
 			assert.Equal(t, exp, dst.Bytes())
 		})
 	}
+}
+
+func Test_ChunkFMT_Size(t *testing.T) {
+	t.Run("new chunk", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		ch.CompCode = CompPCM
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, FMTChunkSize, have)
+	})
+
+	t.Run("write zero extra set after SetExtra", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		ch.SetExtra(nil)
+		ch.WriteZeroExtra = true
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(18), have)
+	})
+
+	t.Run("RIFF size matches written bytes", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		ch.CompCode = CompPCM
+		rif := Compose(Chunks{ch})
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := rif.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(36), n)
+		assert.Equal(t, uint32(n-8), le.Uint32(dst.Bytes()[4:8]))
+	})
 }
 
 func Test_ChunkFMT_Duration(t *testing.T) {

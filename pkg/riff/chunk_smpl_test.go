@@ -123,7 +123,7 @@ func Test_ChunkSMPL_SMPL(t *testing.T) {
 
 	// --- Then ---
 	assert.Equal(t, IDsmpl, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
+	assert.Equal(t, SMPLChunkSize, ch.Size())
 	assert.Equal(t, uint32(0), ch.Type())
 	assert.False(t, ch.Multi())
 	assert.Nil(t, ch.Chunks())
@@ -330,7 +330,6 @@ func Test_ChunkSMPL_ReadFrom_LimitError(t *testing.T) {
 func Test_ChunkSMPL_Reset(t *testing.T) {
 	// --- Given ---
 	ch := SMPL()
-	ch.size = 1
 	ch.Manufacturer = 2
 	ch.Product = 3
 	ch.SamplePeriod = 4
@@ -367,6 +366,35 @@ func Test_ChunkSMPL_Reset(t *testing.T) {
 	assert.Equal(t, uint32(0), ch.SamplerDataCnt)
 	assert.Len(t, 0, ch.SampleLoops)
 	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.SamplerData())))
+}
+
+func Test_ChunkSMPL_Size(t *testing.T) {
+	t.Run("new chunk", func(t *testing.T) {
+		// --- Given ---
+		ch := SMPL()
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, SMPLChunkSize, have)
+	})
+
+	t.Run("loop appended", func(t *testing.T) {
+		// --- Given ---
+		ch := SMPL()
+		ch.SampleLoops = append(ch.SampleLoops, &SampleLoop{})
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(60), have)
+		n, err := ch.WriteTo(dst)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(have)+8, n)
+	})
 }
 
 func Test_ChunkSMPL_WriteTo(t *testing.T) {

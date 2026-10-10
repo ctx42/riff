@@ -107,10 +107,6 @@ type smplStatic struct {
 // Source:
 // https://sites.google.com/site/musicgapi/technical-documents/wav-file-format
 type ChunkSMPL struct {
-	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
-	size uint32
-
 	smplStatic
 
 	// A list of sample loops is simply a set of consecutive loop descriptions.
@@ -141,11 +137,17 @@ func SMPL(opts ...OptsFn) *ChunkSMPL {
 }
 
 func (ch *ChunkSMPL) ID() uint32     { return IDsmpl }
-func (ch *ChunkSMPL) Size() uint32   { return ch.size }
 func (ch *ChunkSMPL) Type() uint32   { return 0 }
 func (ch *ChunkSMPL) Multi() bool    { return false }
 func (ch *ChunkSMPL) Chunks() Chunks { return nil }
 func (ch *ChunkSMPL) Raw() bool      { return false }
+
+// Size returns the chunk size computed from its current content.
+func (ch *ChunkSMPL) Size() uint32 {
+	return SMPLChunkSize +
+		uint32(len(ch.SampleLoops))*SampleLoopCntSize +
+		uint32(len(ch.sampleData))
+}
 
 // SamplerData returns reader for sampler specific data.
 func (ch *ChunkSMPL) SamplerData() io.Reader {
@@ -157,9 +159,8 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 	}
-	ch.size = size
 
-	if ch.size < SMPLChunkSize {
+	if size < SMPLChunkSize {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), ErrTooShort)
 	}
 
@@ -168,7 +169,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	// We trust size more than SamplerDataCnt.
-	extra := int(ch.size) - int(SMPLChunkSize) - int(ch.SampleLoopCnt*SampleLoopCntSize)
+	extra := int(size) - int(SMPLChunkSize) - int(ch.SampleLoopCnt*SampleLoopCntSize)
 	if extra < 0 {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), ErrChunkSizeMismatch)
 	}
@@ -188,7 +189,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDdata), err)
 	}
 
-	_, err = ReadPaddingIf(cr, ch.size)
+	_, err = ReadPaddingIf(cr, size)
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 	}
@@ -199,9 +200,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
-	size := SMPLChunkSize +
-		uint32(len(ch.SampleLoops))*SampleLoopCntSize +
-		uint32(len(ch.sampleData))
+	size := ch.Size()
 
 	ch.SampleLoopCnt = uint32(len(ch.SampleLoops))
 	ch.SamplerDataCnt = ch.SampleLoopCnt*24 + uint32(len(ch.sampleData))
@@ -232,7 +231,7 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 		sum += int64(lsd)
 	}
 
-	n, err = WritePaddingIf(w, ch.size)
+	n, err = WritePaddingIf(w, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), err)
@@ -242,7 +241,6 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (ch *ChunkSMPL) Reset() {
-	ch.size = 0
 	ch.Manufacturer = 0
 	ch.Product = 0
 	ch.SamplePeriod = 0
