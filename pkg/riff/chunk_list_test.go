@@ -62,6 +62,33 @@ func listChunkType_unknown(t *testing.T) io.Reader {
 	return src
 }
 
+func Test_adtlMake(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		id   uint32
+		want Chunk
+	}{
+		{"labl", IDlabl, &ChunkLABL{}},
+		{"ltxt", IDltxt, &ChunkLTXT{}},
+		{"other", IDUNKN, &ChunkRAWC{}},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			mkr := adtlMake(WithLoadData())
+
+			// --- When ---
+			have := mkr(tc.id)
+
+			// --- Then ---
+			assert.SameType(t, tc.want, have)
+			assert.Equal(t, tc.id, have.ID())
+		})
+	}
+}
+
 func Test_ChunkLIST_LIST(t *testing.T) {
 	// --- Given ---
 	reg := NewRegistry(RAWCMake(WithLoadData()))
@@ -124,6 +151,27 @@ func Test_ChunkLIST_Type_adtl(t *testing.T) {
 	sub = ch.Chunks()[1]
 	assert.SameType(t, &ChunkLTXT{}, sub)
 	assert.Equal(t, IDltxt, sub.ID())
+}
+
+func Test_ChunkLIST_Type_adtl_RegisteredDecoder(t *testing.T) {
+	// --- Given ---
+	reg := NewRegistry(RAWCMake(WithLoadData()))
+	reg.Register(IDlabl, func() Chunk { return RAWC(IDlabl, WithLoadData()) })
+
+	src := listChunkType_adtl(t)
+	test.Skip4B(t, src) // Skip chunk ID.
+
+	ch := LIST(reg, WithLoadData())
+
+	// --- When ---
+	_, err := ch.ReadFrom(src)
+
+	// --- Then ---
+	assert.NoError(t, err)
+	assert.Len(t, 2, ch.Chunks())
+	assert.SameType(t, &ChunkRAWC{}, ch.Chunks()[0])
+	assert.SameType(t, &ChunkLTXT{}, ch.Chunks()[1])
+	assert.False(t, reg.Has(IDltxt))
 }
 
 func Test_ChunkLIST_Type_unknown(t *testing.T) {

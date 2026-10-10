@@ -86,9 +86,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	case IDINFO:
 		mkr = INFOMake(WithOpts(ch.opts))
 	case IDadtl:
-		ch.reg.Register(IDlabl, LABLMake(WithOpts(ch.opts)))
-		ch.reg.Register(IDltxt, LTXTMake(WithOpts(ch.opts)))
-		mkr = RAWCMake(WithOpts(ch.opts))
+		mkr = adtlMake(WithOpts(ch.opts))
 
 	default:
 		mkr = RAWCMake(WithOpts(ch.opts))
@@ -162,6 +160,21 @@ func (ch *ChunkLIST) Reset() {
 		ch.reg.Put(dec)
 	}
 	ch.chunks = ch.chunks[:0]
+}
+
+// adtlMake returns an [IDMaker] creating decoders for sub-chunks of the
+// "adtl" LIST chunk: [ChunkLABL], [ChunkLTXT], and [ChunkRAWC] for the rest.
+func adtlMake(opts ...OptsFn) IDMaker {
+	return func(id uint32) Chunk {
+		switch id {
+		case IDlabl:
+			return LABL(opts...)
+		case IDltxt:
+			return LTXT(opts...)
+		default:
+			return RAWC(id, opts...)
+		}
+	}
 }
 
 // Modify set a new set of the chunks.
