@@ -354,7 +354,7 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooShort, err)
-		assert.ErrorContain(t, "smpl chunk", err)
+		assert.ErrorEqual(t, "error decoding smpl chunk: length too short", err)
 		assert.Equal(t, int64(4), n)
 	})
 
@@ -370,7 +370,8 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrChunkSizeMismatch, err)
-		assert.ErrorContain(t, "smpl chunk", err)
+		want := "error decoding smpl chunk: chunk size mismatch"
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(40), n)
 	})
 

@@ -169,7 +169,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 			"error reading RIFF offset 24: " +
 			"error decoding RAWC:dddd chunk: " +
 			"unexpected EOF"
-		assert.ErrorContain(t, want, err)
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(24), n)
 		assert.Equal(t, uint32(4), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
@@ -192,7 +192,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		want := "RIFF declared 20 bytes, decoder read 16 bytes: unexpected EOF"
-		assert.ErrorContain(t, want, err)
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(24), n)
 		assert.Equal(t, uint32(20), rif.Size())
 		assert.Len(t, 1, rif.Chunks())
@@ -213,7 +213,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		want := "error reading RIFF offset 14: unexpected EOF"
-		assert.ErrorContain(t, want, err)
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(14), n)
 		assert.Equal(t, uint32(20), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
@@ -258,7 +258,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		want := "error decoding RIFF chunk: size too large"
-		assert.ErrorContain(t, want, err)
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(4), n)
 		assert.Equal(t, uint32(0), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
@@ -285,7 +285,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 			"error reading RIFF offset 20: " +
 			"error decoding RAWC:dddd chunk: " +
 			"size too large"
-		assert.ErrorContain(t, want, err)
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, uint32(16), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
@@ -311,7 +311,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 			"error reading RIFF offset 23: " +
 			"error decoding RAWC:dddd chunk: " +
 			"unexpected EOF"
-		assert.ErrorContain(t, want, err)
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(23), n)
 		assert.Equal(t, uint32(4), rif.Size())
 		assert.Len(t, 0, rif.Chunks())

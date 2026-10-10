@@ -428,7 +428,7 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooShort, err)
-		assert.ErrorContain(t, "fmt  chunk", err)
+		assert.ErrorEqual(t, "error decoding fmt  chunk: length too short", err)
 		assert.Equal(t, int64(4), n)
 	})
 
@@ -459,7 +459,8 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrChunkSizeMismatch, err)
-		assert.ErrorContain(t, "fmt  chunk", err)
+		want := "error decoding fmt  chunk: chunk size mismatch"
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(22), n)
 	})
 
@@ -475,7 +476,8 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrChunkSizeMismatch, err)
-		assert.ErrorContain(t, "fmt  chunk", err)
+		want := "error decoding fmt  chunk: chunk size mismatch"
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(22), n)
 	})
 }

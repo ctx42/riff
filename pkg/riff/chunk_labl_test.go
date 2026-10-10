@@ -125,7 +125,8 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooShort, err)
-		assert.ErrorContain(t, "adtl:labl chunk", err)
+		want := "error decoding adtl:labl chunk: length too short"
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(4), n)
 	})
 

@@ -102,7 +102,8 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
-		assert.ErrorContain(t, "error decoding RAWC:ABCD chunk: ", err)
+		want := "error decoding RAWC:ABCD chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(0), n)
 	})
 
@@ -119,7 +120,8 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
-		assert.ErrorContain(t, "error decoding RAWC:ABCD chunk: ", err)
+		want := "error decoding RAWC:ABCD chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(8), n)
 	})
 
@@ -135,7 +137,8 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
-		assert.ErrorContain(t, "error decoding RAWC:ABCD chunk: ", err)
+		want := "error decoding RAWC:ABCD chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(7), n)
 	})
 
@@ -213,7 +216,7 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, iokit.ErrWrite, err)
-		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
+		assert.ErrorEqual(t, "error encoding RAWC:ABCD chunk: write error", err)
 		assert.Equal(t, int64(0), n)
 		want := []byte{0x41, 0x42, 0x43}
 		assert.Equal(t, want, buf.Bytes())
@@ -233,7 +236,7 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, iokit.ErrWrite, err)
-		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
+		assert.ErrorEqual(t, "error encoding RAWC:ABCD chunk: write error", err)
 		assert.Equal(t, int64(10), n)
 		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
@@ -257,7 +260,7 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, iokit.ErrWrite, err)
-		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
+		assert.ErrorEqual(t, "error encoding RAWC:ABCD chunk: write error", err)
 		assert.Equal(t, int64(12), n)
 		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.

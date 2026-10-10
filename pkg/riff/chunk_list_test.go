@@ -282,7 +282,7 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooShort, err)
-		assert.ErrorContain(t, "LIST chunk", err)
+		assert.ErrorEqual(t, "error decoding LIST chunk: length too short", err)
 		assert.Equal(t, int64(4), n)
 	})
 }
