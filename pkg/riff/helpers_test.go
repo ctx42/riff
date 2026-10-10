@@ -248,6 +248,8 @@ func Test_TrimZeroRight(t *testing.T) {
 		{"4", []byte{'a', 'b'}, []byte{'a', 'b'}},
 		{"5", []byte{'a', 'b', 0}, []byte{'a', 'b'}},
 		{"6", []byte{'a', 'b', 0, 0}, []byte{'a', 'b'}},
+		{"7", []byte{'a'}, []byte{'a'}},
+		{"8", []byte{'a', 0}, []byte{'a'}},
 	}
 
 	for _, tc := range tt {

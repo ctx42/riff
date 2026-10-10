@@ -89,7 +89,7 @@ func WritePaddingIf(w io.Writer, size uint32) (int64, error) {
 
 // TrimZeroRight removes all zero bytes from the end of the slice.
 func TrimZeroRight(b []byte) []byte {
-	for i := len(b) - 1; i > 0; i-- {
+	for i := len(b) - 1; i >= 0; i-- {
 		if b[i] > 0 {
 			return b[:i+1]
 		}
