@@ -356,6 +356,43 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 		assert.Equal(t, int64(24), cr.Count())
 	})
 
+	t.Run("error - seeker skips past end", func(t *testing.T) {
+		// --- Given ---
+		buf := bytes.NewBuffer(nil)
+		test.WriteUint32LE(t, buf, 30) // chunk size
+		for i := 0; i < 10; i++ {
+			buf.WriteByte(byte(i))
+		}
+		src := bytes.NewReader(buf.Bytes())
+
+		opts := NewOpts()
+		cr, _ := must.Values(opts.ChunkReader(src))
+
+		// --- When ---
+		err := cr.SkipN(20)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, int64(4), cr.Count())
+	})
+
+	t.Run("seeker skips zero bytes", func(t *testing.T) {
+		// --- Given ---
+		buf := bytes.NewBuffer(nil)
+		test.WriteUint32LE(t, buf, 0) // chunk size
+		src := bytes.NewReader(buf.Bytes())
+
+		opts := NewOpts()
+		cr, _ := must.Values(opts.ChunkReader(src))
+
+		// --- When ---
+		err := cr.SkipN(0)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(4), cr.Count())
+	})
+
 	t.Run("no seeker read error", func(t *testing.T) {
 		// --- Given ---
 		src := iokit.NewReaderMock(t)
@@ -389,7 +426,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 		})
 		src.OnRead(fn).Return(4, nil).Once()
 
-		src.OnSeek(int64(20), io.SeekCurrent).
+		src.OnSeek(int64(19), io.SeekCurrent).
 			Return(int64(0), iokit.ErrRead).Once()
 
 		opts := NewOpts()
@@ -401,6 +438,29 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, iokit.ErrRead, err)
 
+		assert.Equal(t, int64(4), cr.Count())
+	})
+
+	t.Run("error - probe read", func(t *testing.T) {
+		// --- Given ---
+		src := iokit.NewReadSeekerMock(t)
+
+		fn := mock.MatchBy(func(p []byte) bool {
+			p[0] = 80 // chunk size
+			return true
+		})
+		src.OnRead(fn).Return(4, nil).Once()
+		src.OnSeek(int64(19), io.SeekCurrent).Return(int64(23), nil).Once()
+		src.OnRead(mock.Any).Return(0, iokit.ErrRead).Once()
+
+		opts := NewOpts()
+		cr, _ := must.Values(opts.ChunkReader(src))
+
+		// --- When ---
+		err := cr.SkipN(20)
+
+		// --- Then ---
+		assert.ErrorIs(t, iokit.ErrRead, err)
 		assert.Equal(t, int64(4), cr.Count())
 	})
 

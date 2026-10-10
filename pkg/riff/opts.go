@@ -5,6 +5,7 @@ package riff
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 	"math"
 )
@@ -156,10 +157,19 @@ func (cr *ChunkReader) SkipN(n uint32) error {
 		return nil
 	}
 
-	// When src implements Seeker, we can just skip n bytes.
+	// When src implements Seeker, we can just skip n bytes. Seeking past the
+	// end succeeds, so read the last skipped byte to prove it exists.
 	if skr, ok := cr.src.(io.Seeker); ok {
-		_, err := skr.Seek(num, io.SeekCurrent)
-		if err != nil {
+		if num == 0 {
+			return nil
+		}
+		if _, err := skr.Seek(num-1, io.SeekCurrent); err != nil {
+			return err
+		}
+		if _, err := io.ReadFull(cr.src, make([]byte, 1)); err != nil {
+			if errors.Is(err, io.EOF) {
+				err = io.ErrUnexpectedEOF
+			}
 			return err
 		}
 		cr.moveCursors(num)
