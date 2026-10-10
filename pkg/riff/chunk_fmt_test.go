@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"testing"
 	"time"
 
@@ -482,6 +483,21 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 }
 
 func Test_ChunkFMT_WriteTo(t *testing.T) {
+	t.Run("error - extra bytes over uint16", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		ch.SetExtra(make([]byte, math.MaxUint16+1))
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := ch.WriteTo(dst)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, 0, dst.Len())
+	})
+
 	t.Run("error - write", func(t *testing.T) {
 		// Writing less then 30 bytes should always result in an error.
 		for i := 30; i > 0; i-- {

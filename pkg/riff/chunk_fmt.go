@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"time"
 )
 
@@ -118,7 +119,8 @@ func (ch *ChunkFMT) Extra() io.Reader {
 	return bytes.NewReader(ch.extra)
 }
 
-// SetExtra sets the extra format bytes.
+// SetExtra sets the extra format bytes. [ChunkFMT.WriteTo] returns
+// [ErrTooLarge] when there are more than 65535 of them.
 func (ch *ChunkFMT) SetExtra(extra []byte) {
 	ch.extra = grow(ch.extra, len(extra))
 	copy(ch.extra, extra)
@@ -200,6 +202,9 @@ func (ch *ChunkFMT) WriteTo(w io.Writer) (int64, error) {
 
 	size := ch.Size()
 	eln := len(ch.extra)
+	if eln > math.MaxUint16 {
+		return 0, fmt.Errorf(errFmtEncode, Uint32(IDfmt), ErrTooLarge)
+	}
 
 	n, err := WriteIDAndSize(w, IDfmt, size)
 	sum += n
