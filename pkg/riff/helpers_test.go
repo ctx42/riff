@@ -174,7 +174,6 @@ func Test_WriteIDAndSize(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(8), n)
-
 		want := []byte{0x52, 0x49, 0x46, 0x46, 0x7c, 0x0, 0x0, 0x0}
 		assert.Equal(t, want, dst.Bytes())
 	})
@@ -190,7 +189,6 @@ func Test_WriteIDAndSize(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, err, iokit.ErrWrite)
 		assert.Equal(t, int64(0), n)
-
 		want := []byte{0x52, 0x49, 0x46}
 		assert.Equal(t, want, buf.Bytes())
 	})
@@ -206,7 +204,6 @@ func Test_WriteIDAndSize(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, err, iokit.ErrWrite)
 		assert.Equal(t, int64(4), n)
-
 		want := []byte{0x52, 0x49, 0x46, 0x46, 0x7c}
 		assert.Equal(t, want, buf.Bytes())
 	})
@@ -223,7 +220,6 @@ func Test_WritePaddingIf(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), n)
-
 		want := []byte{0x00}
 		assert.Equal(t, want, dst.Bytes())
 	})

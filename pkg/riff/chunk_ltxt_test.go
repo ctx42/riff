@@ -75,7 +75,6 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(28), n)
 		assert.Equal(t, IDltxt, ch.ID())
 		assert.Equal(t, uint32(24), ch.Size())
@@ -103,7 +102,6 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(28), n)
 		assert.Equal(t, IDltxt, ch.ID())
 		assert.Equal(t, uint32(23), ch.Size())
@@ -219,7 +217,6 @@ func Test_ChunkLTXT_WriteTo_tabular(t *testing.T) {
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
-
 			want := must.Value(io.ReadAll(tc.ch(t)))
 			assert.Equal(t, want, dst.Bytes())
 		})

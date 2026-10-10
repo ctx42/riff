@@ -79,7 +79,6 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(8), n)
 		assert.Equal(t, LabIART, ch.ID())
 		assert.Equal(t, uint32(4), ch.Size())
@@ -100,7 +99,6 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(8), n)
 		assert.Equal(t, LabIART, ch.ID())
 		assert.Equal(t, uint32(3), ch.Size())
@@ -216,7 +214,6 @@ func Test_ChunkINFO_WriteTo_tabular(t *testing.T) {
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
-
 			want := must.Value(io.ReadAll(tc.ch(t)))
 			assert.Equal(t, want, dst.Bytes())
 		})

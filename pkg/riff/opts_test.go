@@ -74,7 +74,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(8), n)
-
 		assert.Equal(t, uint32(8), size)
 		assert.Equal(t, int64(12), cr.Count())
 	})
@@ -95,7 +94,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, io.EOF, err)
 		assert.Equal(t, int64(4), n)
-
 		assert.Equal(t, uint32(4), size)
 		assert.Equal(t, int64(8), cr.Count())
 	})
@@ -117,7 +115,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, []byte{1, 0, 0, 0}, have)
-
 		// Consecutive ReadAll call does not return error.
 		have, err = io.ReadAll(cr)
 		assert.NoError(t, err)
@@ -126,7 +123,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		n, err := io.CopyN(io.Discard, cr, 1)
 		assert.ErrorIs(t, io.EOF, err)
 		assert.Equal(t, int64(0), n)
-
 		assert.Equal(t, uint32(4), size)
 		assert.Equal(t, int64(8), cr.Count())
 	})
@@ -147,7 +143,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(8), n)
-
 		assert.Equal(t, uint32(8), size)
 		assert.Equal(t, int64(12), cr.Count())
 	})
@@ -203,7 +198,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(8), n)
-
 		assert.Equal(t, uint32(4), size)
 		assert.Equal(t, int64(12), cr.Count())
 	})
@@ -224,7 +218,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		// --- Then ---
 		assert.Error(t, io.EOF, err)
 		assert.Equal(t, int64(7), n)
-
 		assert.Equal(t, uint32(4), size)
 		assert.Equal(t, int64(11), cr.Count())
 	})
@@ -264,7 +257,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, iokit.ErrRead, err)
 		assert.Equal(t, int64(0), n)
-
 		assert.Equal(t, uint32(80), size)
 		assert.Equal(t, int64(4), cr.Count())
 	})
@@ -293,7 +285,6 @@ func Test_Opts_ChunkReader(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(28), cr0.Count())
 		assert.Equal(t, int64(20), cr1.Count())
 		assert.Equal(t, int64(12), cr2.Count())
@@ -319,7 +310,6 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		assert.NoError(t, err)
 		want := []byte{20, 21, 22, 23, 24, 25, 26, 27, 28, 29}
 		assert.Equal(t, want, must.Value(io.ReadAll(buf)))
-
 		assert.Equal(t, int64(24), cr.Count())
 	})
 
@@ -342,10 +332,8 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(24), iokit.Offset(buf))
-
 		want := []byte{20, 21, 22, 23, 24, 25, 26, 27, 28, 29}
 		assert.Equal(t, want, must.Value(io.ReadAll(buf)))
-
 		assert.Equal(t, int64(24), cr.Count())
 	})
 
@@ -405,7 +393,6 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, iokit.ErrRead, err)
-
 		assert.Equal(t, int64(4), cr.Count())
 	})
 
@@ -430,7 +417,6 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, iokit.ErrRead, err)
-
 		assert.Equal(t, int64(4), cr.Count())
 	})
 
@@ -519,15 +505,12 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(14), cr.Count())
-
 		// Reads all up to chunk limit.
 		want := []byte{10, 11, 12, 13, 14, 15}
 		assert.Equal(t, want, must.Value(io.ReadAll(cr)))
-
 		// Next reads returns EOF.
 		_, err = io.CopyN(io.Discard, cr, 1)
 		assert.ErrorIs(t, io.EOF, err)
-
 		assert.Equal(t, int64(20), cr.Count())
 	})
 

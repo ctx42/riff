@@ -98,7 +98,6 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, IDINFO, ch.Type())
 		assert.Len(t, 1, ch.Chunks())
-
 		sub := ch.Chunks()[0]
 		assert.SameType(t, &ChunkINFO{}, sub)
 		assert.Equal(t, LabIART, sub.ID())
@@ -121,7 +120,6 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		assert.Equal(t, int64(56), n)
 		assert.Equal(t, IDadtl, ch.Type())
 		assert.Len(t, 2, ch.Chunks())
-
 		sub := ch.Chunks()[0]
 		assert.SameType(t, &ChunkLABL{}, sub)
 		assert.Equal(t, IDlabl, sub.ID())
@@ -169,7 +167,6 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, IDUNKN, ch.Type())
 		assert.Len(t, 1, ch.Chunks())
-
 		sub := ch.Chunks()[0]
 		assert.SameType(t, &ChunkRAWC{}, sub)
 		assert.Equal(t, LabIART, sub.ID())
@@ -344,7 +341,6 @@ func Test_ChunkLIST_WriteTo_tabular(t *testing.T) {
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
-
 			want := must.Value(io.ReadAll(tc.ch(t)))
 			assert.Equal(t, want, dst.Bytes())
 		})

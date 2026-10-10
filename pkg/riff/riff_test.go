@@ -24,7 +24,6 @@ func Test_New(t *testing.T) {
 	assert.Equal(t, uint32(0), have.Size())
 	assert.Equal(t, uint32(0), have.Type())
 	assert.False(t, have.Multi())
-
 	assert.True(t, have.IsRegistered(IDfmt))
 	assert.True(t, have.IsRegistered(IDdata))
 	assert.False(t, have.IsRegistered(0))
@@ -42,7 +41,6 @@ func Test_Bare(t *testing.T) {
 		assert.Equal(t, uint32(0), rif.Size())
 		assert.Equal(t, uint32(0), rif.Type())
 		assert.False(t, rif.Multi())
-
 		assert.False(t, rif.IsRegistered(IDfmt))
 		assert.False(t, rif.IsRegistered(IDdata))
 	})
@@ -56,7 +54,6 @@ func Test_Bare(t *testing.T) {
 		assert.Equal(t, uint32(0), have.Size())
 		assert.Equal(t, uint32(0), have.Type())
 		assert.False(t, have.Multi())
-
 		assert.False(t, have.IsRegistered(IDfmt))
 		assert.False(t, have.IsRegistered(IDdata))
 	})
@@ -385,7 +382,6 @@ func Test_RIFF_WriteTo(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(27074), n)
 		assert.Equal(t, uint32(27074), rif.Size()+8)
 		assert.Equal(t, "ebdf4fefcbbb804b44cddbc50521ba29f833e05c", testkit.SHA1Reader(dst))

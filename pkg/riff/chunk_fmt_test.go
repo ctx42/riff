@@ -270,7 +270,6 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, uint32(16), ch.Size())
 		assert.Equal(t, CompPCM, ch.CompCode)
@@ -295,7 +294,6 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(24), n)
 		assert.Equal(t, uint32(20), ch.Size())
 		assert.Equal(t, CompPCM, ch.CompCode)
@@ -320,7 +318,6 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(26), n)
 		assert.Equal(t, uint32(22), ch.Size())
 		assert.Equal(t, CompPCM, ch.CompCode)
@@ -345,7 +342,6 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(22), n)
 		assert.Equal(t, uint32(18), ch.Size())
 		assert.Equal(t, CompPCM, ch.CompCode)

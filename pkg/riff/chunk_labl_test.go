@@ -63,7 +63,6 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(12), n)
 		assert.Equal(t, IDlabl, ch.ID())
 		assert.Equal(t, uint32(8), ch.Size())
@@ -85,7 +84,6 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(12), n)
 		assert.Equal(t, IDlabl, ch.ID())
 		assert.Equal(t, uint32(7), ch.Size())
@@ -197,7 +195,6 @@ func Test_ChunkLABL_WriteTo_tabular(t *testing.T) {
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
-
 			want := must.Value(io.ReadAll(tc.ch(t)))
 			assert.Equal(t, want, dst.Bytes())
 		})

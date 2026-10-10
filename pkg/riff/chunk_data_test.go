@@ -165,10 +165,8 @@ func Test_ChunkDATA_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, uint32(16), ch.Size())
-
 		want := []byte{
 			0x00, 0x01, 0x02, 0x03,
 			0x04, 0x05, 0x06, 0x07,
@@ -191,10 +189,8 @@ func Test_ChunkDATA_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, uint32(15), ch.Size())
-
 		want := []byte{
 			0x00, 0x01, 0x02, 0x03,
 			0x04, 0x05, 0x06, 0x07,
@@ -309,7 +305,6 @@ func Test_ChunkDATA_WriteTo_tabular(t *testing.T) {
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
-
 			want := must.Value(io.ReadAll(tc.ch(t)))
 			assert.Equal(t, want, dst.Bytes())
 		})

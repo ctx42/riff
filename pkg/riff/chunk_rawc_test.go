@@ -169,7 +169,6 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(10), n)
-
 		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x2, 0x0, 0x0, 0x0, // Size.
@@ -191,7 +190,6 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(12), n)
-
 		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x3, 0x0, 0x0, 0x0, // Size.
@@ -217,7 +215,6 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.ErrorIs(t, iokit.ErrWrite, err)
 		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
 		assert.Equal(t, int64(0), n)
-
 		want := []byte{0x41, 0x42, 0x43}
 		assert.Equal(t, want, buf.Bytes())
 	})
@@ -238,7 +235,6 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.ErrorIs(t, iokit.ErrWrite, err)
 		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
 		assert.Equal(t, int64(10), n)
-
 		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x3, 0x0, 0x0, 0x0, // Size.
@@ -263,7 +259,6 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.ErrorIs(t, iokit.ErrWrite, err)
 		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
 		assert.Equal(t, int64(12), n)
-
 		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x3, 0x0, 0x0, 0x0, // Size.

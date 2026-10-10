@@ -132,7 +132,6 @@ func Test_SMPL(t *testing.T) {
 	assert.False(t, have.Multi())
 	assert.Nil(t, have.Chunks())
 	assert.False(t, have.Raw())
-
 	assert.Equal(t, uint32(0), have.Manufacturer)
 	assert.Equal(t, uint32(0), have.Product)
 	assert.Equal(t, uint32(0), have.SamplePeriod)
@@ -188,7 +187,6 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(40), n)
 		assert.Equal(t, uint32(36), ch.Size())
 		assert.Equal(t, uint32(1), ch.Manufacturer)
@@ -217,7 +215,6 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(44), n)
 		assert.Equal(t, uint32(39), ch.Size())
 		assert.Equal(t, uint32(1), ch.Manufacturer)
@@ -246,7 +243,6 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(64), n)
 		assert.Equal(t, uint32(60), ch.Size())
 		assert.Equal(t, uint32(1), ch.Manufacturer)
@@ -281,7 +277,6 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-
 		assert.Equal(t, int64(68), n)
 		assert.Equal(t, uint32(63), ch.Size())
 		assert.Equal(t, uint32(1), ch.Manufacturer)
@@ -294,14 +289,12 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(1), ch.SampleLoopCnt)
 		assert.Equal(t, uint32(27), ch.SamplerDataCnt)
 		assert.Len(t, 1, ch.SampleLoops)
-
 		assert.Equal(t, uint32(9), ch.SampleLoops[0].CuePointID)
 		assert.Equal(t, uint32(10), ch.SampleLoops[0].Type)
 		assert.Equal(t, uint32(11), ch.SampleLoops[0].Start)
 		assert.Equal(t, uint32(12), ch.SampleLoops[0].End)
 		assert.Equal(t, uint32(13), ch.SampleLoops[0].Fraction)
 		assert.Equal(t, uint32(14), ch.SampleLoops[0].PlayCnt)
-
 		assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.SamplerData())))
 		assert.True(t, isAllRead(src))
 	})
@@ -491,7 +484,6 @@ func Test_ChunkSMPL_WriteTo_tabular(t *testing.T) {
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
-
 			want := must.Value(io.ReadAll(tc.ch(t)))
 			assert.Equal(t, want, dst.Bytes())
 		})
