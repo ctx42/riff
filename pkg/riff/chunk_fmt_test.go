@@ -12,21 +12,19 @@ import (
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
-
-	"github.com/ctx42/riff/internal/test"
 )
 
 // fmtChunkWithoutExtraBytes constructs fmt chunk without extra bytes.
 func fmtChunkWithoutExtraBytes(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDfmt)) // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16)       // ( 4) 4 - Chunk size
-	test.WriteUint16LE(t, src, CompPCM)  // ( 6) 2 - CompCode
-	test.WriteUint16LE(t, src, 1)        // ( 8) 2 - ChannelCnt
-	test.WriteUint32LE(t, src, 44100)    // (10) 4 - SampleRate
-	test.WriteUint32LE(t, src, 88200)    // (14) 4 - AvgByteRate
-	test.WriteUint16LE(t, src, 2)        // (18) 2 - BlockAlign
-	test.WriteUint16LE(t, src, 16)       // (20) 2 - BitsPerSample
+	writeUint32BE(t, src, IDfmt)   // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16)      // ( 4) 4 - Chunk size
+	writeUint16LE(t, src, CompPCM) // ( 6) 2 - CompCode
+	writeUint16LE(t, src, 1)       // ( 8) 2 - ChannelCnt
+	writeUint32LE(t, src, 44100)   // (10) 4 - SampleRate
+	writeUint32LE(t, src, 88200)   // (14) 4 - AvgByteRate
+	writeUint16LE(t, src, 2)       // (18) 2 - BlockAlign
+	writeUint16LE(t, src, 16)      // (20) 2 - BitsPerSample
 	// Total length: 8+16=24
 	return src
 }
@@ -35,16 +33,16 @@ func fmtChunkWithoutExtraBytes(t *testing.T) io.Reader {
 // even length.
 func fmtChunkWithExtraBytesEven(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDfmt))  // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16+4)      // ( 4) 4 - Chunk size
-	test.WriteUint16LE(t, src, CompPCM)   // ( 6) 2 - CompCode
-	test.WriteUint16LE(t, src, 1)         // ( 8) 2 - ChannelCnt
-	test.WriteUint32LE(t, src, 44100)     // (10) 4 - SampleRate
-	test.WriteUint32LE(t, src, 88200)     // (14) 4 - AvgByteRate
-	test.WriteUint16LE(t, src, 2)         // (18) 2 - BlockAlign
-	test.WriteUint16LE(t, src, 16)        // (20) 2 - BitsPerSample
-	test.WriteUint16LE(t, src, 2)         // (22) 2 - ExtraBytes
-	test.WriteBytes(t, src, []byte{0, 1}) // (24) 2 - Extra bytes
+	writeUint32BE(t, src, IDfmt)     // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16+4)      // ( 4) 4 - Chunk size
+	writeUint16LE(t, src, CompPCM)   // ( 6) 2 - CompCode
+	writeUint16LE(t, src, 1)         // ( 8) 2 - ChannelCnt
+	writeUint32LE(t, src, 44100)     // (10) 4 - SampleRate
+	writeUint32LE(t, src, 88200)     // (14) 4 - AvgByteRate
+	writeUint16LE(t, src, 2)         // (18) 2 - BlockAlign
+	writeUint16LE(t, src, 16)        // (20) 2 - BitsPerSample
+	writeUint16LE(t, src, 2)         // (22) 2 - ExtraBytes
+	writeBytes(t, src, []byte{0, 1}) // (24) 2 - Extra bytes
 	// Total length: 8+16+2+2=28
 	return src
 }
@@ -53,17 +51,17 @@ func fmtChunkWithExtraBytesEven(t *testing.T) io.Reader {
 // odd length.
 func fmtChunkWithExtraBytesOdd(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDfmt))     // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16+2+4)       // ( 4) 4 - Chunk size
-	test.WriteUint16LE(t, src, CompPCM)      // ( 6) 2 - CompCode
-	test.WriteUint16LE(t, src, 1)            // ( 8) 2 - ChannelCnt
-	test.WriteUint32LE(t, src, 44100)        // (10) 4 - SampleRate
-	test.WriteUint32LE(t, src, 88200)        // (14) 4 - AvgByteRate
-	test.WriteUint16LE(t, src, 2)            // (18) 2 - BlockAlign
-	test.WriteUint16LE(t, src, 16)           // (20) 2 - BitsPerSample
-	test.WriteUint16LE(t, src, 3)            // (22) 2 - ExtraBytes
-	test.WriteBytes(t, src, []byte{0, 1, 2}) // (24) 3 - Extra bytes
-	test.WriteByte(t, src, 0)                // (27) 1 - Padding byte
+	writeUint32BE(t, src, IDfmt)        // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16+2+4)       // ( 4) 4 - Chunk size
+	writeUint16LE(t, src, CompPCM)      // ( 6) 2 - CompCode
+	writeUint16LE(t, src, 1)            // ( 8) 2 - ChannelCnt
+	writeUint32LE(t, src, 44100)        // (10) 4 - SampleRate
+	writeUint32LE(t, src, 88200)        // (14) 4 - AvgByteRate
+	writeUint16LE(t, src, 2)            // (18) 2 - BlockAlign
+	writeUint16LE(t, src, 16)           // (20) 2 - BitsPerSample
+	writeUint16LE(t, src, 3)            // (22) 2 - ExtraBytes
+	writeBytes(t, src, []byte{0, 1, 2}) // (24) 3 - Extra bytes
+	writeBytes(t, src, []byte{0})       // (27) 1 - Padding byte
 	// Total length: 8+16+2+4=30
 	return src
 }
@@ -72,15 +70,15 @@ func fmtChunkWithExtraBytesOdd(t *testing.T) io.Reader {
 // zero length.
 func fmtChunkWithExtraOfZeroLen(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDfmt)) // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16+2)     // ( 4) 4 - Chunk size
-	test.WriteUint16LE(t, src, CompPCM)  // ( 6) 2 - CompCode
-	test.WriteUint16LE(t, src, 1)        // ( 8) 2 - ChannelCnt
-	test.WriteUint32LE(t, src, 44100)    // (10) 4 - SampleRate
-	test.WriteUint32LE(t, src, 88200)    // (14) 4 - AvgByteRate
-	test.WriteUint16LE(t, src, 2)        // (18) 2 - BlockAlign
-	test.WriteUint16LE(t, src, 16)       // (20) 2 - BitsPerSample
-	test.WriteUint16LE(t, src, 0)        // (22) 2 - ExtraBytes
+	writeUint32BE(t, src, IDfmt)   // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16+2)    // ( 4) 4 - Chunk size
+	writeUint16LE(t, src, CompPCM) // ( 6) 2 - CompCode
+	writeUint16LE(t, src, 1)       // ( 8) 2 - ChannelCnt
+	writeUint32LE(t, src, 44100)   // (10) 4 - SampleRate
+	writeUint32LE(t, src, 88200)   // (14) 4 - AvgByteRate
+	writeUint16LE(t, src, 2)       // (18) 2 - BlockAlign
+	writeUint16LE(t, src, 16)      // (20) 2 - BitsPerSample
+	writeUint16LE(t, src, 0)       // (22) 2 - ExtraBytes
 	// Total length: 8+16+2+0=26
 	return src
 }
@@ -89,16 +87,16 @@ func fmtChunkWithExtraOfZeroLen(t *testing.T) io.Reader {
 // invalid even size.
 func fmtChunkWithExtraInvalidSizeEven(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDfmt))     // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16+2)         // ( 4) 4 - Chunk size
-	test.WriteUint16LE(t, src, CompPCM)      // ( 6) 2 - CompCode
-	test.WriteUint16LE(t, src, 1)            // ( 8) 2 - ChannelCnt
-	test.WriteUint32LE(t, src, 44100)        // (10) 4 - SampleRate
-	test.WriteUint32LE(t, src, 88200)        // (14) 4 - AvgByteRate
-	test.WriteUint16LE(t, src, 2)            // (18) 2 - BlockAlign
-	test.WriteUint16LE(t, src, 16)           // (20) 2 - BitsPerSample
-	test.WriteUint16LE(t, src, 7000)         // (22) 2 - ExtraBytes
-	test.WriteBytes(t, src, []byte{0, 1, 2}) // (24) 3 - Extra bytes
+	writeUint32BE(t, src, IDfmt)        // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16+2)         // ( 4) 4 - Chunk size
+	writeUint16LE(t, src, CompPCM)      // ( 6) 2 - CompCode
+	writeUint16LE(t, src, 1)            // ( 8) 2 - ChannelCnt
+	writeUint32LE(t, src, 44100)        // (10) 4 - SampleRate
+	writeUint32LE(t, src, 88200)        // (14) 4 - AvgByteRate
+	writeUint16LE(t, src, 2)            // (18) 2 - BlockAlign
+	writeUint16LE(t, src, 16)           // (20) 2 - BitsPerSample
+	writeUint16LE(t, src, 7000)         // (22) 2 - ExtraBytes
+	writeBytes(t, src, []byte{0, 1, 2}) // (24) 3 - Extra bytes
 	// Total length: 8+16+2+3=29
 	return src
 }
@@ -107,16 +105,16 @@ func fmtChunkWithExtraInvalidSizeEven(t *testing.T) io.Reader {
 // declaring invalid odd size.
 func fmtChunkWithExtraInvalidSizeOdd(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDfmt))     // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16+2)         // ( 4) 4 - Chunk size
-	test.WriteUint16LE(t, src, CompPCM)      // ( 6) 2 - CompCode
-	test.WriteUint16LE(t, src, 1)            // ( 8) 2 - ChannelCnt
-	test.WriteUint32LE(t, src, 44100)        // (10) 4 - SampleRate
-	test.WriteUint32LE(t, src, 88200)        // (14) 4 - AvgByteRate
-	test.WriteUint16LE(t, src, 2)            // (18) 2 - BlockAlign
-	test.WriteUint16LE(t, src, 16)           // (20) 2 - BitsPerSample
-	test.WriteUint16LE(t, src, 7001)         // (22) 2 - ExtraBytes
-	test.WriteBytes(t, src, []byte{0, 1, 2}) // (24) 3 - Extra bytes
+	writeUint32BE(t, src, IDfmt)        // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16+2)         // ( 4) 4 - Chunk size
+	writeUint16LE(t, src, CompPCM)      // ( 6) 2 - CompCode
+	writeUint16LE(t, src, 1)            // ( 8) 2 - ChannelCnt
+	writeUint32LE(t, src, 44100)        // (10) 4 - SampleRate
+	writeUint32LE(t, src, 88200)        // (14) 4 - AvgByteRate
+	writeUint16LE(t, src, 2)            // (18) 2 - BlockAlign
+	writeUint16LE(t, src, 16)           // (20) 2 - BitsPerSample
+	writeUint16LE(t, src, 7001)         // (22) 2 - ExtraBytes
+	writeBytes(t, src, []byte{0, 1, 2}) // (24) 3 - Extra bytes
 	// Total length: 8+16+2+3=29
 	return src
 }
@@ -138,7 +136,7 @@ func Test_ChunkFMT_FMT(t *testing.T) {
 func Test_ChunkFMT_ReadFrom(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithoutExtraBytes(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := FMT()
@@ -156,13 +154,13 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 	assert.Equal(t, uint16(2), ch.BlockAlign)
 	assert.Equal(t, uint16(16), ch.BitsPerSample)
 	assert.Equal(t, []byte(nil), ch.extra)
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkFMT_ReadFrom_ExtraBytesEven(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraBytesEven(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := FMT()
@@ -180,13 +178,13 @@ func Test_ChunkFMT_ReadFrom_ExtraBytesEven(t *testing.T) {
 	assert.Equal(t, uint16(2), ch.BlockAlign)
 	assert.Equal(t, uint16(16), ch.BitsPerSample)
 	assert.Equal(t, []byte{0, 1}, ch.extra)
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkFMT_ReadFrom_ExtraBytesOdd(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraBytesOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := FMT()
@@ -204,13 +202,13 @@ func Test_ChunkFMT_ReadFrom_ExtraBytesOdd(t *testing.T) {
 	assert.Equal(t, uint16(2), ch.BlockAlign)
 	assert.Equal(t, uint16(16), ch.BitsPerSample)
 	assert.Equal(t, []byte{0, 1, 2}, ch.extra)
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkFMT_ReadFrom_LimitError(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraBytesOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := FMT(WithSizeLimit(21))
 
@@ -226,7 +224,7 @@ func Test_ChunkFMT_ReadFrom_Errors(t *testing.T) {
 	for i := 1; i < 26; i++ {
 		// --- Given ---
 		src := fmtChunkWithExtraBytesOdd(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
 		_, err := FMT().ReadFrom(io.LimitReader(src, int64(i)))
@@ -241,7 +239,7 @@ func Test_ChunkFMT_ReadFrom_Errors(t *testing.T) {
 func Test_ChunkFMT_ReadFrom_ExtraBytesOfZeroLength(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraOfZeroLen(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := FMT()
@@ -259,13 +257,13 @@ func Test_ChunkFMT_ReadFrom_ExtraBytesOfZeroLength(t *testing.T) {
 	assert.Equal(t, uint16(2), ch.BlockAlign)
 	assert.Equal(t, uint16(16), ch.BitsPerSample)
 	assert.Equal(t, []byte(nil), ch.extra)
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkFMT_ReadFrom_TooShortError(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 15)
+	writeUint32LE(t, src, 15)
 
 	// --- When ---
 	ch := FMT()
@@ -280,7 +278,7 @@ func Test_ChunkFMT_ReadFrom_TooShortError(t *testing.T) {
 func Test_ChunkFMT_ReadFrom_LimitReaderError(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraBytesOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 	src = iokit.ErrReader(src, 24)
 
 	// --- When ---
@@ -295,7 +293,7 @@ func Test_ChunkFMT_ReadFrom_LimitReaderError(t *testing.T) {
 func Test_ChunkFMT_ReadFrom_ExtraInvalidSizeEven(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraInvalidSizeEven(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := FMT()
@@ -310,7 +308,7 @@ func Test_ChunkFMT_ReadFrom_ExtraInvalidSizeEven(t *testing.T) {
 func Test_ChunkFMT_ReadFrom_ExtraInvalidSizeOdd(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraInvalidSizeOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := FMT()
@@ -325,7 +323,7 @@ func Test_ChunkFMT_ReadFrom_ExtraInvalidSizeOdd(t *testing.T) {
 func Test_ChunkFMT_Reset(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithExtraBytesOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := FMT()
 	_, err := ch.ReadFrom(src)
@@ -344,7 +342,7 @@ func Test_ChunkFMT_Reset(t *testing.T) {
 	assert.Equal(t, uint16(0), ch.BitsPerSample)
 	assert.False(t, ch.WriteZeroExtra)
 	assert.Len(t, 0, ch.extra)
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkFMT_WriteTo(t *testing.T) {
@@ -364,7 +362,7 @@ func Test_ChunkFMT_WriteTo(t *testing.T) {
 		t.Run(tc.testN, func(t *testing.T) {
 			// --- Given ---
 			src := tc.ch(t)
-			test.Skip4B(t, src) // Skip chunk ID.
+			skip4B(t, src) // Skip chunk ID.
 
 			ch := FMT()
 			_, err := ch.ReadFrom(src)
@@ -389,7 +387,7 @@ func Test_ChunkFMT_WriteTo_Errors(t *testing.T) {
 	for i := 30; i > 0; i-- {
 		// --- Given ---
 		src := fmtChunkWithExtraBytesOdd(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		ch := FMT()
 		_, err := ch.ReadFrom(src)
@@ -437,7 +435,7 @@ func Test_ChunkFMT_SetExtra(t *testing.T) {
 		t.Run(tc.testN, func(t *testing.T) {
 			// --- Given ---
 			src := tc.ch(t)
-			test.Skip4B(t, src)
+			skip4B(t, src)
 
 			ch := FMT()
 			_, err := ch.ReadFrom(src)
@@ -542,7 +540,7 @@ func Test_ChunkFMT_Size(t *testing.T) {
 func Test_ChunkFMT_Duration(t *testing.T) {
 	// --- Given ---
 	src := fmtChunkWithoutExtraBytes(t)
-	test.Skip4B(t, src)
+	skip4B(t, src)
 
 	ch := FMT()
 	_, err := ch.ReadFrom(src)

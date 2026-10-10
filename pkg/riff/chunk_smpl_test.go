@@ -11,90 +11,88 @@ import (
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
-
-	"github.com/ctx42/riff/internal/test"
 )
 
 func smplWithoutLoopsNoData(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDsmpl)) // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 36)        // ( 4) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)         // ( 8) 4 - Manufacturer
-	test.WriteUint32LE(t, src, 2)         // (12) 4 - Product
-	test.WriteUint32LE(t, src, 3)         // (16) 4 - SamplePeriod
-	test.WriteUint32LE(t, src, 4)         // (20) 4 - MIDIUnityNote
-	test.WriteUint32LE(t, src, 5)         // (24) 4 - MIDIPitchFraction
-	test.WriteUint32LE(t, src, 6)         // (28) 4 - SMPTEFormat
-	test.WriteUint32LE(t, src, 7)         // (32) 4 - SMPTEOffset
-	test.WriteUint32LE(t, src, 0)         // (36) 4 - SampleLoopCnt
-	test.WriteUint32LE(t, src, 0)         // (40) 4 - SamplerData
+	writeUint32BE(t, src, IDsmpl) // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 36)     // ( 4) 4 - Chunk size
+	writeUint32LE(t, src, 1)      // ( 8) 4 - Manufacturer
+	writeUint32LE(t, src, 2)      // (12) 4 - Product
+	writeUint32LE(t, src, 3)      // (16) 4 - SamplePeriod
+	writeUint32LE(t, src, 4)      // (20) 4 - MIDIUnityNote
+	writeUint32LE(t, src, 5)      // (24) 4 - MIDIPitchFraction
+	writeUint32LE(t, src, 6)      // (28) 4 - SMPTEFormat
+	writeUint32LE(t, src, 7)      // (32) 4 - SMPTEOffset
+	writeUint32LE(t, src, 0)      // (36) 4 - SampleLoopCnt
+	writeUint32LE(t, src, 0)      // (40) 4 - SamplerData
 	// Total length: 8+36=44
 	return src
 }
 
 func smplWithoutLoopsWithData(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDsmpl))    // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 39)           // ( 4) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)            // ( 8) 4 - Manufacturer
-	test.WriteUint32LE(t, src, 2)            // (12) 4 - Product
-	test.WriteUint32LE(t, src, 3)            // (16) 4 - SamplePeriod
-	test.WriteUint32LE(t, src, 4)            // (20) 4 - MIDIUnityNote
-	test.WriteUint32LE(t, src, 5)            // (24) 4 - MIDIPitchFraction
-	test.WriteUint32LE(t, src, 6)            // (28) 4 - SMPTEFormat
-	test.WriteUint32LE(t, src, 7)            // (32) 4 - SMPTEOffset
-	test.WriteUint32LE(t, src, 0)            // (36) 4 - SampleLoopCnt
-	test.WriteUint32LE(t, src, 3)            // (40) 4 - SamplerData
-	test.WriteBytes(t, src, []byte{0, 1, 2}) // (44) 3 - Data
-	test.WriteByte(t, src, 0)                // (47) 1 - Padding byte
+	writeUint32BE(t, src, IDsmpl)       // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 39)           // ( 4) 4 - Chunk size
+	writeUint32LE(t, src, 1)            // ( 8) 4 - Manufacturer
+	writeUint32LE(t, src, 2)            // (12) 4 - Product
+	writeUint32LE(t, src, 3)            // (16) 4 - SamplePeriod
+	writeUint32LE(t, src, 4)            // (20) 4 - MIDIUnityNote
+	writeUint32LE(t, src, 5)            // (24) 4 - MIDIPitchFraction
+	writeUint32LE(t, src, 6)            // (28) 4 - SMPTEFormat
+	writeUint32LE(t, src, 7)            // (32) 4 - SMPTEOffset
+	writeUint32LE(t, src, 0)            // (36) 4 - SampleLoopCnt
+	writeUint32LE(t, src, 3)            // (40) 4 - SamplerData
+	writeBytes(t, src, []byte{0, 1, 2}) // (44) 3 - Data
+	writeBytes(t, src, []byte{0})       // (47) 1 - Padding byte
 	// Total length: 8+36+3+1=48
 	return src
 }
 
 func smplWithLoopsNoData(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDsmpl)) // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 60)        // ( 4) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)         // ( 8) 4 - Manufacturer
-	test.WriteUint32LE(t, src, 2)         // (12) 4 - Product
-	test.WriteUint32LE(t, src, 3)         // (16) 4 - SamplePeriod
-	test.WriteUint32LE(t, src, 4)         // (20) 4 - MIDIUnityNote
-	test.WriteUint32LE(t, src, 5)         // (24) 4 - MIDIPitchFraction
-	test.WriteUint32LE(t, src, 6)         // (28) 4 - SMPTEFormat
-	test.WriteUint32LE(t, src, 7)         // (32) 4 - SMPTEOffset
-	test.WriteUint32LE(t, src, 1)         // (36) 4 - SampleLoopCnt
-	test.WriteUint32LE(t, src, 24)        // (40) 4 - SamplerData
-	test.WriteUint32LE(t, src, 9)         // (44) 4 - CuePointID
-	test.WriteUint32LE(t, src, 10)        // (48) 4 - Type
-	test.WriteUint32LE(t, src, 11)        // (52) 4 - Start
-	test.WriteUint32LE(t, src, 12)        // (56) 4 - End
-	test.WriteUint32LE(t, src, 13)        // (60) 4 - Fraction
-	test.WriteUint32LE(t, src, 14)        // (64) 4 - PlayCnt
+	writeUint32BE(t, src, IDsmpl) // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 60)     // ( 4) 4 - Chunk size
+	writeUint32LE(t, src, 1)      // ( 8) 4 - Manufacturer
+	writeUint32LE(t, src, 2)      // (12) 4 - Product
+	writeUint32LE(t, src, 3)      // (16) 4 - SamplePeriod
+	writeUint32LE(t, src, 4)      // (20) 4 - MIDIUnityNote
+	writeUint32LE(t, src, 5)      // (24) 4 - MIDIPitchFraction
+	writeUint32LE(t, src, 6)      // (28) 4 - SMPTEFormat
+	writeUint32LE(t, src, 7)      // (32) 4 - SMPTEOffset
+	writeUint32LE(t, src, 1)      // (36) 4 - SampleLoopCnt
+	writeUint32LE(t, src, 24)     // (40) 4 - SamplerData
+	writeUint32LE(t, src, 9)      // (44) 4 - CuePointID
+	writeUint32LE(t, src, 10)     // (48) 4 - Type
+	writeUint32LE(t, src, 11)     // (52) 4 - Start
+	writeUint32LE(t, src, 12)     // (56) 4 - End
+	writeUint32LE(t, src, 13)     // (60) 4 - Fraction
+	writeUint32LE(t, src, 14)     // (64) 4 - PlayCnt
 	// Total length: 8+36+24=68
 	return src
 }
 
 func smplWithLoopsWithData(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDsmpl))    // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 63)           // ( 4) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)            // ( 8) 4 - Manufacturer
-	test.WriteUint32LE(t, src, 2)            // (12) 4 - Product
-	test.WriteUint32LE(t, src, 3)            // (16) 4 - SamplePeriod
-	test.WriteUint32LE(t, src, 4)            // (20) 4 - MIDIUnityNote
-	test.WriteUint32LE(t, src, 5)            // (24) 4 - MIDIPitchFraction
-	test.WriteUint32LE(t, src, 6)            // (28) 4 - SMPTEFormat
-	test.WriteUint32LE(t, src, 7)            // (32) 4 - SMPTEOffset
-	test.WriteUint32LE(t, src, 1)            // (36) 4 - SampleLoopCnt
-	test.WriteUint32LE(t, src, 27)           // (40) 4 - SamplerData
-	test.WriteUint32LE(t, src, 9)            // (44) 4 - CuePointID
-	test.WriteUint32LE(t, src, 10)           // (48) 4 - Type
-	test.WriteUint32LE(t, src, 11)           // (52) 4 - Start
-	test.WriteUint32LE(t, src, 12)           // (56) 4 - End
-	test.WriteUint32LE(t, src, 13)           // (60) 4 - Fraction
-	test.WriteUint32LE(t, src, 14)           // (64) 4 - PlayCnt
-	test.WriteBytes(t, src, []byte{0, 1, 2}) // (68) 3 - Data
-	test.WriteByte(t, src, 0)                // (71) 1 - Padding byte
+	writeUint32BE(t, src, IDsmpl)       // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 63)           // ( 4) 4 - Chunk size
+	writeUint32LE(t, src, 1)            // ( 8) 4 - Manufacturer
+	writeUint32LE(t, src, 2)            // (12) 4 - Product
+	writeUint32LE(t, src, 3)            // (16) 4 - SamplePeriod
+	writeUint32LE(t, src, 4)            // (20) 4 - MIDIUnityNote
+	writeUint32LE(t, src, 5)            // (24) 4 - MIDIPitchFraction
+	writeUint32LE(t, src, 6)            // (28) 4 - SMPTEFormat
+	writeUint32LE(t, src, 7)            // (32) 4 - SMPTEOffset
+	writeUint32LE(t, src, 1)            // (36) 4 - SampleLoopCnt
+	writeUint32LE(t, src, 27)           // (40) 4 - SamplerData
+	writeUint32LE(t, src, 9)            // (44) 4 - CuePointID
+	writeUint32LE(t, src, 10)           // (48) 4 - Type
+	writeUint32LE(t, src, 11)           // (52) 4 - Start
+	writeUint32LE(t, src, 12)           // (56) 4 - End
+	writeUint32LE(t, src, 13)           // (60) 4 - Fraction
+	writeUint32LE(t, src, 14)           // (64) 4 - PlayCnt
+	writeBytes(t, src, []byte{0, 1, 2}) // (68) 3 - Data
+	writeBytes(t, src, []byte{0})       // (71) 1 - Padding byte
 	// Total length: 8+36+24+3+1=72
 	return src
 }
@@ -102,17 +100,17 @@ func smplWithLoopsWithData(t *testing.T) io.Reader {
 // smplInvalidSize declares one SampleLoop but chunk size declares only 36 bytes.
 func smplInvalidSize(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDsmpl)) // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 36)        // ( 4) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)         // ( 8) 4 - Manufacturer
-	test.WriteUint32LE(t, src, 2)         // (12) 4 - Product
-	test.WriteUint32LE(t, src, 3)         // (16) 4 - SamplePeriod
-	test.WriteUint32LE(t, src, 4)         // (20) 4 - MIDIUnityNote
-	test.WriteUint32LE(t, src, 5)         // (24) 4 - MIDIPitchFraction
-	test.WriteUint32LE(t, src, 6)         // (28) 4 - SMPTEFormat
-	test.WriteUint32LE(t, src, 7)         // (32) 4 - SMPTEOffset
-	test.WriteUint32LE(t, src, 1)         // (36) 4 - SampleLoopCnt
-	test.WriteUint32LE(t, src, 0)         // (40) 4 - SamplerData
+	writeUint32BE(t, src, IDsmpl) // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 36)     // ( 4) 4 - Chunk size
+	writeUint32LE(t, src, 1)      // ( 8) 4 - Manufacturer
+	writeUint32LE(t, src, 2)      // (12) 4 - Product
+	writeUint32LE(t, src, 3)      // (16) 4 - SamplePeriod
+	writeUint32LE(t, src, 4)      // (20) 4 - MIDIUnityNote
+	writeUint32LE(t, src, 5)      // (24) 4 - MIDIPitchFraction
+	writeUint32LE(t, src, 6)      // (28) 4 - SMPTEFormat
+	writeUint32LE(t, src, 7)      // (32) 4 - SMPTEOffset
+	writeUint32LE(t, src, 1)      // (36) 4 - SampleLoopCnt
+	writeUint32LE(t, src, 0)      // (40) 4 - SamplerData
 	// Total length: 8+36=44
 	return src
 }
@@ -145,7 +143,7 @@ func Test_ChunkSMPL_SMPL(t *testing.T) {
 func Test_ChunkSMPL_ReadFrom_WithoutLoops(t *testing.T) {
 	// --- Given ---
 	src := smplWithoutLoopsNoData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := SMPL()
@@ -167,13 +165,13 @@ func Test_ChunkSMPL_ReadFrom_WithoutLoops(t *testing.T) {
 	assert.Equal(t, uint32(0), ch.SamplerDataCnt)
 	assert.Len(t, 0, ch.SampleLoops)
 	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.SamplerData())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkSMPL_ReadFrom_WithoutLoopsWithData(t *testing.T) {
 	// --- Given ---
 	src := smplWithoutLoopsWithData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := SMPL()
@@ -195,13 +193,13 @@ func Test_ChunkSMPL_ReadFrom_WithoutLoopsWithData(t *testing.T) {
 	assert.Equal(t, uint32(3), ch.SamplerDataCnt)
 	assert.Len(t, 0, ch.SampleLoops)
 	assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.SamplerData())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkSMPL_ReadFrom_WithLoopsWithData(t *testing.T) {
 	// --- Given ---
 	src := smplWithLoopsWithData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := SMPL()
@@ -231,13 +229,13 @@ func Test_ChunkSMPL_ReadFrom_WithLoopsWithData(t *testing.T) {
 	assert.Equal(t, uint32(14), ch.SampleLoops[0].PlayCnt)
 
 	assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.SamplerData())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkSMPL_ReadFrom_WithLoops(t *testing.T) {
 	// --- Given ---
 	src := smplWithLoopsNoData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := SMPL()
@@ -265,13 +263,13 @@ func Test_ChunkSMPL_ReadFrom_WithLoops(t *testing.T) {
 	assert.Equal(t, uint32(13), ch.SampleLoops[0].Fraction)
 	assert.Equal(t, uint32(14), ch.SampleLoops[0].PlayCnt)
 	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.SamplerData())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkSMPL_ReadFrom_HeldLoopNotReused(t *testing.T) {
 	// --- Given ---
 	src := smplWithLoopsNoData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := SMPL()
 	must.Value(ch.ReadFrom(src))
@@ -279,7 +277,7 @@ func Test_ChunkSMPL_ReadFrom_HeldLoopNotReused(t *testing.T) {
 	ch.Reset()
 
 	src = smplWithLoopsNoData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	other := SMPL()
 
@@ -296,7 +294,7 @@ func Test_ChunkSMPL_ReadFrom_Errors(t *testing.T) {
 	for i := 1; i < 64; i++ {
 		// --- Given ---
 		src := smplWithLoopsNoData(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
 		_, err := SMPL().ReadFrom(io.LimitReader(src, int64(i)))
@@ -309,7 +307,7 @@ func Test_ChunkSMPL_ReadFrom_Errors(t *testing.T) {
 func Test_ChunkSMPL_ReadFrom_TooShortError(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 35)
+	writeUint32LE(t, src, 35)
 
 	// --- When ---
 	ch := SMPL()
@@ -324,7 +322,7 @@ func Test_ChunkSMPL_ReadFrom_TooShortError(t *testing.T) {
 func Test_ChunkSMPL_ReadFrom_InvalidSizeError(t *testing.T) {
 	// --- Given ---
 	src := smplInvalidSize(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := SMPL()
@@ -339,7 +337,7 @@ func Test_ChunkSMPL_ReadFrom_InvalidSizeError(t *testing.T) {
 func Test_ChunkSMPL_ReadFrom_TruncatedData(t *testing.T) {
 	// --- Given ---
 	src := smplWithoutLoopsWithData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	n, err := SMPL().ReadFrom(io.LimitReader(src, 42))
@@ -352,7 +350,7 @@ func Test_ChunkSMPL_ReadFrom_TruncatedData(t *testing.T) {
 func Test_ChunkSMPL_ReadFrom_TruncatedLoop(t *testing.T) {
 	// --- Given ---
 	src := smplWithLoopsNoData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	n, err := SMPL().ReadFrom(io.LimitReader(src, 50))
@@ -365,13 +363,13 @@ func Test_ChunkSMPL_ReadFrom_TruncatedLoop(t *testing.T) {
 func Test_ChunkSMPL_ReadFrom_LoopCountOverflow(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 44) // ( 0) 4 - Chunk size
+	writeUint32LE(t, src, 44) // ( 0) 4 - Chunk size
 	for range 7 {
-		test.WriteUint32LE(t, src, 0) // ( 4) 28 - Manufacturer to SMPTEOffset
+		writeUint32LE(t, src, 0) // ( 4) 28 - Manufacturer to SMPTEOffset
 	}
-	test.WriteUint32LE(t, src, 0x0AAAAAAB) // (32) 4 - SampleLoopCnt
-	test.WriteUint32LE(t, src, 0)          // (36) 4 - SamplerData
-	test.WriteBytes(t, src, make([]byte, 8))
+	writeUint32LE(t, src, 0x0AAAAAAB) // (32) 4 - SampleLoopCnt
+	writeUint32LE(t, src, 0)          // (36) 4 - SamplerData
+	writeBytes(t, src, make([]byte, 8))
 
 	// --- When ---
 	_, err := SMPL().ReadFrom(src)
@@ -383,7 +381,7 @@ func Test_ChunkSMPL_ReadFrom_LoopCountOverflow(t *testing.T) {
 func Test_ChunkSMPL_ReadFrom_LimitError(t *testing.T) {
 	// --- Given ---
 	src := smplWithoutLoopsWithData(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := SMPL(WithSizeLimit(39))
 
@@ -481,7 +479,7 @@ func Test_ChunkSMPL_WriteTo(t *testing.T) {
 		t.Run(tc.testN, func(t *testing.T) {
 			// --- Given ---
 			src := tc.ch(t)
-			test.Skip4B(t, src) // Skip chunk ID.
+			skip4B(t, src) // Skip chunk ID.
 
 			ch := SMPL()
 			_, err := ch.ReadFrom(src)
@@ -506,7 +504,7 @@ func Test_ChunkSMPL_WriteTo_Errors(t *testing.T) {
 	for i := 64; i > 0; i-- {
 		// --- Given ---
 		src := smplWithLoopsNoData(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		ch := SMPL()
 		_, err := ch.ReadFrom(src)

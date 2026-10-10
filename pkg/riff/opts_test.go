@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/ctx42/memfs/pkg/memfs"
-	"github.com/ctx42/riff/internal/test"
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/mock"
 	"github.com/ctx42/testing/pkg/must"
@@ -62,9 +61,9 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("read whole chunk", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, 8) // size 8
-		test.WriteUint32LE(t, src, 1) // some data
-		test.WriteUint32LE(t, src, 2) // some data
+		writeUint32LE(t, src, 8) // size 8
+		writeUint32LE(t, src, 1) // some data
+		writeUint32LE(t, src, 2) // some data
 
 		opts := NewOpts()
 		cr, size := must.Values(opts.ChunkReader(src))
@@ -83,9 +82,9 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("hit chunk declared size", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, 4) // size 4
-		test.WriteUint32LE(t, src, 1) // some data
-		test.WriteUint32LE(t, src, 2) // some data
+		writeUint32LE(t, src, 4) // size 4
+		writeUint32LE(t, src, 1) // some data
+		writeUint32LE(t, src, 2) // some data
 
 		opts := NewOpts()
 		cr, size := must.Values(opts.ChunkReader(src))
@@ -104,10 +103,10 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("limit supports ReadAll behaviour", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, 4) // size 4
-		test.WriteUint32LE(t, src, 1) // some data
-		test.WriteUint32LE(t, src, 2) // some data
-		test.WriteUint32LE(t, src, 3) // some data
+		writeUint32LE(t, src, 4) // size 4
+		writeUint32LE(t, src, 1) // some data
+		writeUint32LE(t, src, 2) // some data
+		writeUint32LE(t, src, 3) // some data
 
 		opts := NewOpts()
 		cr, size := must.Values(opts.ChunkReader(src))
@@ -135,9 +134,9 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("read whole chunk with size limit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, 8) // size 8
-		test.WriteUint32LE(t, src, 1) // some data
-		test.WriteUint32LE(t, src, 2) // some data
+		writeUint32LE(t, src, 8) // size 8
+		writeUint32LE(t, src, 1) // some data
+		writeUint32LE(t, src, 2) // some data
 
 		opts := NewOpts(WithSizeLimit(8))
 		cr, size := must.Values(opts.ChunkReader(src))
@@ -156,9 +155,9 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("hit chunk max size limit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, 8) // size 8
-		test.WriteUint32LE(t, src, 1) // some data
-		test.WriteUint32LE(t, src, 2) // some data
+		writeUint32LE(t, src, 8) // size 8
+		writeUint32LE(t, src, 1) // some data
+		writeUint32LE(t, src, 2) // some data
 
 		opts := NewOpts(WithSizeLimit(7))
 
@@ -174,8 +173,8 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("error - size cannot be padded", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, math.MaxUint32) // size
-		test.WriteUint32LE(t, src, 1)              // some data
+		writeUint32LE(t, src, math.MaxUint32) // size
+		writeUint32LE(t, src, 1)              // some data
 
 		opts := NewOpts()
 
@@ -191,9 +190,9 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("ignore size declaration", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, 4) // size 4
-		test.WriteUint32LE(t, src, 1) // some data
-		test.WriteUint32LE(t, src, 2) // some data
+		writeUint32LE(t, src, 4) // size 4
+		writeUint32LE(t, src, 1) // some data
+		writeUint32LE(t, src, 2) // some data
 
 		opts := NewOpts(WithIgnoreSize())
 		cr, size := must.Values(opts.ChunkReader(src))
@@ -212,9 +211,9 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("ignore size declaration with size limit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, src, 4) // size 4
-		test.WriteUint32LE(t, src, 1) // some data
-		test.WriteUint32LE(t, src, 2) // some data
+		writeUint32LE(t, src, 4) // size 4
+		writeUint32LE(t, src, 1) // some data
+		writeUint32LE(t, src, 2) // some data
 
 		opts := NewOpts(WithIgnoreSize(), WithSizeLimit(7))
 		cr, size := must.Values(opts.ChunkReader(src))
@@ -273,7 +272,7 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	t.Run("nested readers", func(t *testing.T) {
 		// --- Given ---
 		buf := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, buf, 30) // chunk size
+		writeUint32LE(t, buf, 30) // chunk size
 		for i := 0; i < 30; i++ {
 			buf.WriteByte(byte(i))
 		}
@@ -311,7 +310,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("no seeker skips by reading", func(t *testing.T) {
 		// --- Given ---
 		buf := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, buf, 30) // chunk size
+		writeUint32LE(t, buf, 30) // chunk size
 		for i := 0; i < 30; i++ {
 			buf.WriteByte(byte(i))
 		}
@@ -333,7 +332,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("seeker ok", func(t *testing.T) {
 		// --- Given ---
 		buf := &memfs.File{}
-		test.WriteUint32LE(t, buf, 30) // chunk size
+		writeUint32LE(t, buf, 30) // chunk size
 		for i := 0; i < 30; i++ {
 			_ = buf.WriteByte(byte(i))
 		}
@@ -359,7 +358,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("error - seeker skips past end", func(t *testing.T) {
 		// --- Given ---
 		buf := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, buf, 30) // chunk size
+		writeUint32LE(t, buf, 30) // chunk size
 		for i := 0; i < 10; i++ {
 			buf.WriteByte(byte(i))
 		}
@@ -379,7 +378,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("seeker skips zero bytes", func(t *testing.T) {
 		// --- Given ---
 		buf := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, buf, 0) // chunk size
+		writeUint32LE(t, buf, 0) // chunk size
 		src := bytes.NewReader(buf.Bytes())
 
 		opts := NewOpts()
@@ -467,7 +466,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("no seeker multiple skips", func(t *testing.T) {
 		// --- Given ---
 		buf := bytes.NewBuffer(nil)
-		test.WriteUint32LE(t, buf, 30) // chunk size
+		writeUint32LE(t, buf, 30) // chunk size
 		for i := 0; i < 30; i++ {
 			buf.WriteByte(byte(i))
 		}
@@ -493,7 +492,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("seeker multiple skips", func(t *testing.T) {
 		// --- Given ---
 		buf := &memfs.File{}
-		test.WriteUint32LE(t, buf, 30) // chunk size
+		writeUint32LE(t, buf, 30) // chunk size
 		for i := 0; i < 30; i++ {
 			_ = buf.WriteByte(byte(i))
 		}
@@ -520,7 +519,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("seeker skips reduces limit", func(t *testing.T) {
 		// --- Given ---
 		buf := &memfs.File{}
-		test.WriteUint32LE(t, buf, 16) // chunk size
+		writeUint32LE(t, buf, 16) // chunk size
 		for i := 0; i < 30; i++ {
 			_ = buf.WriteByte(byte(i))
 		}
@@ -551,7 +550,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 	t.Run("nested readers", func(t *testing.T) {
 		// --- Given ---
 		buf := &memfs.File{}
-		test.WriteUint32LE(t, buf, 30) // chunk size
+		writeUint32LE(t, buf, 30) // chunk size
 		for i := 0; i < 30; i++ {
 			_ = buf.WriteByte(byte(i))
 		}

@@ -12,8 +12,6 @@ import (
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
-
-	"github.com/ctx42/riff/internal/test"
 )
 
 // dataChunkEven constructs data chunk with even number of data bytes.
@@ -26,9 +24,9 @@ func dataChunkEven(t *testing.T) io.Reader {
 	}
 
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDdata)) // (0)  4 - Chunk ID
-	test.WriteUint32LE(t, src, 16)        // (4)  4 - Chunk size
-	test.WriteBytes(t, src, data)         // (8) 16 - Data
+	writeUint32BE(t, src, IDdata) // (0)  4 - Chunk ID
+	writeUint32LE(t, src, 16)     // (4)  4 - Chunk size
+	writeBytes(t, src, data)      // (8) 16 - Data
 	// Total length: 8+16=24
 	return src
 }
@@ -43,10 +41,10 @@ func dataChunkOdd(t *testing.T) io.Reader {
 	}
 
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDdata)) // ( 0)  4 - Chunk ID
-	test.WriteUint32LE(t, src, 15)        // ( 4)  4 - Chunk size
-	test.WriteBytes(t, src, data)         // ( 8) 15 - Data
-	test.WriteByte(t, src, 0)             // (24)  1 - Padding byte
+	writeUint32BE(t, src, IDdata) // ( 0)  4 - Chunk ID
+	writeUint32LE(t, src, 15)     // ( 4)  4 - Chunk size
+	writeBytes(t, src, data)      // ( 8) 15 - Data
+	writeBytes(t, src, []byte{0}) // (24)  1 - Padding byte
 	// Total length: 8+16=24
 	return src
 }
@@ -123,7 +121,7 @@ func Test_ChunkDATA_SetData_SkipDataMode_Error(t *testing.T) {
 func Test_ChunkDATA_ReadFrom_Even(t *testing.T) {
 	// --- Given ---
 	src := dataChunkEven(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := DATA(WithLoadData())
 
@@ -143,13 +141,13 @@ func Test_ChunkDATA_ReadFrom_Even(t *testing.T) {
 		0x0c, 0x0d, 0x0e, 0x0f,
 	}
 	assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkDATA_ReadFrom_Odd(t *testing.T) {
 	// --- Given ---
 	src := dataChunkOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := DATA(WithLoadData())
 
@@ -169,13 +167,13 @@ func Test_ChunkDATA_ReadFrom_Odd(t *testing.T) {
 		0x0c, 0x0d, 0x0e,
 	}
 	assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkDATA_ReadFrom_LimitError(t *testing.T) {
 	// --- Given ---
 	src := dataChunkOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := DATA(WithSizeLimit(15))
 
@@ -191,7 +189,7 @@ func Test_ChunkDATA_ReadFrom_Errors(t *testing.T) {
 	for i := 1; i < 20; i++ {
 		// --- Given ---
 		src := dataChunkOdd(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
 		_, err := DATA(WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
@@ -218,7 +216,7 @@ func TestChunkDATA_WriteTo(t *testing.T) {
 		t.Run(tc.testN, func(t *testing.T) {
 			// --- Given ---
 			src := tc.ch(t)
-			test.Skip4B(t, src) // Skip chunk ID.
+			skip4B(t, src) // Skip chunk ID.
 
 			ch := DATA(WithLoadData())
 			must.Value(ch.ReadFrom(src))
@@ -242,7 +240,7 @@ func Test_ChunkDATA_WriteTo_Errors(t *testing.T) {
 	for i := 24; i > 0; i-- {
 		// --- Given ---
 		src := dataChunkOdd(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		ch := DATA(WithLoadData())
 		_, err := ch.ReadFrom(src)
@@ -264,7 +262,7 @@ func Test_ChunkDATA_WriteTo_Errors(t *testing.T) {
 func Test_ChunkDATA_WriteTo_SkipData(t *testing.T) {
 	// --- Given ---
 	src := dataChunkOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := DATA()
 	_, err := ch.ReadFrom(src)

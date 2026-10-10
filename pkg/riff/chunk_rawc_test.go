@@ -13,8 +13,6 @@ import (
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
-
-	"github.com/ctx42/riff/internal/test"
 )
 
 func Test_ChunkRAWC_RAWC(t *testing.T) {
@@ -33,7 +31,7 @@ func Test_ChunkRAWC_RAWC(t *testing.T) {
 func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 3)    // Chunk size (4).
+	writeUint32LE(t, src, 3)         // Chunk size (4).
 	src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
 	src.WriteByte(0)                 // Padding byte (1).
 
@@ -47,7 +45,7 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 	assert.Equal(t, uint32(3), ch.Size())
 	assert.Equal(t, uint32(0), ch.Type())
 	assert.Equal(t, []byte{'A', 'B', 'C'}, ch.data)
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkRAWC_ReadFrom_ErrUnexpectedEOF(t *testing.T) {
@@ -68,7 +66,7 @@ func Test_ChunkRAWC_ReadFrom_ErrUnexpectedEOF(t *testing.T) {
 func Test_ChunkRAWC_ReadFrom_ErrorReadingData(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 10)   // Chunk size (4).
+	writeUint32LE(t, src, 10)        // Chunk size (4).
 	src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
 	src.WriteByte(0)                 // Padding byte (1).
 
@@ -85,7 +83,7 @@ func Test_ChunkRAWC_ReadFrom_ErrorReadingData(t *testing.T) {
 func Test_ChunkRAWC_ReadFrom_ErrorReadingPadding(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 3)    // Chunk size (4).
+	writeUint32LE(t, src, 3)         // Chunk size (4).
 	src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
 
 	// --- When ---
@@ -101,7 +99,7 @@ func Test_ChunkRAWC_ReadFrom_ErrorReadingPadding(t *testing.T) {
 func Test_ChunkRAWC_ReadFrom_LimitError(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 4)         // Chunk size (4).
+	writeUint32LE(t, src, 4)              // Chunk size (4).
 	src.Write([]byte{'A', 'B', 'C', 'D'}) // Chunk data (*).
 
 	ch := RAWC(IDUNKN, WithLoadData(), WithSizeLimit(3))
@@ -116,7 +114,7 @@ func Test_ChunkRAWC_ReadFrom_LimitError(t *testing.T) {
 func Test_ChunkRAWC_ReadFrom_SkipData_SeekAvailable(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 3)    // Chunk size (4).
+	writeUint32LE(t, src, 3)         // Chunk size (4).
 	src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
 	src.WriteByte(0)                 // Padding byte (1).
 
@@ -129,19 +127,19 @@ func Test_ChunkRAWC_ReadFrom_SkipData_SeekAvailable(t *testing.T) {
 	assert.Equal(t, int64(8), n)
 	assert.Equal(t, uint32(3), ch.Size())
 	assert.Nil(t, ch.data)
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkRAWC_ReadFrom_SkipData_SeekNotAvailable(t *testing.T) {
 	// --- Given ---
 	tmp := must.Value(memfs.NewFile("file"))
-	test.WriteUint32LE(t, tmp, 3)                  // Chunk size (4).
-	test.WriteBytes(t, tmp, []byte{'A', 'B', 'C'}) // Chunk data (*).
-	test.WriteByte(t, tmp, 0)                      // Padding byte (1).
-	tmp.SeekStart()                                // Seek to buffer start.
+	writeUint32LE(t, tmp, 3)                  // Chunk size (4).
+	writeBytes(t, tmp, []byte{'A', 'B', 'C'}) // Chunk data (*).
+	writeBytes(t, tmp, []byte{0})             // Padding byte (1).
+	tmp.SeekStart()                           // Seek to buffer start.
 
-	src := &bytes.Buffer{} // bytes.Buffer doesn't have Seek method.
-	test.WriteTo(t, src, tmp)
+	// The bytes.Buffer doesn't have Seek method.
+	src := bytes.NewBuffer(must.Value(io.ReadAll(tmp)))
 
 	// --- When ---
 	ch := RAWC(IDUNKN)

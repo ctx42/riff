@@ -11,39 +11,37 @@ import (
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
-
-	"github.com/ctx42/riff/internal/test"
 )
 
 func ltxtChunkTextLenEven(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDltxt))             // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 24)                    // ( 4) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)                     // ( 8) 4 - PID
-	test.WriteUint32LE(t, src, 2)                     // (12) 4 - SamLen
-	test.WriteUint32LE(t, src, 3)                     // (16) 4 - PurID
-	test.WriteUint16LE(t, src, 4)                     // (20) 2 - Country
-	test.WriteUint16LE(t, src, 5)                     // (22) 2 - Language
-	test.WriteUint16LE(t, src, 6)                     // (24) 2 - Dialect
-	test.WriteUint16LE(t, src, 7)                     // (26) 2 - CodePage
-	test.WriteBytes(t, src, []byte{'a', 'b', 'c', 0}) // (28) 4 - Text
+	writeUint32BE(t, src, IDltxt)                // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 24)                    // ( 4) 4 - Chunk size
+	writeUint32LE(t, src, 1)                     // ( 8) 4 - PID
+	writeUint32LE(t, src, 2)                     // (12) 4 - SamLen
+	writeUint32LE(t, src, 3)                     // (16) 4 - PurID
+	writeUint16LE(t, src, 4)                     // (20) 2 - Country
+	writeUint16LE(t, src, 5)                     // (22) 2 - Language
+	writeUint16LE(t, src, 6)                     // (24) 2 - Dialect
+	writeUint16LE(t, src, 7)                     // (26) 2 - CodePage
+	writeBytes(t, src, []byte{'a', 'b', 'c', 0}) // (28) 4 - Text
 	// Total length: 8+4*3+2*4+4=32
 	return src
 }
 
 func ltxtChunkTextLenOdd(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDltxt))        // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 23)               // ( 4) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)                // ( 8) 4 - PID
-	test.WriteUint32LE(t, src, 2)                // (12) 4 - SamLen
-	test.WriteUint32LE(t, src, 3)                // (16) 4 - PurID
-	test.WriteUint16LE(t, src, 4)                // (20) 2 - Country
-	test.WriteUint16LE(t, src, 5)                // (22) 2 - Language
-	test.WriteUint16LE(t, src, 6)                // (24) 2 - Dialect
-	test.WriteUint16LE(t, src, 7)                // (26) 2 - CodePage
-	test.WriteBytes(t, src, []byte{'a', 'b', 0}) // (28) 3 - Text
-	test.WriteByte(t, src, 0)                    // (31) 1 - Padding byte
+	writeUint32BE(t, src, IDltxt)           // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 23)               // ( 4) 4 - Chunk size
+	writeUint32LE(t, src, 1)                // ( 8) 4 - PID
+	writeUint32LE(t, src, 2)                // (12) 4 - SamLen
+	writeUint32LE(t, src, 3)                // (16) 4 - PurID
+	writeUint16LE(t, src, 4)                // (20) 2 - Country
+	writeUint16LE(t, src, 5)                // (22) 2 - Language
+	writeUint16LE(t, src, 6)                // (24) 2 - Dialect
+	writeUint16LE(t, src, 7)                // (26) 2 - CodePage
+	writeBytes(t, src, []byte{'a', 'b', 0}) // (28) 3 - Text
+	writeBytes(t, src, []byte{0})           // (31) 1 - Padding byte
 	// Total length: 8+4*3+2*4+3+1=32
 	return src
 }
@@ -64,7 +62,7 @@ func Test_ChunkLTXT_LTXT(t *testing.T) {
 func Test_ChunkLTXT_ReadFrom_TextLenEven(t *testing.T) {
 	// --- Given ---
 	src := ltxtChunkTextLenEven(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := LTXT()
@@ -85,13 +83,13 @@ func Test_ChunkLTXT_ReadFrom_TextLenEven(t *testing.T) {
 	assert.Equal(t, uint16(7), ch.CodePage)
 	assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.text)
 	assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Text())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkLTXT_ReadFrom_TextLenOdd(t *testing.T) {
 	// --- Given ---
 	src := ltxtChunkTextLenOdd(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := LTXT()
@@ -112,7 +110,7 @@ func Test_ChunkLTXT_ReadFrom_TextLenOdd(t *testing.T) {
 	assert.Equal(t, uint16(7), ch.CodePage)
 	assert.Equal(t, []byte{'a', 'b', 0}, ch.text)
 	assert.Equal(t, []byte{'a', 'b'}, must.Value(io.ReadAll(ch.Text())))
-	assert.True(t, test.IsAllRead(src))
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkLTXT_ReadFrom_Errors(t *testing.T) {
@@ -120,7 +118,7 @@ func Test_ChunkLTXT_ReadFrom_Errors(t *testing.T) {
 	for i := 1; i < 12; i++ {
 		// --- Given ---
 		src := ltxtChunkTextLenEven(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
 		_, err := LTXT().ReadFrom(io.LimitReader(src, int64(i)))
@@ -133,7 +131,7 @@ func Test_ChunkLTXT_ReadFrom_Errors(t *testing.T) {
 func Test_ChunkLTXT_ReadFrom_TooShortError(t *testing.T) {
 	// --- Given ---
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 19)
+	writeUint32LE(t, src, 19)
 
 	// --- When ---
 	ch := LTXT()
@@ -148,7 +146,7 @@ func Test_ChunkLTXT_ReadFrom_TooShortError(t *testing.T) {
 func Test_ChunkLTXT_ReadFrom_LimitError(t *testing.T) {
 	// --- Given ---
 	src := ltxtChunkTextLenEven(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := LTXT(WithSizeLimit(23))
 
@@ -174,7 +172,7 @@ func Test_ChunkLTXT_WriteTo(t *testing.T) {
 		t.Run(tc.testN, func(t *testing.T) {
 			// --- Given ---
 			src := tc.ch(t)
-			test.Skip4B(t, src) // Skip chunk ID.
+			skip4B(t, src) // Skip chunk ID.
 
 			ch := LTXT()
 			_, err := ch.ReadFrom(src)
@@ -199,7 +197,7 @@ func Test_ChunkLTXT_WriteTo_Errors(t *testing.T) {
 	for i := 32; i > 0; i-- {
 		// --- Given ---
 		src := ltxtChunkTextLenOdd(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		ch := LTXT()
 		_, err := ch.ReadFrom(src)

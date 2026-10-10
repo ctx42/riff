@@ -11,53 +11,51 @@ import (
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
-
-	"github.com/ctx42/riff/internal/test"
 )
 
 func listChunkType_INFO(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDLIST))             // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16)                    // ( 4) 4 - Chunk size
-	test.WriteUint32BE(t, src, IDINFO)                // ( 8) 4 - Type
-	test.ReadFrom(t, src, Uint32(LabIART))            // (12) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 4)                     // (16) 4 - Chunk size
-	test.WriteBytes(t, src, []byte{'a', 'b', 'c', 0}) // (20) 4 - Text
+	writeUint32BE(t, src, IDLIST)                // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16)                    // ( 4) 4 - Chunk size
+	writeUint32BE(t, src, IDINFO)                // ( 8) 4 - Type
+	writeUint32BE(t, src, LabIART)               // (12) 4 - Chunk ID
+	writeUint32LE(t, src, 4)                     // (16) 4 - Chunk size
+	writeBytes(t, src, []byte{'a', 'b', 'c', 0}) // (20) 4 - Text
 	// Total length: 24
 	return src
 }
 
 func listChunkType_adtl(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDLIST))             // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 52)                    // ( 4) 4 - Chunk size
-	test.WriteUint32BE(t, src, IDadtl)                // ( 8) 4 - Type
-	test.ReadFrom(t, src, Uint32(IDlabl))             // (12) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 8)                     // (16) 4 - Chunk size
-	test.WriteUint32LE(t, src, 123)                   // (20) 4 - Cue ID
-	test.WriteBytes(t, src, []byte{'a', 'b', 'c', 0}) // (24) 4 - Text
-	test.ReadFrom(t, src, Uint32(IDltxt))             // (28) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 24)                    // (32) 4 - Chunk size
-	test.WriteUint32LE(t, src, 1)                     // (36) 4 - PID
-	test.WriteUint32LE(t, src, 2)                     // (40) 4 - SamLen
-	test.WriteUint32LE(t, src, 3)                     // (44) 4 - PurID
-	test.WriteUint16LE(t, src, 4)                     // (48) 2 - Country
-	test.WriteUint16LE(t, src, 5)                     // (50) 2 - Language
-	test.WriteUint16LE(t, src, 6)                     // (52) 2 - Dialect
-	test.WriteUint16LE(t, src, 7)                     // (54) 2 - CodePage
-	test.WriteBytes(t, src, []byte{'a', 'b', 'c', 0}) // (56) 4 - Text
+	writeUint32BE(t, src, IDLIST)                // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 52)                    // ( 4) 4 - Chunk size
+	writeUint32BE(t, src, IDadtl)                // ( 8) 4 - Type
+	writeUint32BE(t, src, IDlabl)                // (12) 4 - Chunk ID
+	writeUint32LE(t, src, 8)                     // (16) 4 - Chunk size
+	writeUint32LE(t, src, 123)                   // (20) 4 - Cue ID
+	writeBytes(t, src, []byte{'a', 'b', 'c', 0}) // (24) 4 - Text
+	writeUint32BE(t, src, IDltxt)                // (28) 4 - Chunk ID
+	writeUint32LE(t, src, 24)                    // (32) 4 - Chunk size
+	writeUint32LE(t, src, 1)                     // (36) 4 - PID
+	writeUint32LE(t, src, 2)                     // (40) 4 - SamLen
+	writeUint32LE(t, src, 3)                     // (44) 4 - PurID
+	writeUint16LE(t, src, 4)                     // (48) 2 - Country
+	writeUint16LE(t, src, 5)                     // (50) 2 - Language
+	writeUint16LE(t, src, 6)                     // (52) 2 - Dialect
+	writeUint16LE(t, src, 7)                     // (54) 2 - CodePage
+	writeBytes(t, src, []byte{'a', 'b', 'c', 0}) // (56) 4 - Text
 	// Total length: 60
 	return src
 }
 
 func listChunkType_unknown(t *testing.T) io.Reader {
 	src := &bytes.Buffer{}
-	test.ReadFrom(t, src, Uint32(IDLIST))             // ( 0) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 16)                    // ( 4) 4 - Chunk size
-	test.WriteUint32BE(t, src, IDUNKN)                // ( 8) 4 - Type
-	test.ReadFrom(t, src, Uint32(LabIART))            // (12) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 4)                     // (16) 4 - Chunk size
-	test.WriteBytes(t, src, []byte{'a', 'b', 'c', 0}) // (20) 4 - Text
+	writeUint32BE(t, src, IDLIST)                // ( 0) 4 - Chunk ID
+	writeUint32LE(t, src, 16)                    // ( 4) 4 - Chunk size
+	writeUint32BE(t, src, IDUNKN)                // ( 8) 4 - Type
+	writeUint32BE(t, src, LabIART)               // (12) 4 - Chunk ID
+	writeUint32LE(t, src, 4)                     // (16) 4 - Chunk size
+	writeBytes(t, src, []byte{'a', 'b', 'c', 0}) // (20) 4 - Text
 	// Total length: 24
 	return src
 }
@@ -108,7 +106,7 @@ func Test_ChunkLIST_LIST(t *testing.T) {
 func Test_ChunkLIST_NilRegistry(t *testing.T) {
 	// --- Given ---
 	src := listChunkType_INFO(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := LIST(nil, WithLoadData())
 
@@ -127,7 +125,7 @@ func Test_ChunkLIST_Type_INFO(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	src := listChunkType_INFO(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := LIST(reg, WithLoadData())
@@ -149,7 +147,7 @@ func Test_ChunkLIST_Type_adtl(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	src := listChunkType_adtl(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := LIST(reg, WithLoadData())
@@ -176,7 +174,7 @@ func Test_ChunkLIST_Type_adtl_RegisteredDecoder(t *testing.T) {
 	reg.Register(IDlabl, func() Chunk { return RAWC(IDlabl, WithLoadData()) })
 
 	src := listChunkType_adtl(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := LIST(reg, WithLoadData())
 
@@ -196,7 +194,7 @@ func Test_ChunkLIST_Type_unknown(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	src := listChunkType_unknown(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := LIST(reg, WithLoadData())
@@ -218,8 +216,8 @@ func Test_ChunkLIST_ReadFrom_Empty(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 4)      // ( 0) 4 - Chunk size
-	test.WriteUint32BE(t, src, IDINFO) // ( 4) 4 - Type
+	writeUint32LE(t, src, 4)      // ( 0) 4 - Chunk size
+	writeUint32BE(t, src, IDINFO) // ( 4) 4 - Type
 
 	ch := LIST(reg, WithLoadData())
 
@@ -238,11 +236,11 @@ func Test_ChunkLIST_ReadFrom_SizeMismatch(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 13)        // ( 0) 4 - Chunk size
-	test.WriteUint32BE(t, src, IDUNKN)    // ( 4) 4 - Type
-	test.ReadFrom(t, src, Uint32(IDUNKN)) // ( 8) 4 - Chunk ID
-	test.WriteUint32LE(t, src, 1)         // (12) 4 - Chunk size
-	test.WriteBytes(t, src, []byte{1, 0}) // (16) 2 - Data and padding
+	writeUint32LE(t, src, 13)        // ( 0) 4 - Chunk size
+	writeUint32BE(t, src, IDUNKN)    // ( 4) 4 - Type
+	writeUint32BE(t, src, IDUNKN)    // ( 8) 4 - Chunk ID
+	writeUint32LE(t, src, 1)         // (12) 4 - Chunk size
+	writeBytes(t, src, []byte{1, 0}) // (16) 2 - Data and padding
 
 	ch := LIST(reg, WithLoadData())
 
@@ -261,7 +259,7 @@ func Test_ChunkLIST_ReadFrom_LimitError(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	src := listChunkType_adtl(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	// --- When ---
 	ch := LIST(reg, WithLoadData(), WithSizeLimit(51))
@@ -277,7 +275,7 @@ func Test_ChunkLIST_ReadFrom_Errors(t *testing.T) {
 		// --- Given ---
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 		src := listChunkType_INFO(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
 		_, err := LIST(reg, WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
@@ -293,7 +291,7 @@ func Test_ChunkLIST_ReadFrom_TooShortError(t *testing.T) {
 	// --- Given ---
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 	src := &bytes.Buffer{}
-	test.WriteUint32LE(t, src, 3)
+	writeUint32LE(t, src, 3)
 
 	// --- When ---
 	ch := LIST(reg, WithLoadData())
@@ -322,7 +320,7 @@ func Test_ChunkLIST_WriteTo(t *testing.T) {
 			reg := NewRegistry(RAWCMake(WithLoadData()))
 
 			src := tc.ch(t)
-			test.Skip4B(t, src) // Skip chunk ID.
+			skip4B(t, src) // Skip chunk ID.
 
 			ch := LIST(reg, WithLoadData())
 			_, err := ch.ReadFrom(src)
@@ -349,7 +347,7 @@ func Test_ChunkLIST_WriteTo_Errors(t *testing.T) {
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 
 		src := listChunkType_adtl(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		ch := LIST(reg, WithLoadData())
 		_, err := ch.ReadFrom(src)
@@ -372,7 +370,7 @@ func Test_ChunkLIST_Reset(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	src := listChunkType_INFO(t)
-	test.Skip4B(t, src) // Skip chunk ID.
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := LIST(reg, WithLoadData())
 	_, err := ch.ReadFrom(src)
@@ -408,7 +406,7 @@ func Test_ChunkLIST_Modify(t *testing.T) {
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 
 		src := listChunkType_adtl(t)
-		test.Skip4B(t, src) // Skip chunk ID.
+		skip4B(t, src) // Skip chunk ID.
 
 		ch := LIST(reg, WithLoadData())
 		_, _ = ch.ReadFrom(src)

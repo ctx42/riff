@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ctx42/memfs/pkg/memfs"
-	"github.com/ctx42/riff/internal/test"
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/oskit"
@@ -347,12 +346,12 @@ func Test_RIFF_ExtraBytesAtTheEnd(t *testing.T) {
 	t.Run("respect declared size", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 4)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 4)
-		test.WriteUint32LE(t, src, 1000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
 
 		rif := New(WithLoadData())
 
@@ -369,12 +368,12 @@ func Test_RIFF_ExtraBytesAtTheEnd(t *testing.T) {
 	t.Run("ignore declared size - extra valid chunk", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 4)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 4)
-		test.WriteUint32LE(t, src, 1000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
 
 		rif := New(WithLoadData(), WithIgnoreSize())
 
@@ -391,12 +390,12 @@ func Test_RIFF_ExtraBytesAtTheEnd(t *testing.T) {
 	t.Run("ignore declared size - noise at the end", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 4)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 8000)
-		test.WriteUint32LE(t, src, 7000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 8000)
+		writeUint32LE(t, src, 7000)
 
 		rif := New(WithLoadData(), WithIgnoreSize())
 
@@ -416,12 +415,12 @@ func Test_RIFF_TooShortFile(t *testing.T) {
 	t.Run("fewer bytes than declared", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 20)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 4)
-		test.WriteUint32LE(t, src, 1000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 20)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
 
 		rif := New(WithLoadData())
 
@@ -439,10 +438,10 @@ func Test_RIFF_TooShortFile(t *testing.T) {
 	t.Run("chunk name cut in half", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 20)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint16LE(t, src, 0x6464)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 20)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint16LE(t, src, 0x6464)
 
 		rif := New(WithLoadData())
 
@@ -462,12 +461,12 @@ func Test_RIFF_SizeLimit(t *testing.T) {
 	t.Run("within limit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 16)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 4)
-		test.WriteUint32LE(t, src, 1000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 16)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
 
 		rif := New(WithLoadData(), WithSizeLimit(16))
 
@@ -484,12 +483,12 @@ func Test_RIFF_SizeLimit(t *testing.T) {
 	t.Run("main chunk limit hit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 16)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 4)
-		test.WriteUint32LE(t, src, 1000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 16)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
 
 		rif := New(WithLoadData(), WithSizeLimit(15))
 
@@ -507,12 +506,12 @@ func Test_RIFF_SizeLimit(t *testing.T) {
 	t.Run("subchunk limit hit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 16)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 4)
-		test.WriteUint32LE(t, src, 1000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 16)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
 
 		reg := NewRegistry(RAWCMake(WithLoadData(), WithSizeLimit(3)))
 		rif := Bare(reg)
@@ -531,12 +530,12 @@ func Test_RIFF_SizeLimit(t *testing.T) {
 	t.Run("ignore declared size - size limit hit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
-		test.ReadFrom(t, src, Uint32(IDRIFF))
-		test.WriteUint32LE(t, src, 4)
-		test.ReadFrom(t, src, Uint32(TypeWAVE))
-		test.WriteUint32LE(t, src, 0x64646464)
-		test.WriteUint32LE(t, src, 4)
-		test.WriteUint32LE(t, src, 1000)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
 
 		rif := New(WithLoadData(), WithIgnoreSize(), WithSizeLimit(15))
 
