@@ -9,9 +9,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ctx42/memfs/pkg/memfs"
 	"github.com/ctx42/testing/pkg/assert"
-	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
@@ -113,10 +111,13 @@ func Test_ChunkRAWC_ReadFrom_LimitError(t *testing.T) {
 
 func Test_ChunkRAWC_ReadFrom_SkipData_SeekAvailable(t *testing.T) {
 	// --- Given ---
-	src := &bytes.Buffer{}
-	writeUint32LE(t, src, 3)         // Chunk size (4).
-	src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
-	src.WriteByte(0)                 // Padding byte (1).
+	buf := &bytes.Buffer{}
+	writeUint32LE(t, buf, 3)                  // Chunk size (4).
+	writeBytes(t, buf, []byte{'A', 'B', 'C'}) // Chunk data (*).
+	writeBytes(t, buf, []byte{0})             // Padding byte (1).
+
+	// The bytes.Reader implements io.Seeker.
+	src := bytes.NewReader(buf.Bytes())
 
 	// --- When ---
 	ch := RAWC(IDUNKN)
@@ -132,14 +133,11 @@ func Test_ChunkRAWC_ReadFrom_SkipData_SeekAvailable(t *testing.T) {
 
 func Test_ChunkRAWC_ReadFrom_SkipData_SeekNotAvailable(t *testing.T) {
 	// --- Given ---
-	tmp := must.Value(memfs.NewFile("file"))
-	writeUint32LE(t, tmp, 3)                  // Chunk size (4).
-	writeBytes(t, tmp, []byte{'A', 'B', 'C'}) // Chunk data (*).
-	writeBytes(t, tmp, []byte{0})             // Padding byte (1).
-	tmp.SeekStart()                           // Seek to buffer start.
-
-	// The bytes.Buffer doesn't have Seek method.
-	src := bytes.NewBuffer(must.Value(io.ReadAll(tmp)))
+	// The bytes.Buffer doesn't implement io.Seeker.
+	src := &bytes.Buffer{}
+	writeUint32LE(t, src, 3)                  // Chunk size (4).
+	writeBytes(t, src, []byte{'A', 'B', 'C'}) // Chunk data (*).
+	writeBytes(t, src, []byte{0})             // Padding byte (1).
 
 	// --- When ---
 	ch := RAWC(IDUNKN)
@@ -150,6 +148,7 @@ func Test_ChunkRAWC_ReadFrom_SkipData_SeekNotAvailable(t *testing.T) {
 	assert.Equal(t, int64(8), n)
 	assert.Equal(t, uint32(3), ch.Size())
 	assert.Nil(t, ch.data)
+	assert.True(t, isAllRead(src))
 }
 
 func Test_ChunkRAWC_Write_WithoutPadding(t *testing.T) {
