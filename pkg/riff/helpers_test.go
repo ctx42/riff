@@ -266,3 +266,82 @@ func Test_linkids(t *testing.T) {
 	// --- Then ---
 	assert.Equal(t, "RAWC:RIFF", got)
 }
+
+func Test_readBytes(t *testing.T) {
+	t.Run("within capacity", func(t *testing.T) {
+		// --- Given ---
+		buf := make([]byte, 0, 8)
+
+		// --- When ---
+		have, err := readBytes(bytes.NewReader([]byte{1, 2, 3}), buf, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{1, 2, 3}, have)
+		assert.Equal(t, 8, cap(have))
+	})
+
+	t.Run("grows past capacity", func(t *testing.T) {
+		// --- Given ---
+		data := bytes.Repeat([]byte{7}, 3*minReadStep+1)
+
+		// --- When ---
+		have, err := readBytes(bytes.NewReader(data), nil, len(data))
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, data, have)
+	})
+
+	t.Run("zero bytes", func(t *testing.T) {
+		// --- When ---
+		have, err := readBytes(bytes.NewReader(nil), nil, 0)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Len(t, 0, have)
+	})
+
+	t.Run("error - short input", func(t *testing.T) {
+		// --- When ---
+		have, err := readBytes(bytes.NewReader([]byte{1, 2}), nil, 1<<20)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, []byte{1, 2}, have)
+		assert.True(t, cap(have) <= minReadStep)
+	})
+
+	t.Run("error - short input after a full step", func(t *testing.T) {
+		// --- Given ---
+		data := bytes.Repeat([]byte{7}, minReadStep)
+
+		// --- When ---
+		have, err := readBytes(bytes.NewReader(data), nil, 1<<20)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, data, have)
+	})
+
+	t.Run("error - empty input", func(t *testing.T) {
+		// --- When ---
+		have, err := readBytes(bytes.NewReader(nil), nil, 10)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.EOF, err)
+		assert.Len(t, 0, have)
+	})
+
+	t.Run("error - read", func(t *testing.T) {
+		// --- Given ---
+		src := iokit.ErrReader(bytes.NewReader([]byte{1, 2, 3}), 1)
+
+		// --- When ---
+		have, err := readBytes(src, nil, 1<<20)
+
+		// --- Then ---
+		assert.ErrorIs(t, iokit.ErrRead, err)
+		assert.Equal(t, []byte{1}, have)
+	})
+}

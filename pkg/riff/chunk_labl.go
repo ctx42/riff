@@ -80,8 +80,8 @@ func (ch *ChunkLABL) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDlabl), err)
 	}
 
-	ch.label = grow(ch.label, int(ch.size-LABLChunkSize)) // Subtract pid field size.
-	_, err = io.ReadFull(cr, ch.label)
+	// Subtract the cue point ID field size.
+	ch.label, err = readBytes(cr, ch.label, int(ch.size-LABLChunkSize))
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDlabl), err)
 	}

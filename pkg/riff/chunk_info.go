@@ -176,8 +176,7 @@ func (ch *ChunkINFO) ReadFrom(r io.Reader) (int64, error) {
 	}
 	ch.size = size
 
-	ch.text = grow(ch.text, int(ch.size))
-	_, err = io.ReadFull(cr, ch.text)
+	ch.text, err = readBytes(cr, ch.text, int(ch.size))
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, ch.id), err)
 	}

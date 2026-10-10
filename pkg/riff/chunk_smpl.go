@@ -183,8 +183,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 		ch.SampleLoops = append(ch.SampleLoops, loop)
 	}
 
-	ch.sampleData = grow(ch.sampleData, extra)
-	_, err = io.ReadFull(cr, ch.sampleData)
+	ch.sampleData, err = readBytes(cr, ch.sampleData, extra)
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDdata), err)
 	}

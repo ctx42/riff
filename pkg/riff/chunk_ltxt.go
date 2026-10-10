@@ -116,8 +116,7 @@ func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	tl := int(ch.size - LTXTChunkSize) // Subtract ltxtStatic fields size.
-	ch.text = grow(ch.text, tl)
-	_, err = io.ReadFull(cr, ch.text)
+	ch.text, err = readBytes(cr, ch.text, tl)
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, IDltxt), err)
 	}

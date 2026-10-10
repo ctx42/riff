@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"slices"
 )
 
 // StrToID converts four byte ASCII string to uint32.
@@ -112,4 +113,37 @@ func grow(b []byte, n int) []byte {
 	tmp := make([]byte, n)
 	copy(tmp, b)
 	return tmp
+}
+
+// minReadStep is the smallest number of bytes readBytes grows a buffer by.
+const minReadStep = 512
+
+// readBytes reads exactly n bytes from r into b, reusing its capacity, and
+// returns the resized slice. A buffer too small for n bytes grows in step with
+// the bytes actually read, so a declared size larger than the input cannot
+// force a large allocation up front. It returns [io.EOF] when no bytes were
+// read and [io.ErrUnexpectedEOF] when fewer than n bytes were read.
+func readBytes(r io.Reader, b []byte, n int) ([]byte, error) {
+	if n <= cap(b) {
+		b = b[:n]
+		_, err := io.ReadFull(r, b)
+		return b, err
+	}
+
+	b = b[:0]
+	for len(b) < n {
+		if len(b) == cap(b) {
+			b = slices.Grow(b, min(n-len(b), max(cap(b), minReadStep)))
+		}
+		end := min(cap(b), n)
+		m, err := io.ReadFull(r, b[len(b):end])
+		b = b[:len(b)+m]
+		if err != nil {
+			if errors.Is(err, io.EOF) && len(b) > 0 {
+				err = io.ErrUnexpectedEOF
+			}
+			return b, err
+		}
+	}
+	return b, nil
 }

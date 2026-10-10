@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"runtime"
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
@@ -132,6 +133,26 @@ func Test_ChunkINFO_ReadFrom_Errors(t *testing.T) {
 			t.Logf("errro i=%d", i)
 		}
 	}
+}
+
+func Test_ChunkINFO_ReadFrom_DeclaredSizeOverInput(t *testing.T) {
+	// --- Given ---
+	src := &bytes.Buffer{}
+	test.WriteUint32LE(t, src, 1<<30)         // (0) 4 - Chunk size
+	test.WriteBytes(t, src, []byte{'a', 'b'}) // (4) 2 - Text
+
+	ch := INFO(LabIART)
+
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+
+	// --- When ---
+	_, err := ch.ReadFrom(src)
+
+	// --- Then ---
+	runtime.ReadMemStats(&after)
+	assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	assert.True(t, after.TotalAlloc-before.TotalAlloc < 1<<20)
 }
 
 func Test_ChunkINFO_WriteTo(t *testing.T) {

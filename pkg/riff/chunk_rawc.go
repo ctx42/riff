@@ -75,8 +75,7 @@ func (ch *ChunkRAWC) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), nil
 	}
 
-	ch.data = grow(ch.data, int(ch.size))
-	_, err = io.ReadFull(cr, ch.data)
+	ch.data, err = readBytes(cr, ch.data, int(ch.size))
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(idRAWC, ch.id), err)
 	}
