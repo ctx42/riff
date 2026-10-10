@@ -87,7 +87,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), ErrTooShort)
 	}
 
-	if err := binary.Read(cr, be, &ch.ListType); err != nil {
+	if err = binary.Read(cr, be, &ch.ListType); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), err)
 	}
 	name := linkids(IDLIST, ch.ListType)
@@ -96,6 +96,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	switch ch.ListType {
 	case IDINFO:
 		mkr = INFOMake(WithOpts(ch.opts))
+
 	case IDadtl:
 		mkr = adtlMake(WithOpts(ch.opts))
 
@@ -195,8 +196,10 @@ func adtlMake(opts ...OptsFn) IDMaker {
 		switch id {
 		case IDlabl:
 			return LABL(opts...)
+
 		case IDltxt:
 			return LTXT(opts...)
+
 		default:
 			return RAWC(id, opts...)
 		}

@@ -157,7 +157,7 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 		// padding should be added to the end of this data to word align it,
 		// but the value should remain non-aligned.
 		var es uint16
-		if err := binary.Read(cr, le, &es); err != nil {
+		if err = binary.Read(cr, le, &es); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 		}
 

@@ -167,7 +167,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), ErrTooShort)
 	}
 
-	if err := binary.Read(cr, le, &ch.smplStatic); err != nil {
+	if err = binary.Read(cr, le, &ch.smplStatic); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 	}
 
@@ -184,7 +184,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 
 	for i := 0; i < int(ch.SampleLoopCnt); i++ {
 		loop := &SampleLoop{}
-		if err := binary.Read(cr, le, loop); err != nil {
+		if err = binary.Read(cr, le, loop); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 		}
 		ch.SampleLoops = append(ch.SampleLoops, loop)

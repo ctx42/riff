@@ -116,7 +116,7 @@ func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrTooShort)
 	}
 
-	if err := binary.Read(cr, le, &ch.ltxtStatic); err != nil {
+	if err = binary.Read(cr, le, &ch.ltxtStatic); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 

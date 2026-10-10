@@ -231,40 +231,58 @@ func InfoLabel(lab uint32) string {
 	switch lab {
 	case LabIARL:
 		return "archival location"
+
 	case LabIART:
 		return "artist"
+
 	case LabICMS:
 		return "commissioned"
+
 	case LabICMT:
 		return "comments"
+
 	case LabICOP:
 		return "copyright"
+
 	case LabICRD:
 		return "creation date"
+
 	case LabIENG:
 		return "engineer"
+
 	case LabIGNR:
 		return "genre"
+
 	case LabIKEY:
 		return "keywords"
+
 	case LabIMED:
 		return "original medium"
+
 	case LabINAM:
 		return "title"
+
 	case LabIPRD:
 		return "album"
+
 	case LabITRK:
 		return "track"
+
 	case LabISBJ:
 		return "subject"
+
 	case LabISFT:
 		return "software"
+
 	case LabISRC:
 		return "source"
+
 	case LabISRF:
 		return "source form"
+
 	case LabITCH:
 		return "technician"
+
 	default:
 		return Uint32(lab).String()
 	}

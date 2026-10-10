@@ -76,7 +76,7 @@ func (ch *ChunkRAWC) ReadFrom(r io.Reader) (int64, error) {
 
 	if !ch.opts.loadData {
 		rs := RealSize(ch.size) // Skip padding byte if present.
-		if err := cr.SkipN(rs); err != nil {
+		if err = cr.SkipN(rs); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 		}
 		return cr.Count(), nil
