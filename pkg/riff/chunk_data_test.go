@@ -233,6 +233,21 @@ func Test_ChunkDATA_ReadFrom(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("error - skip data truncated", func(t *testing.T) {
+		// --- Given ---
+		src := dataChunkOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := DATA()
+
+		// --- When ---
+		_, err := ch.ReadFrom(io.LimitReader(src, 9))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error decoding data chunk: unexpected EOF", err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
 }
 
 func Test_ChunkDATA_WriteTo(t *testing.T) {

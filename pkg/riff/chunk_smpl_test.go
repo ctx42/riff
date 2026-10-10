@@ -432,6 +432,21 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooLarge, err)
 	})
+
+	t.Run("error - missing padding", func(t *testing.T) {
+		// --- Given ---
+		src := smplWithoutLoopsWithData(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := SMPL()
+
+		// --- When ---
+		_, err := ch.ReadFrom(io.LimitReader(src, 43))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error decoding smpl chunk: unexpected EOF", err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
 }
 
 func Test_ChunkSMPL_WriteTo(t *testing.T) {
@@ -454,6 +469,38 @@ func Test_ChunkSMPL_WriteTo(t *testing.T) {
 				t.Logf("errro i=%d", i)
 			}
 		}
+	})
+
+	t.Run("error - writing sampler data", func(t *testing.T) {
+		// --- Given ---
+		src := smplWithoutLoopsWithData(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := SMPL()
+		must.Value(ch.ReadFrom(src))
+
+		// --- When ---
+		_, err := ch.WriteTo(iokit.ErrWriter(&bytes.Buffer{}, 47))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding smpl chunk: write error", err)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
+	})
+
+	t.Run("error - writing padding", func(t *testing.T) {
+		// --- Given ---
+		src := smplWithoutLoopsWithData(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := SMPL()
+		must.Value(ch.ReadFrom(src))
+
+		// --- When ---
+		_, err := ch.WriteTo(iokit.ErrWriter(&bytes.Buffer{}, 48))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding smpl chunk: write error", err)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
 	})
 }
 

@@ -310,6 +310,18 @@ func Test_ChunkLIST_WriteTo(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("error - skip data mode", func(t *testing.T) {
+		// --- Given ---
+		ch := LIST(nil)
+
+		// --- When ---
+		n, err := ch.WriteTo(&bytes.Buffer{})
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrSkipDataMode, err)
+		assert.Equal(t, int64(0), n)
+	})
 }
 
 func Test_ChunkLIST_WriteTo_tabular(t *testing.T) {

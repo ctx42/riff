@@ -49,6 +49,18 @@ func ltxtChunkTextLenOdd(t tester.T) io.Reader {
 	return src
 }
 
+func Test_LTXTMake(t *testing.T) {
+	// --- Given ---
+	mkr := LTXTMake(WithLoadData())
+
+	// --- When ---
+	have := mkr()
+
+	// --- Then ---
+	assert.SameType(t, &ChunkLTXT{}, have)
+	assert.True(t, have.(*ChunkLTXT).opts.LoadData())
+}
+
 func Test_LTXT(t *testing.T) {
 	// --- When ---
 	have := LTXT()
@@ -164,6 +176,38 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooLarge, err)
+	})
+
+	t.Run("error - truncated text", func(t *testing.T) {
+		// --- Given ---
+		src := ltxtChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := LTXT()
+
+		// --- When ---
+		_, err := ch.ReadFrom(io.LimitReader(src, 25))
+
+		// --- Then ---
+		want := "error decoding adtl:ltxt chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
+
+	t.Run("error - missing padding", func(t *testing.T) {
+		// --- Given ---
+		src := ltxtChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := LTXT()
+
+		// --- When ---
+		_, err := ch.ReadFrom(io.LimitReader(src, 27))
+
+		// --- Then ---
+		want := "error decoding adtl:ltxt chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 	})
 }
 

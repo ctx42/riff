@@ -156,6 +156,23 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooLarge, err)
 	})
+
+	t.Run("error - skip data truncated", func(t *testing.T) {
+		// --- Given ---
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 3)             // Chunk size (4).
+		writeBytes(t, src, []byte{'A', 'B'}) // Chunk data (*).
+
+		ch := RAWC(IDUNKN)
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		want := "error decoding RAWC:ABCD chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
 }
 
 func Test_ChunkRAWC_WriteTo(t *testing.T) {

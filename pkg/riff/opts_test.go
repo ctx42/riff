@@ -560,4 +560,21 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		err = cr2.SkipN(3)
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 	})
+
+	t.Run("no limit", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32LE(t, src, 4) // chunk size
+		writeBytes(t, src, make([]byte, 8))
+
+		opts := NewOpts(WithIgnoreSize())
+		cr, _ := must.Values(opts.ChunkReader(src))
+
+		// --- When ---
+		err := cr.SkipN(8)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(12), cr.Count())
+	})
 }

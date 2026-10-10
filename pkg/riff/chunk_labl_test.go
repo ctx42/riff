@@ -37,6 +37,18 @@ func lablChunkTextLenOdd(t tester.T) io.Reader {
 	return src
 }
 
+func Test_LABLMake(t *testing.T) {
+	// --- Given ---
+	mkr := LABLMake(WithLoadData())
+
+	// --- When ---
+	have := mkr()
+
+	// --- Then ---
+	assert.SameType(t, &ChunkLABL{}, have)
+	assert.True(t, have.(*ChunkLABL).opts.LoadData())
+}
+
 func Test_LABL(t *testing.T) {
 	// --- When ---
 	have := LABL()
@@ -142,6 +154,22 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, ErrTooLarge, err)
+	})
+
+	t.Run("error - missing padding", func(t *testing.T) {
+		// --- Given ---
+		src := lablChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := LABL()
+
+		// --- When ---
+		_, err := ch.ReadFrom(io.LimitReader(src, 11))
+
+		// --- Then ---
+		want := "error decoding adtl:labl chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 	})
 }
 

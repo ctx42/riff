@@ -12,6 +12,7 @@ import (
 	"github.com/ctx42/memfs/pkg/memfs"
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testkit/pkg/iokit"
 	"github.com/ctx42/testkit/pkg/oskit"
 	"github.com/ctx42/testkit/pkg/testkit"
 )
@@ -25,6 +26,7 @@ func Test_New(t *testing.T) {
 	assert.Equal(t, uint32(0), have.Size())
 	assert.Equal(t, uint32(0), have.Type())
 	assert.False(t, have.Multi())
+	assert.False(t, have.Raw())
 	assert.True(t, have.IsRegistered(IDfmt))
 	assert.True(t, have.IsRegistered(IDdata))
 	assert.False(t, have.IsRegistered(0))
@@ -88,6 +90,17 @@ func Test_Compose(t *testing.T) {
 		assert.Equal(t, rif.Size(), have.Size())
 		assert.Equal(t, len(chs.IDs()), len(have.Chunks().IDs()))
 	})
+}
+
+func Test_RIFF_SetType(t *testing.T) {
+	// --- Given ---
+	rif := New()
+
+	// --- When ---
+	rif.SetType(TypeAVI)
+
+	// --- Then ---
+	assert.Equal(t, TypeAVI, rif.Type())
 }
 
 func Test_RIFF_ReadFrom(t *testing.T) {
@@ -342,6 +355,47 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(4), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
 	})
+
+	t.Run("error - truncated type", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeBytes(t, src, []byte{'W', 'A'})
+
+		rif := New()
+
+		// --- When ---
+		_, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error decoding RIFF chunk: unexpected EOF", err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
+
+	t.Run("error - repeated single chunk", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 52)
+		writeUint32BE(t, src, TypeWAVE)
+		for range 2 {
+			writeUint32BE(t, src, IDfmt)
+			writeUint32LE(t, src, FMTChunkSize)
+			writeBytes(t, src, make([]byte, FMTChunkSize))
+		}
+
+		rif := New()
+
+		// --- When ---
+		_, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "" +
+			"error reading RIFF offset 40: " +
+			"chunk fmt  (0x666d7420) already seen"
+		assert.ErrorEqual(t, want, err)
+	})
 }
 
 func Test_RIFF_ReadFrom_tabular(t *testing.T) {
@@ -421,6 +475,45 @@ func Test_RIFF_WriteTo(t *testing.T) {
 		assert.Equal(t, uint32(27074), rif.Size()+8)
 		want := "ebdf4fefcbbb804b44cddbc50521ba29f833e05c"
 		assert.Equal(t, want, testkit.SHA1Reader(dst))
+	})
+
+	t.Run("error - writing header", func(t *testing.T) {
+		// --- Given ---
+		rif := New(WithLoadData())
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/kick.wav")))
+
+		// --- When ---
+		_, err := rif.WriteTo(iokit.ErrWriter(&bytes.Buffer{}, 4))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding RIFF chunk: write error", err)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
+	})
+
+	t.Run("error - writing type", func(t *testing.T) {
+		// --- Given ---
+		rif := New(WithLoadData())
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/kick.wav")))
+
+		// --- When ---
+		_, err := rif.WriteTo(iokit.ErrWriter(&bytes.Buffer{}, 12))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding RIFF chunk: write error", err)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
+	})
+
+	t.Run("error - writing chunks", func(t *testing.T) {
+		// --- Given ---
+		rif := New(WithLoadData())
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/kick.wav")))
+
+		// --- When ---
+		_, err := rif.WriteTo(iokit.ErrWriter(&bytes.Buffer{}, 16))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding fmt  chunk: write error", err)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
 	})
 }
 

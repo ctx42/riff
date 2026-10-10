@@ -143,6 +143,22 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 		assert.True(t, after.TotalAlloc-before.TotalAlloc < 1<<20)
 	})
+
+	t.Run("error - missing padding", func(t *testing.T) {
+		// --- Given ---
+		src := infoChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := INFO(LabIART)
+
+		// --- When ---
+		_, err := ch.ReadFrom(io.LimitReader(src, 7))
+
+		// --- Then ---
+		want := "error decoding INFO:IART chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
 }
 
 func Test_ChunkINFO_WriteTo(t *testing.T) {
@@ -165,6 +181,22 @@ func Test_ChunkINFO_WriteTo(t *testing.T) {
 				t.Logf("errro i=%d", i)
 			}
 		}
+	})
+
+	t.Run("error - writing padding", func(t *testing.T) {
+		// --- Given ---
+		src := infoChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := INFO(LabIART)
+		must.Value(ch.ReadFrom(src))
+
+		// --- When ---
+		_, err := ch.WriteTo(iokit.ErrWriter(&bytes.Buffer{}, 12))
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding INFO:IART chunk: write error", err)
+		assert.ErrorIs(t, iokit.ErrWrite, err)
 	})
 }
 
