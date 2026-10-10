@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/ctx42/memfs/pkg/memfs"
@@ -160,6 +161,23 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 		test.WriteUint32LE(t, src, 2) // some data
 
 		opts := NewOpts(WithSizeLimit(7))
+
+		// --- When ---
+		cr, size, err := opts.ChunkReader(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, uint32(0), size)
+		assert.Nil(t, cr)
+	})
+
+	t.Run("error - size cannot be padded", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		test.WriteUint32LE(t, src, math.MaxUint32) // size
+		test.WriteUint32LE(t, src, 1)              // some data
+
+		opts := NewOpts()
 
 		// --- When ---
 		cr, size, err := opts.ChunkReader(src)

@@ -6,6 +6,7 @@ package riff
 import (
 	"encoding/binary"
 	"io"
+	"math"
 )
 
 // OptsFn represent signature of option function.
@@ -83,6 +84,10 @@ func (o *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
 		return nil, 0, err
 	}
 
+	// The padded size of an odd chunk at the uint32 maximum overflows.
+	if size == math.MaxUint32 {
+		return nil, 0, ErrTooLarge
+	}
 	if o.sizeLimit != 0 && o.sizeLimit < RealSize(size) {
 		return nil, 0, ErrTooLarge
 	}
