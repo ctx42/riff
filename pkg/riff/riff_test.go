@@ -252,6 +252,22 @@ func Test_Modify(t *testing.T) {
 	})
 }
 
+func Test_RIFF_Reset_ModifiedChunksNotPooled(t *testing.T) {
+	// --- Given ---
+	ch := DATA(WithLoadData())
+	must.Nil(ch.SetData([]byte{1, 2}))
+
+	rif := New(WithLoadData())
+	rif.Modify(Chunks{ch})
+
+	// --- When ---
+	rif.Reset()
+
+	// --- Then ---
+	assert.NotSame(t, ch, rif.reg.Get(IDdata))
+	assert.Equal(t, uint32(2), ch.Size())
+}
+
 func Benchmark_RIFFReuse(b *testing.B) {
 	tt := []struct {
 		pth string

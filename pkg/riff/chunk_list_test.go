@@ -370,6 +370,21 @@ func Test_ChunkLIST_Reset(t *testing.T) {
 	assert.Len(t, 0, ch.Chunks())
 }
 
+func Test_ChunkLIST_Reset_ModifiedChunksNotPooled(t *testing.T) {
+	// --- Given ---
+	reg := NewRegistry(RAWCMake(WithLoadData()))
+	ch := INFO(LabIART)
+
+	lst := LIST(reg, WithLoadData())
+	lst.Modify(Chunks{ch})
+
+	// --- When ---
+	lst.Reset()
+
+	// --- Then ---
+	assert.Nil(t, reg.GetNoRaw(LabIART))
+}
+
 func Test_ChunkLIST_Modify(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		// --- Given ---

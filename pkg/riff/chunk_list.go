@@ -39,6 +39,11 @@ type ChunkLIST struct {
 	// Registered chunk decoders.
 	reg *Registry
 
+	// Set when chunks were supplied by the caller through Modify. Reset does
+	// not return those to the registry pool, so later decoding never
+	// overwrites them.
+	borrowed bool
+
 	// Chunk processing options.
 	opts Opts
 }
@@ -156,6 +161,11 @@ func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
 func (ch *ChunkLIST) Reset() {
 	ch.size = 0
 	ch.ListType = 0
+	if ch.borrowed {
+		ch.chunks = nil
+		ch.borrowed = false
+		return
+	}
 	for _, dec := range ch.chunks {
 		ch.reg.Put(dec)
 	}
@@ -180,6 +190,7 @@ func adtlMake(opts ...OptsFn) IDMaker {
 // Modify set a new set of the chunks.
 func (ch *ChunkLIST) Modify(chs Chunks) {
 	ch.chunks = chs
+	ch.borrowed = true
 	// Recalculate chunks size.
 	ch.size = 4 + ch.chunks.Size()
 }

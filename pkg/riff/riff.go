@@ -49,6 +49,11 @@ type RIFF struct {
 	// Registered chunk decoders.
 	reg *Registry
 
+	// Set when chunks were supplied by the caller through Modify. Reset does
+	// not return those to the registry pool, so later decoding never
+	// overwrites them.
+	borrowed bool
+
 	// Main chunk processing options.
 	opts Opts
 }
@@ -195,6 +200,11 @@ func (rif *RIFF) WriteTo(w io.Writer) (int64, error) {
 
 // Reset resets instance so it can be reused.
 func (rif *RIFF) Reset() {
+	if rif.borrowed {
+		rif.chunks = nil
+		rif.borrowed = false
+		return
+	}
 	for _, ch := range rif.chunks {
 		rif.reg.Put(ch)
 	}
@@ -219,6 +229,7 @@ func (rif *RIFF) decodeChunk(id uint32, r io.Reader) (int64, error) {
 // Modify set a new set of the chunks.
 func (rif *RIFF) Modify(chs Chunks) {
 	rif.chunks = chs
+	rif.borrowed = true
 	// Recalculate chunks size.
 	rif.size = 4 + rif.chunks.Size()
 }
