@@ -180,12 +180,11 @@ func (cr *ChunkReader) SkipN(n uint32) error {
 	}
 
 	// If we cannot seek, we read data to black hole.
-	read, err := io.CopyN(io.Discard, cr, num)
-	if err != nil {
+	if _, err := io.CopyN(io.Discard, cr, num); err != nil {
+		if errors.Is(err, io.EOF) {
+			err = io.ErrUnexpectedEOF
+		}
 		return err
-	}
-	if read < num {
-		return io.ErrUnexpectedEOF
 	}
 	return nil
 }

@@ -336,6 +336,22 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		assert.Equal(t, int64(24), cr.Count())
 	})
 
+	t.Run("error - no seeker skips past end", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32LE(t, src, 30) // chunk size
+		writeBytes(t, src, make([]byte, 10))
+
+		opts := NewOpts()
+		cr, _ := must.Values(opts.ChunkReader(src))
+
+		// --- When ---
+		err := cr.SkipN(20)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
+
 	t.Run("error - seeker skips past end", func(t *testing.T) {
 		// --- Given ---
 		buf := bytes.NewBuffer(nil)
