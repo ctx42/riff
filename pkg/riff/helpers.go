@@ -32,10 +32,7 @@ func StrToID(s string) uint32 {
 // ReadChunkID reads a four-byte chunk ID into id. It returns [io.EOF] when r
 // has no bytes left and [io.ErrUnexpectedEOF] when it has fewer than four.
 func ReadChunkID(r io.Reader, id *uint32) error {
-	if err := binary.Read(r, be, id); err != nil {
-		return err
-	}
-	return nil
+	return binary.Read(r, be, id)
 }
 
 // RealSize returns size rounded up to an even number: the size of a chunk body

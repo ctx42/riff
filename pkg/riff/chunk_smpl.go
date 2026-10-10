@@ -209,7 +209,8 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 	size := ch.Size()
 
 	ch.SampleLoopCnt = uint32(len(ch.SampleLoops))
-	ch.SamplerDataCnt = ch.SampleLoopCnt*24 + uint32(len(ch.sampleData))
+	ch.SamplerDataCnt = ch.SampleLoopCnt*SampleLoopCntSize +
+		uint32(len(ch.sampleData))
 
 	n, err := WriteIDAndSize(w, IDsmpl, size)
 	sum += n
@@ -229,12 +230,13 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 		sum += int64(SampleLoopCntSize)
 	}
 
-	lsd := len(ch.sampleData)
-	if lsd > 0 {
-		if err = binary.Write(w, le, ch.sampleData); err != nil {
+	if len(ch.sampleData) > 0 {
+		var in int
+		in, err = w.Write(ch.sampleData)
+		sum += int64(in)
+		if err != nil {
 			return sum, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), err)
 		}
-		sum += int64(lsd)
 	}
 
 	n, err = WritePaddingIf(w, size)

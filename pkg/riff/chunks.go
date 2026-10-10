@@ -51,10 +51,10 @@ func (chs Chunks) Size() uint32 {
 }
 
 // WriteTo writes all the chunks in the collection to w.
-func (chs Chunks) WriteTo(w io.Writer) (n int64, err error) {
+func (chs Chunks) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 	for _, ch := range chs {
-		n, err = ch.WriteTo(w)
+		n, err := ch.WriteTo(w)
 		sum += n
 		if err != nil {
 			return sum, err
