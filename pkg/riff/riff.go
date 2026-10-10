@@ -108,7 +108,7 @@ func (rif *RIFF) SetType(t uint32) { rif.riffType = t }
 
 // IsRegistered returns true if decoder for id is registered.
 func (rif *RIFF) IsRegistered(id uint32) bool {
-	return rif.reg.Has(id)
+	return rif.registry().Has(id)
 }
 
 func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
@@ -206,9 +206,18 @@ func (rif *RIFF) Reset() {
 		return
 	}
 	for _, ch := range rif.chunks {
-		rif.reg.Put(ch)
+		rif.registry().Put(ch)
 	}
 	rif.chunks = rif.chunks[:0]
+}
+
+// registry returns the chunk decoder registry, creating one with only the raw
+// chunk decoder when the instance has none (zero value).
+func (rif *RIFF) registry() *Registry {
+	if rif.reg == nil {
+		rif.reg = NewRegistry(RAWCMake(WithOpts(rif.opts)))
+	}
+	return rif.reg
 }
 
 // decodeChunk decodes a chunk with id.
@@ -216,7 +225,7 @@ func (rif *RIFF) decodeChunk(id uint32, r io.Reader) (int64, error) {
 	if rif.chunks.Count(id) > 0 && !rif.chunks.First(id).Multi() {
 		return 0, fmt.Errorf("chunk %s (0x%x) already seen", Uint32(id), id)
 	}
-	dec := rif.reg.Get(id)
+	dec := rif.registry().Get(id)
 	dec.Reset()
 	n, err := dec.ReadFrom(r)
 	if err != nil {

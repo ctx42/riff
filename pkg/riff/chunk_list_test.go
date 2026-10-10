@@ -105,6 +105,23 @@ func Test_ChunkLIST_LIST(t *testing.T) {
 	assert.False(t, ch.Raw())
 }
 
+func Test_ChunkLIST_NilRegistry(t *testing.T) {
+	// --- Given ---
+	src := listChunkType_INFO(t)
+	test.Skip4B(t, src) // Skip chunk ID.
+
+	ch := LIST(nil, WithLoadData())
+
+	// --- When ---
+	n, err := ch.ReadFrom(src)
+
+	// --- Then ---
+	assert.NoError(t, err)
+	assert.Equal(t, int64(20), n)
+	assert.Len(t, 1, ch.Chunks())
+	ch.Reset()
+}
+
 func Test_ChunkLIST_Type_INFO(t *testing.T) {
 	// --- Given ---
 	reg := NewRegistry(RAWCMake(WithLoadData()))

@@ -59,6 +59,21 @@ func Test_RIFF_Bare_NilRegistry(t *testing.T) {
 	assert.False(t, rif.IsRegistered(IDdata))
 }
 
+func Test_RIFF_ZeroValue(t *testing.T) {
+	// --- Given ---
+	src := bytes.NewReader(must.Value(os.ReadFile("testdata/kick.wav")))
+	rif := &RIFF{}
+
+	// --- When ---
+	n, err := rif.ReadFrom(src)
+
+	// --- Then ---
+	assert.NoError(t, err)
+	assert.Equal(t, int64(9012), n)
+	assert.Equal(t, []uint32{IDfmt, IDdata}, rif.Chunks().IDs())
+	assert.False(t, rif.IsRegistered(IDfmt))
+}
+
 func Test_RIFF_ReadFrom_SmokeTest(t *testing.T) {
 	rif := New()
 

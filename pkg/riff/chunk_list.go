@@ -55,7 +55,9 @@ func LISTMake(reg *Registry, opts ...OptsFn) Maker {
 	}
 }
 
-// LIST returns a new instance of [ChunkLIST].
+// LIST returns a new instance of [ChunkLIST] decoding sub-chunks with
+// decoders from reg. When reg is nil, a registry with only the raw chunk
+// decoder is used.
 func LIST(reg *Registry, opts ...OptsFn) *ChunkLIST {
 	ch := &ChunkLIST{
 		reg:  reg,
@@ -104,7 +106,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 			return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, ch.ListType), err)
 		}
 
-		dec := ch.reg.GetNoRaw(id)
+		dec := ch.registry().GetNoRaw(id)
 		if dec == nil {
 			dec = mkr(id)
 		}
@@ -167,9 +169,18 @@ func (ch *ChunkLIST) Reset() {
 		return
 	}
 	for _, dec := range ch.chunks {
-		ch.reg.Put(dec)
+		ch.registry().Put(dec)
 	}
 	ch.chunks = ch.chunks[:0]
+}
+
+// registry returns the chunk decoder registry, creating an empty one when
+// the chunk has none (nil registry or zero value).
+func (ch *ChunkLIST) registry() *Registry {
+	if ch.reg == nil {
+		ch.reg = NewRegistry(RAWCMake(WithOpts(ch.opts)))
+	}
+	return ch.reg
 }
 
 // adtlMake returns an [IDMaker] creating decoders for sub-chunks of the
