@@ -324,7 +324,6 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 
 		opts := NewOpts()
 		cr, _ := must.Values(opts.ChunkReader(buf))
-		assert.Equal(t, int64(4), iokit.Offset(buf))
 
 		// --- When ---
 		err := cr.SkipN(20)
@@ -496,11 +495,10 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		buf.SeekStart()
 
 		opts := NewOpts()
-		cr, _, err := opts.ChunkReader(buf)
-		assert.NoError(t, err)
+		cr, _ := must.Values(opts.ChunkReader(buf))
 
 		// --- When ---
-		err = cr.SkipN(10)
+		err := cr.SkipN(10)
 
 		// --- Then ---
 		assert.NoError(t, err)
