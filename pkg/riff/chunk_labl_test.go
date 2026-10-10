@@ -78,8 +78,9 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 		src := lablChunkTextLenOdd(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := LABL()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -155,9 +156,9 @@ func Test_ChunkLABL_WriteTo(t *testing.T) {
 			if !assert.NoError(t, err) {
 				t.Logf("errro i=%d", i)
 			}
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
 
 			// --- Then ---
@@ -188,9 +189,9 @@ func Test_ChunkLABL_WriteTo_tabular(t *testing.T) {
 			ch := LABL()
 			_, err := ch.ReadFrom(src)
 			assert.NoError(t, err)
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			n, err := ch.WriteTo(dst)
 
 			// --- Then ---

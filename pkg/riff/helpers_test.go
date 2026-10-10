@@ -70,9 +70,9 @@ func Test_ReadChunkID(t *testing.T) {
 	t.Run("read", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewReader([]byte{0x41, 0x42, 0x43, 0x44})
+		var id uint32
 
 		// --- When ---
-		var id uint32
 		err := ReadChunkID(src, &id)
 
 		// --- Then ---
@@ -84,9 +84,9 @@ func Test_ReadChunkID(t *testing.T) {
 		// --- Given ---
 		src := iokit.NewReaderMock(t)
 		src.OnRead(mock.Any).Return(0, iokit.ErrRead)
+		var id uint32
 
 		// --- When ---
-		var id uint32
 		err := ReadChunkID(src, &id)
 
 		// --- Then ---
@@ -96,8 +96,21 @@ func Test_ReadChunkID(t *testing.T) {
 }
 
 func Test_RealSize(t *testing.T) {
-	assert.Equal(t, uint32(124), RealSize(123))
-	assert.Equal(t, uint32(124), RealSize(124))
+	t.Run("odd size", func(t *testing.T) {
+		// --- When ---
+		have := RealSize(123)
+
+		// --- Then ---
+		assert.Equal(t, uint32(124), have)
+	})
+
+	t.Run("even size", func(t *testing.T) {
+		// --- When ---
+		have := RealSize(124)
+
+		// --- Then ---
+		assert.Equal(t, uint32(124), have)
+	})
 }
 
 func Test_ReadPaddingIf(t *testing.T) {
@@ -250,19 +263,23 @@ func Test_TrimZeroRight_tabular(t *testing.T) {
 		in   []byte
 		want []byte
 	}{
-		{"1", []byte{}, []byte{}},
-		{"2", []byte{0}, []byte{}},
-		{"3", []byte{0, 0}, []byte{}},
-		{"4", []byte{'a', 'b'}, []byte{'a', 'b'}},
-		{"5", []byte{'a', 'b', 0}, []byte{'a', 'b'}},
-		{"6", []byte{'a', 'b', 0, 0}, []byte{'a', 'b'}},
-		{"7", []byte{'a'}, []byte{'a'}},
-		{"8", []byte{'a', 0}, []byte{'a'}},
+		{"empty", []byte{}, []byte{}},
+		{"zero", []byte{0}, []byte{}},
+		{"zeros", []byte{0, 0}, []byte{}},
+		{"no zeros", []byte{'a', 'b'}, []byte{'a', 'b'}},
+		{"one trailing zero", []byte{'a', 'b', 0}, []byte{'a', 'b'}},
+		{"two trailing zeros", []byte{'a', 'b', 0, 0}, []byte{'a', 'b'}},
+		{"single byte", []byte{'a'}, []byte{'a'}},
+		{"single byte and zero", []byte{'a', 0}, []byte{'a'}},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.testN, func(t *testing.T) {
-			assert.Equal(t, tc.want, TrimZeroRight(tc.in))
+			// --- When ---
+			have := TrimZeroRight(tc.in)
+
+			// --- Then ---
+			assert.Equal(t, tc.want, have)
 		})
 	}
 }

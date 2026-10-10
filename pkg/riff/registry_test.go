@@ -10,13 +10,29 @@ import (
 )
 
 func Test_Registry_Has(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-	reg.Register(IDfmt, FMTMake())
+	t.Run("registered", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		reg.Register(IDfmt, FMTMake())
 
-	// --- Then ---
-	assert.True(t, reg.Has(IDfmt))
-	assert.False(t, reg.Has(IDLIST))
+		// --- When ---
+		have := reg.Has(IDfmt)
+
+		// --- Then ---
+		assert.True(t, have)
+	})
+
+	t.Run("not registered", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		reg.Register(IDfmt, FMTMake())
+
+		// --- When ---
+		have := reg.Has(IDLIST)
+
+		// --- Then ---
+		assert.False(t, have)
+	})
 }
 
 func Test_Registry_Register(t *testing.T) {
@@ -37,14 +53,14 @@ func Test_Registry_Get(t *testing.T) {
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 		reg.Register(IDfmt, FMTMake())
 
-		ch0 := reg.Get(IDfmt)
+		ch := reg.Get(IDfmt)
+		reg.Put(ch)
 
 		// --- When ---
-		reg.Put(ch0)
-		ch1 := reg.Get(IDfmt)
+		have := reg.Get(IDfmt)
 
 		// --- Then ---
-		assert.Same(t, ch0, ch1)
+		assert.Same(t, ch, have)
 	})
 }
 

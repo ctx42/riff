@@ -111,8 +111,9 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		src := listChunkTypeAdtl(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := LIST(reg, WithLoadData())
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -158,8 +159,9 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		src := listChunkTypeUnknown(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := LIST(reg, WithLoadData())
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -272,9 +274,9 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 		src := &bytes.Buffer{}
 		writeUint32LE(t, src, 3)
+		ch := LIST(reg, WithLoadData())
 
 		// --- When ---
-		ch := LIST(reg, WithLoadData())
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -299,9 +301,9 @@ func Test_ChunkLIST_WriteTo(t *testing.T) {
 			if !assert.NoError(t, err) {
 				t.Logf("errro i=%d", i)
 			}
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
 
 			// --- Then ---
@@ -334,9 +336,9 @@ func Test_ChunkLIST_WriteTo_tabular(t *testing.T) {
 			ch := LIST(reg, WithLoadData())
 			_, err := ch.ReadFrom(src)
 			assert.NoError(t, err)
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			n, err := ch.WriteTo(dst)
 
 			// --- Then ---

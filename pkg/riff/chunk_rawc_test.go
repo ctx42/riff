@@ -57,9 +57,9 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 
 		// The bytes.Reader implements io.Seeker.
 		src := bytes.NewReader(buf.Bytes())
+		ch := RAWC(IDUNKN)
 
 		// --- When ---
-		ch := RAWC(IDUNKN)
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -77,9 +77,9 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		writeUint32LE(t, src, 3)                  // Chunk size (4).
 		writeBytes(t, src, []byte{'A', 'B', 'C'}) // Chunk data (*).
 		writeBytes(t, src, []byte{0})             // Padding byte (1).
+		ch := RAWC(IDUNKN)
 
 		// --- When ---
-		ch := RAWC(IDUNKN)
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -112,9 +112,9 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		writeUint32LE(t, src, 10)        // Chunk size (4).
 		src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
 		src.WriteByte(0)                 // Padding byte (1).
+		ch := RAWC(IDUNKN, WithLoadData())
 
 		// --- When ---
-		ch := RAWC(IDUNKN, WithLoadData())
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -128,9 +128,9 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		src := &bytes.Buffer{}
 		writeUint32LE(t, src, 3)         // Chunk size (4).
 		src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
+		ch := RAWC(IDUNKN, WithLoadData())
 
 		// --- When ---
-		ch := RAWC(IDUNKN, WithLoadData())
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -161,9 +161,9 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		ch := RAWC(IDUNKN, WithLoadData())
 		ch.size = 2
 		ch.data = []byte{0, 1}
+		dst := &bytes.Buffer{}
 
 		// --- When ---
-		dst := &bytes.Buffer{}
 		n, err := ch.WriteTo(dst)
 
 		// --- Then ---
@@ -183,9 +183,9 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		ch := RAWC(IDUNKN, WithLoadData())
 		ch.size = 3
 		ch.data = []byte{0, 1, 2}
+		dst := &bytes.Buffer{}
 
 		// --- When ---
-		dst := &bytes.Buffer{}
 		n, err := ch.WriteTo(dst)
 
 		// --- Then ---

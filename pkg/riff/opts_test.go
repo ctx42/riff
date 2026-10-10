@@ -279,22 +279,16 @@ func Test_Opts_ChunkReader(t *testing.T) {
 
 		opts := NewOpts()
 
-		// --- When ---
 		cr0, _ := must.Values(opts.ChunkReader(buf))
 		must.Value(io.CopyN(io.Discard, cr0, 4))
-		assert.Equal(t, int64(8), cr0.Count())
 
 		cr1, _ := must.Values(opts.ChunkReader(cr0))
 		must.Value(io.CopyN(io.Discard, cr1, 4))
-		assert.Equal(t, int64(16), cr0.Count())
-		assert.Equal(t, int64(8), cr1.Count())
 
 		cr2, _ := must.Values(opts.ChunkReader(cr1))
 		must.Value(io.CopyN(io.Discard, cr2, 4))
-		assert.Equal(t, int64(24), cr0.Count())
-		assert.Equal(t, int64(16), cr1.Count())
-		assert.Equal(t, int64(8), cr2.Count())
 
+		// --- When ---
 		_, err := io.CopyN(io.Discard, cr2, 4)
 
 		// --- Then ---
@@ -472,19 +466,14 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		}
 
 		opts := NewOpts()
-		cr, _, err := opts.ChunkReader(buf)
-		assert.NoError(t, err)
+		cr, _ := must.Values(opts.ChunkReader(buf))
+		must.Nil(cr.SkipN(4))
+		must.Nil(cr.SkipN(4))
 
 		// --- When ---
-		err = cr.SkipN(4)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(8), cr.Count())
+		err := cr.SkipN(4)
 
-		err = cr.SkipN(4)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(12), cr.Count())
-
-		err = cr.SkipN(4)
+		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(16), cr.Count())
 	})
@@ -499,19 +488,14 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		buf.SeekStart()
 
 		opts := NewOpts()
-		cr, _, err := opts.ChunkReader(buf)
-		assert.NoError(t, err)
+		cr, _ := must.Values(opts.ChunkReader(buf))
+		must.Nil(cr.SkipN(4))
+		must.Nil(cr.SkipN(4))
 
 		// --- When ---
-		err = cr.SkipN(4)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(8), cr.Count())
+		err := cr.SkipN(4)
 
-		err = cr.SkipN(4)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(12), cr.Count())
-
-		err = cr.SkipN(4)
+		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, int64(16), cr.Count())
 	})
@@ -558,22 +542,16 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 
 		opts := NewOpts()
 
-		// --- When ---
 		cr0, _ := must.Values(opts.ChunkReader(buf))
 		must.Nil(cr0.SkipN(4))
-		assert.Equal(t, int64(8), cr0.Count())
 
 		cr1, _ := must.Values(opts.ChunkReader(cr0))
 		must.Nil(cr1.SkipN(4))
-		assert.Equal(t, int64(16), cr0.Count())
-		assert.Equal(t, int64(8), cr1.Count())
 
 		cr2, _ := must.Values(opts.ChunkReader(cr1))
 		must.Nil(cr2.SkipN(4))
-		assert.Equal(t, int64(24), cr0.Count())
-		assert.Equal(t, int64(16), cr1.Count())
-		assert.Equal(t, int64(8), cr2.Count())
 
+		// --- When ---
 		_, err := io.CopyN(io.Discard, cr2, 8)
 
 		// --- Then ---

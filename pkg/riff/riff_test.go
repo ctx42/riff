@@ -378,9 +378,9 @@ func Test_RIFF_WriteTo(t *testing.T) {
 		// --- Given ---
 		rif := New(WithLoadData())
 		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
+		dst := &bytes.Buffer{}
 
 		// --- When ---
-		dst := &bytes.Buffer{}
 		n, err := rif.WriteTo(dst)
 
 		// --- Then ---
@@ -435,20 +435,13 @@ func Test_RIFF_WriteTo_tabular(t *testing.T) {
 		t.Run(tc.pth, func(t *testing.T) {
 			// --- Given ---
 			must.Value(rif.ReadFrom(oskit.Open(t, tc.pth)))
+			buf := &bytes.Buffer{}
 
 			// --- When ---
-			buf := &bytes.Buffer{}
 			n, err := rif.WriteTo(buf)
 
 			// --- Then ---
 			assert.NoError(t, err)
-
-			// nolint: gocritic
-			// fil := kit.CreateFile(t, filepath.Join("tmp", filepath.Base(tc.pth)))
-			// content := kit.ReadAll(t, buf)
-			// fil.Write(content)
-			// buf = bytes.NewBuffer(content)
-
 			assert.Equal(t, tc.size, n)
 			size := int64(RealSize(rif.Size()) + 8)
 			assert.Equal(t, tc.size, size)

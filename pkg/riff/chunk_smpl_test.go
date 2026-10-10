@@ -210,8 +210,9 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		src := smplWithoutLoopsWithData(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := SMPL()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -238,8 +239,9 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		src := smplWithLoopsNoData(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := SMPL()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -272,8 +274,9 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		src := smplWithLoopsWithData(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := SMPL()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -362,8 +365,9 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		src := smplInvalidSize(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := SMPL()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -444,9 +448,9 @@ func Test_ChunkSMPL_WriteTo(t *testing.T) {
 			if !assert.NoError(t, err) {
 				t.Logf("errro i=%d", i)
 			}
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
 
 			// --- Then ---
@@ -479,9 +483,9 @@ func Test_ChunkSMPL_WriteTo_tabular(t *testing.T) {
 			ch := SMPL()
 			_, err := ch.ReadFrom(src)
 			assert.NoError(t, err)
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			n, err := ch.WriteTo(dst)
 
 			// --- Then ---

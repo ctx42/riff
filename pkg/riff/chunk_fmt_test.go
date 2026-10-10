@@ -288,8 +288,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := fmtChunkWithExtraBytesEven(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := FMT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -312,8 +313,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := fmtChunkWithExtraBytesOdd(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := FMT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -336,8 +338,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := fmtChunkWithExtraOfZeroLen(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := FMT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -407,9 +410,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := fmtChunkWithExtraBytesOdd(t)
 		skip4B(t, src) // Skip chunk ID.
 		src = iokit.ErrReader(src, 24)
+		ch := FMT()
 
 		// --- When ---
-		ch := FMT()
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -422,8 +425,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := fmtChunkWithExtraInvalidSizeEven(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := FMT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -437,8 +441,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := fmtChunkWithExtraInvalidSizeOdd(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := FMT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -461,9 +466,9 @@ func Test_ChunkFMT_WriteTo(t *testing.T) {
 			if !assert.NoError(t, err) {
 				t.Logf("errro i=%d", i)
 			}
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
 
 			// --- Then ---
@@ -481,6 +486,7 @@ func Test_ChunkFMT_WriteTo_tabular(t *testing.T) {
 			t.Helper()
 			src := fix(t)
 			skip4B(t, src) // Skip chunk ID.
+
 			ch := FMT()
 			must.Value(ch.ReadFrom(src))
 			return ch

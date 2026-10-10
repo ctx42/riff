@@ -93,8 +93,9 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 		src := infoChunkTextLenOdd(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := INFO(LabIART)
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -173,9 +174,9 @@ func Test_ChunkINFO_WriteTo(t *testing.T) {
 			if !assert.NoError(t, err) {
 				t.Logf("errro i=%d", i)
 			}
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
 
 			// --- Then ---
@@ -207,9 +208,9 @@ func Test_ChunkINFO_WriteTo_tabular(t *testing.T) {
 			ch := INFO(tc.id)
 			_, err := ch.ReadFrom(src)
 			assert.NoError(t, err)
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			dst := &bytes.Buffer{}
 			n, err := ch.WriteTo(dst)
 
 			// --- Then ---
@@ -268,8 +269,13 @@ func Test_InfoLabel_tabular(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.str, func(t *testing.T) {
 			t.Parallel()
+
+			// --- When ---
 			have := InfoLabel(tc.label)
+
+			// --- Then ---
 			assert.Equal(t, tc.str, have)
+
 			assert.Equal(t, tc.code, Uint32(tc.label).String())
 		})
 	}
