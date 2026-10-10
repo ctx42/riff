@@ -29,7 +29,7 @@ go get github.com/ctx42/riff
 
 ## Examples
 
-See more examples in [_examples](_examples) directory.
+See more examples in [examples_test.go](pkg/riff/examples_test.go).
 
 ### Print fmt chunk info
 
