@@ -15,7 +15,7 @@ import (
 	"github.com/ctx42/testkit/pkg/testkit"
 )
 
-func Test_RIFF_New(t *testing.T) {
+func Test_New(t *testing.T) {
 	// --- When ---
 	rif := New(WithLoadData())
 
@@ -30,51 +30,288 @@ func Test_RIFF_New(t *testing.T) {
 	assert.False(t, rif.IsRegistered(0))
 }
 
-func Test_RIFF_Bare(t *testing.T) {
-	// --- When ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-	rif := Bare(reg)
+func Test_Bare(t *testing.T) {
+	t.Run("registry", func(t *testing.T) {
+		// --- When ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		rif := Bare(reg)
 
-	// --- Then ---
-	assert.Equal(t, IDRIFF, rif.ID())
-	assert.Equal(t, uint32(0), rif.Size())
-	assert.Equal(t, uint32(0), rif.Type())
-	assert.False(t, rif.Multi())
+		// --- Then ---
+		assert.Equal(t, IDRIFF, rif.ID())
+		assert.Equal(t, uint32(0), rif.Size())
+		assert.Equal(t, uint32(0), rif.Type())
+		assert.False(t, rif.Multi())
 
-	assert.False(t, rif.IsRegistered(IDfmt))
-	assert.False(t, rif.IsRegistered(IDdata))
+		assert.False(t, rif.IsRegistered(IDfmt))
+		assert.False(t, rif.IsRegistered(IDdata))
+	})
+
+	t.Run("nil registry", func(t *testing.T) {
+		// --- When ---
+		rif := Bare(nil)
+
+		// --- Then ---
+		assert.Equal(t, IDRIFF, rif.ID())
+		assert.Equal(t, uint32(0), rif.Size())
+		assert.Equal(t, uint32(0), rif.Type())
+		assert.False(t, rif.Multi())
+
+		assert.False(t, rif.IsRegistered(IDfmt))
+		assert.False(t, rif.IsRegistered(IDdata))
+	})
 }
 
-func Test_RIFF_Bare_NilRegistry(t *testing.T) {
-	// --- When ---
-	rif := Bare(nil)
+func Test_Compose(t *testing.T) {
+	t.Run("without removed chunk", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
+		chs := rif.Chunks()
 
-	// --- Then ---
-	assert.Equal(t, IDRIFF, rif.ID())
-	assert.Equal(t, uint32(0), rif.Size())
-	assert.Equal(t, uint32(0), rif.Type())
-	assert.False(t, rif.Multi())
+		// --- When ---
+		nw := Compose(chs.Remove(IDfmt))
 
-	assert.False(t, rif.IsRegistered(IDfmt))
-	assert.False(t, rif.IsRegistered(IDdata))
+		// --- Then ---
+		assert.Equal(t, 14, len(chs.IDs()))
+		assert.Equal(t, 13, len(nw.Chunks()))
+	})
+
+	t.Run("same size", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
+		chs := rif.Chunks()
+
+		// --- When ---
+		nw := Compose(chs)
+
+		// --- Then ---
+		assert.Equal(t, rif.Size(), nw.Size())
+		assert.Equal(t, len(chs.IDs()), len(nw.Chunks().IDs()))
+	})
 }
 
-func Test_RIFF_ZeroValue(t *testing.T) {
-	// --- Given ---
-	src := bytes.NewReader(must.Value(os.ReadFile("testdata/kick.wav")))
-	rif := &RIFF{}
+func Test_RIFF_ReadFrom(t *testing.T) {
+	t.Run("zero value", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader(must.Value(os.ReadFile("testdata/kick.wav")))
+		rif := &RIFF{}
 
-	// --- When ---
-	n, err := rif.ReadFrom(src)
+		// --- When ---
+		n, err := rif.ReadFrom(src)
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(9012), n)
-	assert.Equal(t, []uint32{IDfmt, IDdata}, rif.Chunks().IDs())
-	assert.False(t, rif.IsRegistered(IDfmt))
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(9012), n)
+		assert.Equal(t, []uint32{IDfmt, IDdata}, rif.Chunks().IDs())
+		assert.False(t, rif.IsRegistered(IDfmt))
+	})
+
+	t.Run("extra bytes - respect declared size", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
+
+		rif := New(WithLoadData())
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(12), n)
+		assert.Equal(t, uint32(4), rif.Size())
+		assert.Len(t, 0, rif.Chunks())
+	})
+
+	t.Run("extra bytes - ignore declared size", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
+
+		rif := New(WithLoadData(), WithIgnoreSize())
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(24), n)
+		assert.Equal(t, uint32(16), rif.Size()) // Size corrected.
+		assert.Len(t, 1, rif.Chunks())
+	})
+
+	t.Run("error - noise at the end with ignored size", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 8000)
+		writeUint32LE(t, src, 7000)
+
+		rif := New(WithLoadData(), WithIgnoreSize())
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "error reading RIFF offset 24: error decoding RAWC:dddd chunk: unexpected EOF"
+		assert.ErrorContain(t, want, err)
+		assert.Equal(t, int64(24), n)
+		assert.Equal(t, uint32(4), rif.Size())
+		assert.Len(t, 0, rif.Chunks())
+	})
+
+	t.Run("error - fewer bytes than declared", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 20)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
+
+		rif := New(WithLoadData())
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "RIFF declared 20 bytes, decoder read 16 bytes: unexpected EOF"
+		assert.ErrorContain(t, want, err)
+		assert.Equal(t, int64(24), n)
+		assert.Equal(t, uint32(20), rif.Size())
+		assert.Len(t, 1, rif.Chunks())
+	})
+
+	t.Run("error - chunk name cut in half", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 20)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint16LE(t, src, 0x6464)
+
+		rif := New(WithLoadData())
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "error reading RIFF offset 14: unexpected EOF"
+		assert.ErrorContain(t, want, err)
+		assert.Equal(t, int64(14), n)
+		assert.Equal(t, uint32(20), rif.Size())
+		assert.Len(t, 0, rif.Chunks())
+	})
+
+	t.Run("within size limit", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 16)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
+
+		rif := New(WithLoadData(), WithSizeLimit(16))
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(24), n)
+		assert.Equal(t, uint32(16), rif.Size())
+		assert.Len(t, 1, rif.Chunks())
+	})
+
+	t.Run("error - main chunk size limit", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 16)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
+
+		rif := New(WithLoadData(), WithSizeLimit(15))
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "error decoding RIFF chunk: size too large"
+		assert.ErrorContain(t, want, err)
+		assert.Equal(t, int64(4), n)
+		assert.Equal(t, uint32(0), rif.Size())
+		assert.Len(t, 0, rif.Chunks())
+	})
+
+	t.Run("error - sub-chunk size limit", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 16)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
+
+		reg := NewRegistry(RAWCMake(WithLoadData(), WithSizeLimit(3)))
+		rif := Bare(reg)
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "error reading RIFF offset 20: error decoding RAWC:dddd chunk: size too large"
+		assert.ErrorContain(t, want, err)
+		assert.Equal(t, int64(20), n)
+		assert.Equal(t, uint32(16), rif.Size())
+		assert.Len(t, 0, rif.Chunks())
+	})
+
+	t.Run("error - size limit with ignored size", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32LE(t, src, 0x64646464)
+		writeUint32LE(t, src, 4)
+		writeUint32LE(t, src, 1000)
+
+		rif := New(WithLoadData(), WithIgnoreSize(), WithSizeLimit(15))
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "error reading RIFF offset 23: error decoding RAWC:dddd chunk: unexpected EOF"
+		assert.ErrorContain(t, want, err)
+		assert.Equal(t, int64(23), n)
+		assert.Equal(t, uint32(4), rif.Size())
+		assert.Len(t, 0, rif.Chunks())
+	})
 }
 
-func Test_RIFF_ReadFrom_SmokeTest(t *testing.T) {
+func Test_RIFF_ReadFrom_tabular(t *testing.T) {
 	rif := New()
 
 	tt := []struct {
@@ -135,24 +372,26 @@ func Test_RIFF_ReadFrom_SmokeTest(t *testing.T) {
 	}
 }
 
-func Test_RIFF_CorrectingSize(t *testing.T) {
-	// --- Given ---
-	rif := New(WithLoadData())
-	must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
+func Test_RIFF_WriteTo(t *testing.T) {
+	t.Run("corrects size", func(t *testing.T) {
+		// --- Given ---
+		rif := New(WithLoadData())
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
 
-	// --- When ---
-	dst := &bytes.Buffer{}
-	n, err := rif.WriteTo(dst)
+		// --- When ---
+		dst := &bytes.Buffer{}
+		n, err := rif.WriteTo(dst)
 
-	// --- Then ---
-	assert.NoError(t, err)
+		// --- Then ---
+		assert.NoError(t, err)
 
-	assert.Equal(t, int64(27074), n)
-	assert.Equal(t, uint32(27074), rif.Size()+8)
-	assert.Equal(t, "ebdf4fefcbbb804b44cddbc50521ba29f833e05c", testkit.SHA1Reader(dst))
+		assert.Equal(t, int64(27074), n)
+		assert.Equal(t, uint32(27074), rif.Size()+8)
+		assert.Equal(t, "ebdf4fefcbbb804b44cddbc50521ba29f833e05c", testkit.SHA1Reader(dst))
+	})
 }
 
-func Test_RIFF_WriteTo_SmokeTest(t *testing.T) {
+func Test_RIFF_WriteTo_tabular(t *testing.T) {
 	rif := New(WithLoadData())
 
 	tt := []struct {
@@ -217,38 +456,26 @@ func Test_RIFF_WriteTo_SmokeTest(t *testing.T) {
 	}
 }
 
-func Test_Compose(t *testing.T) {
-	t.Run("ok", func(t *testing.T) {
+func Test_RIFF_Reset(t *testing.T) {
+	t.Run("modified chunks not pooled", func(t *testing.T) {
 		// --- Given ---
-		rif := New()
-		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
-		chs := rif.Chunks()
+		ch := DATA(WithLoadData())
+		must.Nil(ch.SetData([]byte{1, 2}))
+
+		rif := New(WithLoadData())
+		rif.Modify(Chunks{ch})
 
 		// --- When ---
-		nw := Compose(chs.Remove(IDfmt))
+		rif.Reset()
 
 		// --- Then ---
-		assert.Equal(t, 14, len(chs.IDs()))
-		assert.Equal(t, 13, len(nw.Chunks()))
-	})
-
-	t.Run("size ok", func(t *testing.T) {
-		// --- Given ---
-		rif := New()
-		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
-		chs := rif.Chunks()
-
-		// --- When ---
-		nw := Compose(chs)
-
-		// --- Then ---
-		assert.Equal(t, rif.Size(), nw.Size())
-		assert.Equal(t, len(chs.IDs()), len(nw.Chunks().IDs()))
+		assert.NotSame(t, ch, rif.reg.Get(IDdata))
+		assert.Equal(t, uint32(2), ch.Size())
 	})
 }
 
-func Test_Modify(t *testing.T) {
-	t.Run("ok", func(t *testing.T) {
+func Test_RIFF_Modify(t *testing.T) {
+	t.Run("removes chunk", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
 		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
@@ -263,22 +490,6 @@ func Test_Modify(t *testing.T) {
 		assert.Equal(t, s-(f.Size()+8), rif.Size())
 		assert.Equal(t, 13, len(rif.Chunks().IDs()))
 	})
-}
-
-func Test_RIFF_Reset_ModifiedChunksNotPooled(t *testing.T) {
-	// --- Given ---
-	ch := DATA(WithLoadData())
-	must.Nil(ch.SetData([]byte{1, 2}))
-
-	rif := New(WithLoadData())
-	rif.Modify(Chunks{ch})
-
-	// --- When ---
-	rif.Reset()
-
-	// --- Then ---
-	assert.NotSame(t, ch, rif.reg.Get(IDdata))
-	assert.Equal(t, uint32(2), ch.Size())
 }
 
 func Benchmark_RIFFReuse(b *testing.B) {
@@ -340,213 +551,4 @@ func Benchmark_RIFFReuse(b *testing.B) {
 			}
 		})
 	}
-}
-
-func Test_RIFF_ExtraBytesAtTheEnd(t *testing.T) {
-	t.Run("respect declared size", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 4)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 4)
-		writeUint32LE(t, src, 1000)
-
-		rif := New(WithLoadData())
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		assert.NoError(t, err)
-		assert.Equal(t, int64(12), n)
-		assert.Equal(t, uint32(4), rif.Size())
-		assert.Len(t, 0, rif.Chunks())
-	})
-
-	t.Run("ignore declared size - extra valid chunk", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 4)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 4)
-		writeUint32LE(t, src, 1000)
-
-		rif := New(WithLoadData(), WithIgnoreSize())
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		assert.NoError(t, err)
-		assert.Equal(t, int64(24), n)
-		assert.Equal(t, uint32(16), rif.Size()) // Size corrected.
-		assert.Len(t, 1, rif.Chunks())
-	})
-
-	t.Run("ignore declared size - noise at the end", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 4)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 8000)
-		writeUint32LE(t, src, 7000)
-
-		rif := New(WithLoadData(), WithIgnoreSize())
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		want := "error reading RIFF offset 24: error decoding RAWC:dddd chunk: unexpected EOF"
-		assert.ErrorContain(t, want, err)
-		assert.Equal(t, int64(24), n)
-		assert.Equal(t, uint32(4), rif.Size())
-		assert.Len(t, 0, rif.Chunks())
-	})
-}
-
-func Test_RIFF_TooShortFile(t *testing.T) {
-	t.Run("fewer bytes than declared", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 20)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 4)
-		writeUint32LE(t, src, 1000)
-
-		rif := New(WithLoadData())
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		want := "RIFF declared 20 bytes, decoder read 16 bytes: unexpected EOF"
-		assert.ErrorContain(t, want, err)
-		assert.Equal(t, int64(24), n)
-		assert.Equal(t, uint32(20), rif.Size())
-		assert.Len(t, 1, rif.Chunks())
-	})
-
-	t.Run("chunk name cut in half", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 20)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint16LE(t, src, 0x6464)
-
-		rif := New(WithLoadData())
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		want := "error reading RIFF offset 14: unexpected EOF"
-		assert.ErrorContain(t, want, err)
-		assert.Equal(t, int64(14), n)
-		assert.Equal(t, uint32(20), rif.Size())
-		assert.Len(t, 0, rif.Chunks())
-	})
-}
-
-func Test_RIFF_SizeLimit(t *testing.T) {
-	t.Run("within limit", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 16)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 4)
-		writeUint32LE(t, src, 1000)
-
-		rif := New(WithLoadData(), WithSizeLimit(16))
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		assert.NoError(t, err)
-		assert.Equal(t, int64(24), n)
-		assert.Equal(t, uint32(16), rif.Size())
-		assert.Len(t, 1, rif.Chunks())
-	})
-
-	t.Run("main chunk limit hit", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 16)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 4)
-		writeUint32LE(t, src, 1000)
-
-		rif := New(WithLoadData(), WithSizeLimit(15))
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		want := "error decoding RIFF chunk: size too large"
-		assert.ErrorContain(t, want, err)
-		assert.Equal(t, int64(4), n)
-		assert.Equal(t, uint32(0), rif.Size())
-		assert.Len(t, 0, rif.Chunks())
-	})
-
-	t.Run("subchunk limit hit", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 16)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 4)
-		writeUint32LE(t, src, 1000)
-
-		reg := NewRegistry(RAWCMake(WithLoadData(), WithSizeLimit(3)))
-		rif := Bare(reg)
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		want := "error reading RIFF offset 20: error decoding RAWC:dddd chunk: size too large"
-		assert.ErrorContain(t, want, err)
-		assert.Equal(t, int64(20), n)
-		assert.Equal(t, uint32(16), rif.Size())
-		assert.Len(t, 0, rif.Chunks())
-	})
-
-	t.Run("ignore declared size - size limit hit", func(t *testing.T) {
-		// --- Given ---
-		src := bytes.NewBuffer(nil)
-		writeUint32BE(t, src, IDRIFF)
-		writeUint32LE(t, src, 4)
-		writeUint32BE(t, src, TypeWAVE)
-		writeUint32LE(t, src, 0x64646464)
-		writeUint32LE(t, src, 4)
-		writeUint32LE(t, src, 1000)
-
-		rif := New(WithLoadData(), WithIgnoreSize(), WithSizeLimit(15))
-
-		// --- When ---
-		n, err := rif.ReadFrom(src)
-
-		// --- Then ---
-		want := "error reading RIFF offset 23: error decoding RAWC:dddd chunk: unexpected EOF"
-		assert.ErrorContain(t, want, err)
-		assert.Equal(t, int64(23), n)
-		assert.Equal(t, uint32(4), rif.Size())
-		assert.Len(t, 0, rif.Chunks())
-	})
 }

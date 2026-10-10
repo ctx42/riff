@@ -12,44 +12,45 @@ import (
 )
 
 func Test_Chunks_First(t *testing.T) {
-	// --- Given ---
-	rif := New()
-	must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
-	chs := rif.Chunks()
+	t.Run("present", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
+		chs := rif.Chunks()
 
-	// --- When ---
-	ch := chs.First(IDfmt)
+		// --- When ---
+		ch := chs.First(IDfmt)
 
-	// --- Then ---
-	assert.Equal(t, uint32(IDfmt), ch.ID())
-	assert.Equal(t, uint32(0x10), ch.Size())
+		// --- Then ---
+		assert.Equal(t, uint32(IDfmt), ch.ID())
+		assert.Equal(t, uint32(0x10), ch.Size())
+	})
+
+	t.Run("not present", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
+		chs := rif.Chunks()
+
+		// --- When ---
+		ch := chs.First(IDUNKN)
+
+		// --- Then ---
+		assert.Nil(t, ch)
+	})
 }
 
-func Test_Chunks_First_NotPresent(t *testing.T) {
+func Test_Chunks_Count(t *testing.T) {
 	// --- Given ---
 	rif := New()
 	must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
 	chs := rif.Chunks()
 
 	// --- When ---
-	ch := chs.First(IDUNKN)
+	cnt := chs.Count(IDJUNK)
 
 	// --- Then ---
-	assert.Nil(t, ch)
-}
-
-func Test_Chunks_Size(t *testing.T) {
-	// --- Given ---
-	rif := New()
-	must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
-	chs := rif.Chunks()
-
-	// --- When ---
-	size := chs.Size()
-
-	// --- Then ---
-	// The 27074 is the file size, we add 12 for ID, type and size fields.
-	assert.Equal(t, uint32(27074), size+12)
+	assert.Equal(t, 7, cnt)
 }
 
 func Test_Chunks_IDs(t *testing.T) {
@@ -81,21 +82,22 @@ func Test_Chunks_IDs(t *testing.T) {
 	assert.Equal(t, exp, ids)
 }
 
-func Test_Chunks_Count(t *testing.T) {
+func Test_Chunks_Size(t *testing.T) {
 	// --- Given ---
 	rif := New()
 	must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))
 	chs := rif.Chunks()
 
 	// --- When ---
-	cnt := chs.Count(IDJUNK)
+	size := chs.Size()
 
 	// --- Then ---
-	assert.Equal(t, 7, cnt)
+	// The 27074 is the file size, we add 12 for ID, type and size fields.
+	assert.Equal(t, uint32(27074), size+12)
 }
 
 func Test_Chunks_Remove(t *testing.T) {
-	t.Run("ok", func(t *testing.T) {
+	t.Run("removes chunk", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
 		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/bwf.wav")))

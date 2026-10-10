@@ -60,34 +60,7 @@ func listChunkType_unknown(t *testing.T) io.Reader {
 	return src
 }
 
-func Test_adtlMake(t *testing.T) {
-	tt := []struct {
-		testN string
-
-		id   uint32
-		want Chunk
-	}{
-		{"labl", IDlabl, &ChunkLABL{}},
-		{"ltxt", IDltxt, &ChunkLTXT{}},
-		{"other", IDUNKN, &ChunkRAWC{}},
-	}
-
-	for _, tc := range tt {
-		t.Run(tc.testN, func(t *testing.T) {
-			// --- Given ---
-			mkr := adtlMake(WithLoadData())
-
-			// --- When ---
-			have := mkr(tc.id)
-
-			// --- Then ---
-			assert.SameType(t, tc.want, have)
-			assert.Equal(t, tc.id, have.ID())
-		})
-	}
-}
-
-func Test_ChunkLIST_LIST(t *testing.T) {
+func Test_LIST(t *testing.T) {
 	// --- Given ---
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
@@ -103,207 +76,237 @@ func Test_ChunkLIST_LIST(t *testing.T) {
 	assert.False(t, ch.Raw())
 }
 
-func Test_ChunkLIST_NilRegistry(t *testing.T) {
-	// --- Given ---
-	src := listChunkType_INFO(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := LIST(nil, WithLoadData())
-
-	// --- When ---
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(20), n)
-	assert.Len(t, 1, ch.Chunks())
-	ch.Reset()
-}
-
-func Test_ChunkLIST_Type_INFO(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-
-	src := listChunkType_INFO(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := LIST(reg, WithLoadData())
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(20), n)
-	assert.Equal(t, IDINFO, ch.Type())
-	assert.Len(t, 1, ch.Chunks())
-
-	sub := ch.Chunks()[0]
-	assert.SameType(t, &ChunkINFO{}, sub)
-	assert.Equal(t, LabIART, sub.ID())
-}
-
-func Test_ChunkLIST_Type_adtl(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-
-	src := listChunkType_adtl(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := LIST(reg, WithLoadData())
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(56), n)
-	assert.Equal(t, IDadtl, ch.Type())
-	assert.Len(t, 2, ch.Chunks())
-
-	sub := ch.Chunks()[0]
-	assert.SameType(t, &ChunkLABL{}, sub)
-	assert.Equal(t, IDlabl, sub.ID())
-
-	sub = ch.Chunks()[1]
-	assert.SameType(t, &ChunkLTXT{}, sub)
-	assert.Equal(t, IDltxt, sub.ID())
-}
-
-func Test_ChunkLIST_Type_adtl_RegisteredDecoder(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-	reg.Register(IDlabl, func() Chunk { return RAWC(IDlabl, WithLoadData()) })
-
-	src := listChunkType_adtl(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := LIST(reg, WithLoadData())
-
-	// --- When ---
-	_, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Len(t, 2, ch.Chunks())
-	assert.SameType(t, &ChunkRAWC{}, ch.Chunks()[0])
-	assert.SameType(t, &ChunkLTXT{}, ch.Chunks()[1])
-	assert.False(t, reg.Has(IDltxt))
-}
-
-func Test_ChunkLIST_Type_unknown(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-
-	src := listChunkType_unknown(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := LIST(reg, WithLoadData())
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(20), n)
-	assert.Equal(t, IDUNKN, ch.Type())
-	assert.Len(t, 1, ch.Chunks())
-
-	sub := ch.Chunks()[0]
-	assert.SameType(t, &ChunkRAWC{}, sub)
-	assert.Equal(t, LabIART, sub.ID())
-}
-
-func Test_ChunkLIST_ReadFrom_Empty(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-
-	src := &bytes.Buffer{}
-	writeUint32LE(t, src, 4)      // ( 0) 4 - Chunk size
-	writeUint32BE(t, src, IDINFO) // ( 4) 4 - Type
-
-	ch := LIST(reg, WithLoadData())
-
-	// --- When ---
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), n)
-	assert.Equal(t, IDINFO, ch.Type())
-	assert.Len(t, 0, ch.Chunks())
-}
-
-func Test_ChunkLIST_ReadFrom_SizeMismatch(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-
-	src := &bytes.Buffer{}
-	writeUint32LE(t, src, 13)        // ( 0) 4 - Chunk size
-	writeUint32BE(t, src, IDUNKN)    // ( 4) 4 - Type
-	writeUint32BE(t, src, IDUNKN)    // ( 8) 4 - Chunk ID
-	writeUint32LE(t, src, 1)         // (12) 4 - Chunk size
-	writeBytes(t, src, []byte{1, 0}) // (16) 2 - Data and padding
-
-	ch := LIST(reg, WithLoadData())
-
-	// --- When ---
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	want := "error decoding LIST:ABCD chunk: chunk size mismatch"
-	assert.ErrorEqual(t, want, err)
-	assert.ErrorIs(t, ErrChunkSizeMismatch, err)
-	assert.Equal(t, int64(18), n)
-}
-
-func Test_ChunkLIST_ReadFrom_LimitError(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-
-	src := listChunkType_adtl(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := LIST(reg, WithLoadData(), WithSizeLimit(51))
-	_, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooLarge, err)
-}
-
-func Test_ChunkLIST_ReadFrom_Errors(t *testing.T) {
-	// Reading less than 20 bytes should always result in an error.
-	for i := 1; i < 20; i++ {
+func Test_ChunkLIST_ReadFrom(t *testing.T) {
+	t.Run("INFO list", func(t *testing.T) {
 		// --- Given ---
 		reg := NewRegistry(RAWCMake(WithLoadData()))
+
 		src := listChunkType_INFO(t)
 		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
-		_, err := LIST(reg, WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
+		ch := LIST(reg, WithLoadData())
+		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("errro i=%d", i)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(20), n)
+		assert.Equal(t, IDINFO, ch.Type())
+		assert.Len(t, 1, ch.Chunks())
+
+		sub := ch.Chunks()[0]
+		assert.SameType(t, &ChunkINFO{}, sub)
+		assert.Equal(t, LabIART, sub.ID())
+	})
+
+	t.Run("adtl list", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+
+		src := listChunkType_adtl(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := LIST(reg, WithLoadData())
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(56), n)
+		assert.Equal(t, IDadtl, ch.Type())
+		assert.Len(t, 2, ch.Chunks())
+
+		sub := ch.Chunks()[0]
+		assert.SameType(t, &ChunkLABL{}, sub)
+		assert.Equal(t, IDlabl, sub.ID())
+
+		sub = ch.Chunks()[1]
+		assert.SameType(t, &ChunkLTXT{}, sub)
+		assert.Equal(t, IDltxt, sub.ID())
+	})
+
+	t.Run("adtl list with registered decoder", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		reg.Register(IDlabl, func() Chunk { return RAWC(IDlabl, WithLoadData()) })
+
+		src := listChunkType_adtl(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := LIST(reg, WithLoadData())
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Len(t, 2, ch.Chunks())
+		assert.SameType(t, &ChunkRAWC{}, ch.Chunks()[0])
+		assert.SameType(t, &ChunkLTXT{}, ch.Chunks()[1])
+		assert.False(t, reg.Has(IDltxt))
+	})
+
+	t.Run("unknown list type", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+
+		src := listChunkType_unknown(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := LIST(reg, WithLoadData())
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(20), n)
+		assert.Equal(t, IDUNKN, ch.Type())
+		assert.Len(t, 1, ch.Chunks())
+
+		sub := ch.Chunks()[0]
+		assert.SameType(t, &ChunkRAWC{}, sub)
+		assert.Equal(t, LabIART, sub.ID())
+	})
+
+	t.Run("empty list", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 4)      // ( 0) 4 - Chunk size
+		writeUint32BE(t, src, IDINFO) // ( 4) 4 - Type
+
+		ch := LIST(reg, WithLoadData())
+
+		// --- When ---
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(8), n)
+		assert.Equal(t, IDINFO, ch.Type())
+		assert.Len(t, 0, ch.Chunks())
+	})
+
+	t.Run("nil registry", func(t *testing.T) {
+		// --- Given ---
+		src := listChunkType_INFO(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := LIST(nil, WithLoadData())
+
+		// --- When ---
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(20), n)
+		assert.Len(t, 1, ch.Chunks())
+		ch.Reset()
+	})
+
+	t.Run("error - sub-chunks overrun size", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 13)        // ( 0) 4 - Chunk size
+		writeUint32BE(t, src, IDUNKN)    // ( 4) 4 - Type
+		writeUint32BE(t, src, IDUNKN)    // ( 8) 4 - Chunk ID
+		writeUint32LE(t, src, 1)         // (12) 4 - Chunk size
+		writeBytes(t, src, []byte{1, 0}) // (16) 2 - Data and padding
+
+		ch := LIST(reg, WithLoadData())
+
+		// --- When ---
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		want := "error decoding LIST:ABCD chunk: chunk size mismatch"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, ErrChunkSizeMismatch, err)
+		assert.Equal(t, int64(18), n)
+	})
+
+	t.Run("error - size limit", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+
+		src := listChunkType_adtl(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := LIST(reg, WithLoadData(), WithSizeLimit(51))
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+	})
+
+	t.Run("error - truncated input", func(t *testing.T) {
+		// Reading less than 20 bytes should always result in an error.
+		for i := 1; i < 20; i++ {
+			// --- Given ---
+			reg := NewRegistry(RAWCMake(WithLoadData()))
+			src := listChunkType_INFO(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			// --- When ---
+			_, err := LIST(reg, WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("errro i=%d", i)
+			}
 		}
-	}
-}
+	})
 
-func Test_ChunkLIST_ReadFrom_TooShortError(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-	src := &bytes.Buffer{}
-	writeUint32LE(t, src, 3)
+	t.Run("error - too short", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 3)
 
-	// --- When ---
-	ch := LIST(reg, WithLoadData())
-	n, err := ch.ReadFrom(src)
+		// --- When ---
+		ch := LIST(reg, WithLoadData())
+		n, err := ch.ReadFrom(src)
 
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooShort, err)
-	assert.ErrorContain(t, "LIST chunk", err)
-	assert.Equal(t, int64(4), n)
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooShort, err)
+		assert.ErrorContain(t, "LIST chunk", err)
+		assert.Equal(t, int64(4), n)
+	})
 }
 
 func Test_ChunkLIST_WriteTo(t *testing.T) {
+	t.Run("error - write", func(t *testing.T) {
+		// Writing less than 60 bytes should always result in an error.
+		for i := 60; i > 0; i-- {
+			// --- Given ---
+			reg := NewRegistry(RAWCMake(WithLoadData()))
+
+			src := listChunkType_adtl(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			ch := LIST(reg, WithLoadData())
+			_, err := ch.ReadFrom(src)
+			if !assert.NoError(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+
+			// --- When ---
+			dst := &bytes.Buffer{}
+			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+		}
+	})
+}
+
+func Test_ChunkLIST_WriteTo_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -340,68 +343,71 @@ func Test_ChunkLIST_WriteTo(t *testing.T) {
 	}
 }
 
-func Test_ChunkLIST_WriteTo_Errors(t *testing.T) {
-	// Writing less than 60 bytes should always result in an error.
-	for i := 60; i > 0; i-- {
-		// --- Given ---
+func Test_ChunkLIST_Reset(t *testing.T) {
+	t.Run("decoded chunks", func(t *testing.T) {
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 
-		src := listChunkType_adtl(t)
+		src := listChunkType_INFO(t)
 		skip4B(t, src) // Skip chunk ID.
 
 		ch := LIST(reg, WithLoadData())
 		_, err := ch.ReadFrom(src)
-		if !assert.NoError(t, err) {
-			t.Logf("errro i=%d", i)
-		}
+		assert.NoError(t, err)
 
 		// --- When ---
-		dst := &bytes.Buffer{}
-		_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
+		ch.Reset()
 
 		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("errro i=%d", i)
-		}
+		assert.Equal(t, uint32(0), ch.Size())
+		assert.Equal(t, uint32(0), ch.ListType)
+		assert.Len(t, 0, ch.Chunks())
+	})
+
+	t.Run("modified chunks not pooled", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		ch := INFO(LabIART)
+
+		lst := LIST(reg, WithLoadData())
+		lst.Modify(Chunks{ch})
+
+		// --- When ---
+		lst.Reset()
+
+		// --- Then ---
+		assert.Nil(t, reg.GetNoRaw(LabIART))
+	})
+}
+
+func Test_adtlMake_tabular(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		id   uint32
+		want Chunk
+	}{
+		{"labl", IDlabl, &ChunkLABL{}},
+		{"ltxt", IDltxt, &ChunkLTXT{}},
+		{"other", IDUNKN, &ChunkRAWC{}},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			mkr := adtlMake(WithLoadData())
+
+			// --- When ---
+			have := mkr(tc.id)
+
+			// --- Then ---
+			assert.SameType(t, tc.want, have)
+			assert.Equal(t, tc.id, have.ID())
+		})
 	}
 }
 
-func Test_ChunkLIST_Reset(t *testing.T) {
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-
-	src := listChunkType_INFO(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := LIST(reg, WithLoadData())
-	_, err := ch.ReadFrom(src)
-	assert.NoError(t, err)
-
-	// --- When ---
-	ch.Reset()
-
-	// --- Then ---
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, uint32(0), ch.ListType)
-	assert.Len(t, 0, ch.Chunks())
-}
-
-func Test_ChunkLIST_Reset_ModifiedChunksNotPooled(t *testing.T) {
-	// --- Given ---
-	reg := NewRegistry(RAWCMake(WithLoadData()))
-	ch := INFO(LabIART)
-
-	lst := LIST(reg, WithLoadData())
-	lst.Modify(Chunks{ch})
-
-	// --- When ---
-	lst.Reset()
-
-	// --- Then ---
-	assert.Nil(t, reg.GetNoRaw(LabIART))
-}
-
 func Test_ChunkLIST_Modify(t *testing.T) {
-	t.Run("ok", func(t *testing.T) {
+	t.Run("replaces chunks", func(t *testing.T) {
 		// --- Given ---
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 

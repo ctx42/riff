@@ -49,7 +49,7 @@ func infoChunkThree(t *testing.T) io.Reader {
 	return src
 }
 
-func Test_ChunkINFO_INFO(t *testing.T) {
+func Test_INFO(t *testing.T) {
 	// --- When ---
 	ch := INFO(LabIART)
 
@@ -62,98 +62,126 @@ func Test_ChunkINFO_INFO(t *testing.T) {
 	assert.False(t, ch.Raw())
 }
 
-func Test_ChunkINFO_ReadFrom_TextLenEven(t *testing.T) {
-	// --- Given ---
-	src := infoChunkTextLenEven(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := INFO(LabIART)
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(8), n)
-	assert.Equal(t, LabIART, ch.ID())
-	assert.Equal(t, uint32(4), ch.Size())
-	assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.text)
-	assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Text())))
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkINFO_ReadFrom_TextLenOdd(t *testing.T) {
-	// --- Given ---
-	src := infoChunkTextLenOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := INFO(LabIART)
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(8), n)
-	assert.Equal(t, LabIART, ch.ID())
-	assert.Equal(t, uint32(3), ch.Size())
-	assert.Equal(t, []byte{'a', 'b', 0}, ch.text)
-	assert.Equal(t, []byte{'a', 'b'}, must.Value(io.ReadAll(ch.Text())))
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkINFO_ReadFrom_LimitError(t *testing.T) {
-	// --- Given ---
-	src := infoChunkTextLenOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := INFO(LabIART, WithSizeLimit(3))
-
-	// --- When ---
-	_, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooLarge, err)
-}
-
-func Test_ChunkINFO_ReadFrom_Errors(t *testing.T) {
-	// Reading less than 8 bytes should always result in an error.
-	for i := 1; i < 8; i++ {
+func Test_ChunkINFO_ReadFrom(t *testing.T) {
+	t.Run("even text length", func(t *testing.T) {
 		// --- Given ---
 		src := infoChunkTextLenEven(t)
 		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
-		_, err := INFO(LabIART).ReadFrom(io.LimitReader(src, int64(i)))
+		ch := INFO(LabIART)
+		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("errro i=%d", i)
+		assert.NoError(t, err)
+
+		assert.Equal(t, int64(8), n)
+		assert.Equal(t, LabIART, ch.ID())
+		assert.Equal(t, uint32(4), ch.Size())
+		assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.text)
+		assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Text())))
+		assert.True(t, isAllRead(src))
+	})
+
+	t.Run("odd text length", func(t *testing.T) {
+		// --- Given ---
+		src := infoChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := INFO(LabIART)
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+
+		assert.Equal(t, int64(8), n)
+		assert.Equal(t, LabIART, ch.ID())
+		assert.Equal(t, uint32(3), ch.Size())
+		assert.Equal(t, []byte{'a', 'b', 0}, ch.text)
+		assert.Equal(t, []byte{'a', 'b'}, must.Value(io.ReadAll(ch.Text())))
+		assert.True(t, isAllRead(src))
+	})
+
+	t.Run("error - size limit", func(t *testing.T) {
+		// --- Given ---
+		src := infoChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := INFO(LabIART, WithSizeLimit(3))
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+	})
+
+	t.Run("error - truncated input", func(t *testing.T) {
+		// Reading less than 8 bytes should always result in an error.
+		for i := 1; i < 8; i++ {
+			// --- Given ---
+			src := infoChunkTextLenEven(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			// --- When ---
+			_, err := INFO(LabIART).ReadFrom(io.LimitReader(src, int64(i)))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("errro i=%d", i)
+			}
 		}
-	}
-}
+	})
 
-func Test_ChunkINFO_ReadFrom_DeclaredSizeOverInput(t *testing.T) {
-	// --- Given ---
-	src := &bytes.Buffer{}
-	writeUint32LE(t, src, 1<<30)         // (0) 4 - Chunk size
-	writeBytes(t, src, []byte{'a', 'b'}) // (4) 2 - Text
+	t.Run("error - declared size over input", func(t *testing.T) {
+		// --- Given ---
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 1<<30)         // (0) 4 - Chunk size
+		writeBytes(t, src, []byte{'a', 'b'}) // (4) 2 - Text
 
-	ch := INFO(LabIART)
+		ch := INFO(LabIART)
 
-	var before, after runtime.MemStats
-	runtime.ReadMemStats(&before)
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
 
-	// --- When ---
-	_, err := ch.ReadFrom(src)
+		// --- When ---
+		_, err := ch.ReadFrom(src)
 
-	// --- Then ---
-	runtime.ReadMemStats(&after)
-	assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
-	assert.True(t, after.TotalAlloc-before.TotalAlloc < 1<<20)
+		// --- Then ---
+		runtime.ReadMemStats(&after)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.True(t, after.TotalAlloc-before.TotalAlloc < 1<<20)
+	})
 }
 
 func Test_ChunkINFO_WriteTo(t *testing.T) {
+	t.Run("error - write", func(t *testing.T) {
+		// Writing less then 12 bytes should always result in an error.
+		for i := 12; i > 0; i-- {
+			// --- Given ---
+			src := infoChunkTextLenEven(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			ch := INFO(LabIART)
+			_, err := ch.ReadFrom(src)
+			if !assert.NoError(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+
+			// --- When ---
+			dst := &bytes.Buffer{}
+			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+		}
+	})
+}
+
+func Test_ChunkINFO_WriteTo_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -189,30 +217,6 @@ func Test_ChunkINFO_WriteTo(t *testing.T) {
 	}
 }
 
-func Test_ChunkINFO_WriteTo_Errors(t *testing.T) {
-	// Writing less then 12 bytes should always result in an error.
-	for i := 12; i > 0; i-- {
-		// --- Given ---
-		src := infoChunkTextLenEven(t)
-		skip4B(t, src) // Skip chunk ID.
-
-		ch := INFO(LabIART)
-		_, err := ch.ReadFrom(src)
-		if !assert.NoError(t, err) {
-			t.Logf("errro i=%d", i)
-		}
-
-		// --- When ---
-		dst := &bytes.Buffer{}
-		_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
-
-		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("errro i=%d", i)
-		}
-	}
-}
-
 func Test_ChunkINFO_Reset(t *testing.T) {
 	// --- Given ---
 	ch := INFO(LabIART)
@@ -229,7 +233,7 @@ func Test_ChunkINFO_Reset(t *testing.T) {
 	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Text())))
 }
 
-func Test_ChunkINFO_InfoLabel(t *testing.T) {
+func Test_InfoLabel_tabular(t *testing.T) {
 	tt := []struct {
 		label uint32
 		code  string

@@ -57,7 +57,7 @@ func Test_NewOpts(t *testing.T) {
 	})
 }
 
-func Test_Opts_ChunkReader_Read(t *testing.T) {
+func Test_Opts_ChunkReader(t *testing.T) {
 	t.Run("read whole chunk", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
@@ -152,7 +152,7 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 		assert.Equal(t, int64(12), cr.Count())
 	})
 
-	t.Run("hit chunk max size limit", func(t *testing.T) {
+	t.Run("error - size limit", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
 		writeUint32LE(t, src, 8) // size 8
@@ -229,7 +229,7 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 		assert.Equal(t, int64(11), cr.Count())
 	})
 
-	t.Run("read size error", func(t *testing.T) {
+	t.Run("error - read size", func(t *testing.T) {
 		// --- Given ---
 		src := iokit.NewReaderMock(t)
 		src.OnRead(mock.Any).Return(0, iokit.ErrRead)
@@ -245,7 +245,7 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 		assert.Nil(t, cr)
 	})
 
-	t.Run("read content error", func(t *testing.T) {
+	t.Run("error - read content", func(t *testing.T) {
 		// --- Given ---
 		src := iokit.NewReaderMock(t)
 		fn := mock.MatchBy(func(p []byte) bool {
@@ -306,7 +306,7 @@ func Test_Opts_ChunkReader_Read(t *testing.T) {
 	})
 }
 
-func Test_Opts_ChunkReader_SkipN(t *testing.T) {
+func Test_ChunkReader_SkipN(t *testing.T) {
 	t.Run("no seeker skips by reading", func(t *testing.T) {
 		// --- Given ---
 		buf := bytes.NewBuffer(nil)
@@ -392,7 +392,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 		assert.Equal(t, int64(4), cr.Count())
 	})
 
-	t.Run("no seeker read error", func(t *testing.T) {
+	t.Run("error - no seeker read", func(t *testing.T) {
 		// --- Given ---
 		src := iokit.NewReaderMock(t)
 
@@ -415,7 +415,7 @@ func Test_Opts_ChunkReader_SkipN(t *testing.T) {
 		assert.Equal(t, int64(4), cr.Count())
 	})
 
-	t.Run("seek error", func(t *testing.T) {
+	t.Run("error - seek", func(t *testing.T) {
 		// --- Given ---
 		src := iokit.NewReadSeekerMock(t)
 

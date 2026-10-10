@@ -49,159 +49,235 @@ func dataChunkOdd(t *testing.T) io.Reader {
 	return src
 }
 
-func Test_ChunkDATA_DATA_SkipDataMode(t *testing.T) {
-	// --- When ---
-	ch := DATA()
+func Test_DATA(t *testing.T) {
+	t.Run("skip data mode", func(t *testing.T) {
+		// --- When ---
+		ch := DATA()
 
-	// --- Then ---
-	assert.Equal(t, IDdata, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.False(t, ch.Multi())
-	assert.Nil(t, ch.Chunks())
-	assert.False(t, ch.Raw())
-	assert.Nil(t, ch.data)
-	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+		// --- Then ---
+		assert.Equal(t, IDdata, ch.ID())
+		assert.Equal(t, uint32(0), ch.Size())
+		assert.Equal(t, uint32(0), ch.Type())
+		assert.False(t, ch.Multi())
+		assert.Nil(t, ch.Chunks())
+		assert.False(t, ch.Raw())
+		assert.Nil(t, ch.data)
+		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+	})
+
+	t.Run("load data mode", func(t *testing.T) {
+		// --- When ---
+		ch := DATA(WithLoadData())
+
+		// --- Then ---
+		assert.Equal(t, IDdata, ch.ID())
+		assert.Equal(t, uint32(0), ch.Size())
+		assert.Equal(t, uint32(0), ch.Type())
+		assert.False(t, ch.Multi())
+		assert.Nil(t, ch.Chunks())
+		assert.False(t, ch.Raw())
+		assert.NotNil(t, ch.data)
+		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+	})
 }
 
-func Test_ChunkDATA_DATA_LoadDataMode(t *testing.T) {
-	// --- When ---
-	ch := DATA(WithLoadData())
+func Test_ChunkDATA_SetData(t *testing.T) {
+	t.Run("even size", func(t *testing.T) {
+		// --- Given ---
+		ch := DATA(WithLoadData())
 
-	// --- Then ---
-	assert.Equal(t, IDdata, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.False(t, ch.Multi())
-	assert.Nil(t, ch.Chunks())
-	assert.False(t, ch.Raw())
-	assert.NotNil(t, ch.data)
-	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+		// --- When ---
+		err := ch.SetData([]byte{0, 1, 2, 3})
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(4), ch.Size())
+		assert.Equal(t, []byte{0, 1, 2, 3}, must.Value(io.ReadAll(ch.Data())))
+	})
+
+	t.Run("odd size", func(t *testing.T) {
+		// --- Given ---
+		ch := DATA(WithLoadData())
+
+		// --- When ---
+		err := ch.SetData([]byte{0, 1, 2})
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(3), ch.Size())
+		assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.Data())))
+	})
+
+	t.Run("error - skip data mode", func(t *testing.T) {
+		// --- Given ---
+		ch := DATA()
+
+		// --- When ---
+		err := ch.SetData([]byte{0, 1, 2})
+
+		// --- Then ---
+		assert.ErrorIs(t, err, ErrSkipDataMode)
+		assert.Equal(t, uint32(0), ch.Size())
+		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+	})
 }
 
-func Test_ChunkDATA_SetData_Even(t *testing.T) {
-	// --- Given ---
-	ch := DATA(WithLoadData())
+func Test_ChunkDATA_Duration(t *testing.T) {
+	t.Run("byte rate", func(t *testing.T) {
+		// --- Given ---
+		ch := DATA()
+		ch.size = 88200
+		ch.data = bytes.Repeat([]byte{0}, 88200)
 
-	// --- When ---
-	err := ch.SetData([]byte{0, 1, 2, 3})
+		// --- When ---
+		d := ch.Duration(88200)
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(4), ch.Size())
-	assert.Equal(t, []byte{0, 1, 2, 3}, must.Value(io.ReadAll(ch.Data())))
+		// --- Then ---
+		assert.Equal(t, time.Second, d)
+	})
+
+	t.Run("zero byte rate", func(t *testing.T) {
+		// --- Given ---
+		ch := DATA()
+		ch.size = 88200
+
+		// --- When ---
+		have := ch.Duration(0)
+
+		// --- Then ---
+		assert.Equal(t, time.Duration(0), have)
+	})
 }
 
-func Test_ChunkDATA_SetData_Odd(t *testing.T) {
-	// --- Given ---
-	ch := DATA(WithLoadData())
+func Test_ChunkDATA_ReadFrom(t *testing.T) {
+	t.Run("even size", func(t *testing.T) {
+		// --- Given ---
+		src := dataChunkEven(t)
+		skip4B(t, src) // Skip chunk ID.
 
-	// --- When ---
-	err := ch.SetData([]byte{0, 1, 2})
+		ch := DATA(WithLoadData())
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(3), ch.Size())
-	assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.Data())))
-}
+		// --- When ---
+		n, err := ch.ReadFrom(src)
 
-func Test_ChunkDATA_SetData_SkipDataMode_Error(t *testing.T) {
-	// --- Given ---
-	ch := DATA()
+		// --- Then ---
+		assert.NoError(t, err)
 
-	// --- When ---
-	err := ch.SetData([]byte{0, 1, 2})
+		assert.Equal(t, int64(20), n)
+		assert.Equal(t, uint32(16), ch.Size())
 
-	// --- Then ---
-	assert.ErrorIs(t, err, ErrSkipDataMode)
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
-}
+		exp := []byte{
+			0x00, 0x01, 0x02, 0x03,
+			0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0a, 0x0b,
+			0x0c, 0x0d, 0x0e, 0x0f,
+		}
+		assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
+		assert.True(t, isAllRead(src))
+	})
 
-func Test_ChunkDATA_ReadFrom_Even(t *testing.T) {
-	// --- Given ---
-	src := dataChunkEven(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := DATA(WithLoadData())
-
-	// --- When ---
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(20), n)
-	assert.Equal(t, uint32(16), ch.Size())
-
-	exp := []byte{
-		0x00, 0x01, 0x02, 0x03,
-		0x04, 0x05, 0x06, 0x07,
-		0x08, 0x09, 0x0a, 0x0b,
-		0x0c, 0x0d, 0x0e, 0x0f,
-	}
-	assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkDATA_ReadFrom_Odd(t *testing.T) {
-	// --- Given ---
-	src := dataChunkOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := DATA(WithLoadData())
-
-	// --- When ---
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(20), n)
-	assert.Equal(t, uint32(15), ch.Size())
-
-	exp := []byte{
-		0x00, 0x01, 0x02, 0x03,
-		0x04, 0x05, 0x06, 0x07,
-		0x08, 0x09, 0x0a, 0x0b,
-		0x0c, 0x0d, 0x0e,
-	}
-	assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkDATA_ReadFrom_LimitError(t *testing.T) {
-	// --- Given ---
-	src := dataChunkOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := DATA(WithSizeLimit(15))
-
-	// --- When ---
-	_, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooLarge, err)
-}
-
-func Test_ChunkDATA_ReadFrom_Errors(t *testing.T) {
-	// Reading less than 20 bytes should always result in an error.
-	for i := 1; i < 20; i++ {
+	t.Run("odd size", func(t *testing.T) {
 		// --- Given ---
 		src := dataChunkOdd(t)
 		skip4B(t, src) // Skip chunk ID.
 
+		ch := DATA(WithLoadData())
+
 		// --- When ---
-		_, err := DATA(WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
+		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("error i=%d", i)
+		assert.NoError(t, err)
+
+		assert.Equal(t, int64(20), n)
+		assert.Equal(t, uint32(15), ch.Size())
+
+		exp := []byte{
+			0x00, 0x01, 0x02, 0x03,
+			0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0a, 0x0b,
+			0x0c, 0x0d, 0x0e,
 		}
-	}
+		assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
+		assert.True(t, isAllRead(src))
+	})
+
+	t.Run("error - size limit", func(t *testing.T) {
+		// --- Given ---
+		src := dataChunkOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := DATA(WithSizeLimit(15))
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+	})
+
+	t.Run("error - truncated input", func(t *testing.T) {
+		// Reading less than 20 bytes should always result in an error.
+		for i := 1; i < 20; i++ {
+			// --- Given ---
+			src := dataChunkOdd(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			// --- When ---
+			_, err := DATA(WithLoadData()).ReadFrom(io.LimitReader(src, int64(i)))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("error i=%d", i)
+			}
+		}
+	})
 }
 
-func TestChunkDATA_WriteTo(t *testing.T) {
+func Test_ChunkDATA_WriteTo(t *testing.T) {
+	t.Run("error - skip data mode", func(t *testing.T) {
+		// --- Given ---
+		src := dataChunkOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := DATA()
+		_, err := ch.ReadFrom(src)
+		assert.NoError(t, err)
+
+		// --- When ---
+		n, err := ch.WriteTo(&bytes.Buffer{})
+
+		// --- Then ---
+		assert.ErrorIs(t, err, ErrSkipDataMode)
+		assert.Equal(t, int64(0), n)
+	})
+
+	t.Run("error - write", func(t *testing.T) {
+		// Writing less than 24 bytes should always result in an error.
+		for i := 24; i > 0; i-- {
+			// --- Given ---
+			src := dataChunkOdd(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			ch := DATA(WithLoadData())
+			_, err := ch.ReadFrom(src)
+			if assert.NoError(t, err) {
+				t.Logf("error i=%d", i)
+			}
+
+			// --- When ---
+			dst := &bytes.Buffer{}
+			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("error i=%d", i)
+			}
+		}
+	})
+}
+
+func Test_ChunkDATA_WriteTo_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -233,72 +309,6 @@ func TestChunkDATA_WriteTo(t *testing.T) {
 			assert.Equal(t, exp, dst.Bytes())
 		})
 	}
-}
-
-func Test_ChunkDATA_WriteTo_Errors(t *testing.T) {
-	// Writing less than 24 bytes should always result in an error.
-	for i := 24; i > 0; i-- {
-		// --- Given ---
-		src := dataChunkOdd(t)
-		skip4B(t, src) // Skip chunk ID.
-
-		ch := DATA(WithLoadData())
-		_, err := ch.ReadFrom(src)
-		if assert.NoError(t, err) {
-			t.Logf("error i=%d", i)
-		}
-
-		// --- When ---
-		dst := &bytes.Buffer{}
-		_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
-
-		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("error i=%d", i)
-		}
-	}
-}
-
-func Test_ChunkDATA_WriteTo_SkipData(t *testing.T) {
-	// --- Given ---
-	src := dataChunkOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := DATA()
-	_, err := ch.ReadFrom(src)
-	assert.NoError(t, err)
-
-	// --- When ---
-	n, err := ch.WriteTo(&bytes.Buffer{})
-
-	// --- Then ---
-	assert.ErrorIs(t, err, ErrSkipDataMode)
-	assert.Equal(t, int64(0), n)
-}
-
-func Test_ChunkDATA_Duration(t *testing.T) {
-	// --- Given ---
-	ch := DATA()
-	ch.size = 88200
-	ch.data = bytes.Repeat([]byte{0}, 88200)
-
-	// --- When ---
-	d := ch.Duration(88200)
-
-	// --- Then ---
-	assert.Equal(t, time.Second, d)
-}
-
-func Test_ChunkDATA_Duration_ZeroRate(t *testing.T) {
-	// --- Given ---
-	ch := DATA()
-	ch.size = 88200
-
-	// --- When ---
-	have := ch.Duration(0)
-
-	// --- Then ---
-	assert.Equal(t, time.Duration(0), have)
 }
 
 func Test_ChunkDATA_Reset(t *testing.T) {

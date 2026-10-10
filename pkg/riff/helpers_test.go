@@ -13,7 +13,7 @@ import (
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
-func Test_StrToID(t *testing.T) {
+func Test_StrToID_tabular(t *testing.T) {
 	tt := []struct {
 		id  string
 		exp uint32
@@ -67,30 +67,32 @@ func Test_StrToID(t *testing.T) {
 }
 
 func Test_ReadChunkID(t *testing.T) {
-	// --- Given ---
-	src := bytes.NewReader([]byte{0x41, 0x42, 0x43, 0x44})
+	t.Run("read", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{0x41, 0x42, 0x43, 0x44})
 
-	// --- When ---
-	var id uint32
-	err := ReadChunkID(src, &id)
+		// --- When ---
+		var id uint32
+		err := ReadChunkID(src, &id)
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(0x41424344), id)
-}
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(0x41424344), id)
+	})
 
-func Test_ReadChunkID_Error(t *testing.T) {
-	// --- Given ---
-	src := iokit.NewReaderMock(t)
-	src.OnRead(mock.Any).Return(0, iokit.ErrRead)
+	t.Run("error - read", func(t *testing.T) {
+		// --- Given ---
+		src := iokit.NewReaderMock(t)
+		src.OnRead(mock.Any).Return(0, iokit.ErrRead)
 
-	// --- When ---
-	var id uint32
-	err := ReadChunkID(src, &id)
+		// --- When ---
+		var id uint32
+		err := ReadChunkID(src, &id)
 
-	// --- Then ---
-	assert.ErrorIs(t, err, iokit.ErrRead)
-	assert.Equal(t, uint32(0), id)
+		// --- Then ---
+		assert.ErrorIs(t, err, iokit.ErrRead)
+		assert.Equal(t, uint32(0), id)
+	})
 }
 
 func Test_RealSize(t *testing.T) {
@@ -98,144 +100,150 @@ func Test_RealSize(t *testing.T) {
 	assert.Equal(t, uint32(124), RealSize(124))
 }
 
-func Test_ReadPaddingIf_OddSize(t *testing.T) {
-	// --- Given ---
-	src := bytes.NewReader([]byte{0, 1})
+func Test_ReadPaddingIf(t *testing.T) {
+	t.Run("odd size", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{0, 1})
 
-	// --- When ---
-	n, err := ReadPaddingIf(src, 3)
+		// --- When ---
+		n, err := ReadPaddingIf(src, 3)
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), n)
-}
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), n)
+	})
 
-func Test_ReadPaddingIf_EvenSize(t *testing.T) {
-	// --- Given ---
-	src := bytes.NewReader([]byte{0, 1})
+	t.Run("even size", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{0, 1})
 
-	// --- When ---
-	n, err := ReadPaddingIf(src, 4)
+		// --- When ---
+		n, err := ReadPaddingIf(src, 4)
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), n)
-}
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), n)
+	})
 
-func Test_ReadPaddingIf_ErrUnexpectedEOF(t *testing.T) {
-	// --- Given ---
-	src := bytes.NewReader([]byte{})
+	t.Run("padding at end of input", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{0})
 
-	// --- When ---
-	n, err := ReadPaddingIf(src, 3)
+		// --- When ---
+		n, err := ReadPaddingIf(src, 3)
 
-	// --- Then ---
-	assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
-	assert.Equal(t, int64(0), n)
-}
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), n)
+	})
 
-func Test_ReadPaddingIf_HandleEOF(t *testing.T) {
-	// --- Given ---
-	src := bytes.NewReader([]byte{0})
+	t.Run("error - missing padding", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{})
 
-	// --- When ---
-	n, err := ReadPaddingIf(src, 3)
+		// --- When ---
+		n, err := ReadPaddingIf(src, 3)
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), n)
+		// --- Then ---
+		assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
+		assert.Equal(t, int64(0), n)
+	})
 }
 
 func Test_WriteIDAndSize(t *testing.T) {
-	// --- Given ---
-	dst := &bytes.Buffer{}
+	t.Run("write", func(t *testing.T) {
+		// --- Given ---
+		dst := &bytes.Buffer{}
 
-	// --- When ---
-	n, err := WriteIDAndSize(dst, IDRIFF, 124)
+		// --- When ---
+		n, err := WriteIDAndSize(dst, IDRIFF, 124)
 
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), n)
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(8), n)
 
-	exp := []byte{0x52, 0x49, 0x46, 0x46, 0x7c, 0x0, 0x0, 0x0}
-	assert.Equal(t, exp, dst.Bytes())
+		exp := []byte{0x52, 0x49, 0x46, 0x46, 0x7c, 0x0, 0x0, 0x0}
+		assert.Equal(t, exp, dst.Bytes())
+	})
+
+	t.Run("error - writing ID", func(t *testing.T) {
+		// --- Given ---
+		buf := &bytes.Buffer{}
+		dst := iokit.ErrWriter(buf, 3)
+
+		// --- When ---
+		n, err := WriteIDAndSize(dst, IDRIFF, 124)
+
+		// --- Then ---
+		assert.ErrorIs(t, err, iokit.ErrWrite)
+		assert.Equal(t, int64(0), n)
+
+		exp := []byte{0x52, 0x49, 0x46}
+		assert.Equal(t, exp, buf.Bytes())
+	})
+
+	t.Run("error - writing size", func(t *testing.T) {
+		// --- Given ---
+		buf := &bytes.Buffer{}
+		dst := iokit.ErrWriter(buf, 5)
+
+		// --- When ---
+		n, err := WriteIDAndSize(dst, IDRIFF, 124)
+
+		// --- Then ---
+		assert.ErrorIs(t, err, iokit.ErrWrite)
+		assert.Equal(t, int64(4), n)
+
+		exp := []byte{0x52, 0x49, 0x46, 0x46, 0x7c}
+		assert.Equal(t, exp, buf.Bytes())
+	})
 }
 
-func Test_WriteIDAndSize_ErrorWritingID(t *testing.T) {
-	// --- Given ---
-	buf := &bytes.Buffer{}
-	dst := iokit.ErrWriter(buf, 3)
+func Test_WritePaddingIf(t *testing.T) {
+	t.Run("odd size", func(t *testing.T) {
+		// --- Given ---
+		dst := &bytes.Buffer{}
 
-	// --- When ---
-	n, err := WriteIDAndSize(dst, IDRIFF, 124)
+		// --- When ---
+		n, err := WritePaddingIf(dst, 123)
 
-	// --- Then ---
-	assert.ErrorIs(t, err, iokit.ErrWrite)
-	assert.Equal(t, int64(0), n)
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), n)
 
-	exp := []byte{0x52, 0x49, 0x46}
-	assert.Equal(t, exp, buf.Bytes())
+		exp := []byte{0x00}
+		assert.Equal(t, exp, dst.Bytes())
+	})
+
+	t.Run("even size", func(t *testing.T) {
+		// --- Given ---
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := WritePaddingIf(dst, 124)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, []byte(nil), dst.Bytes())
+	})
+
+	t.Run("error - write", func(t *testing.T) {
+		// --- Given ---
+		buf := &bytes.Buffer{}
+		dst := iokit.ErrWriter(buf, 0)
+
+		// --- When ---
+		n, err := WritePaddingIf(dst, 123)
+
+		// --- Then ---
+		assert.ErrorIs(t, err, iokit.ErrWrite)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, []byte(nil), buf.Bytes())
+	})
 }
 
-func Test_WriteIDAndSize_ErrorWritingSize(t *testing.T) {
-	// --- Given ---
-	buf := &bytes.Buffer{}
-	dst := iokit.ErrWriter(buf, 5)
-
-	// --- When ---
-	n, err := WriteIDAndSize(dst, IDRIFF, 124)
-
-	// --- Then ---
-	assert.ErrorIs(t, err, iokit.ErrWrite)
-	assert.Equal(t, int64(4), n)
-
-	exp := []byte{0x52, 0x49, 0x46, 0x46, 0x7c}
-	assert.Equal(t, exp, buf.Bytes())
-}
-
-func Test_WritePaddingIf_OddSize(t *testing.T) {
-	// --- Given ---
-	dst := &bytes.Buffer{}
-
-	// --- When ---
-	n, err := WritePaddingIf(dst, 123)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), n)
-
-	exp := []byte{0x00}
-	assert.Equal(t, exp, dst.Bytes())
-}
-
-func Test_WritePaddingIf_EvenSize(t *testing.T) {
-	// --- Given ---
-	dst := &bytes.Buffer{}
-
-	// --- When ---
-	n, err := WritePaddingIf(dst, 124)
-
-	// --- Then ---
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), n)
-	assert.Equal(t, []byte(nil), dst.Bytes())
-}
-
-func Test_WritePaddingIf_Error(t *testing.T) {
-	// --- Given ---
-	buf := &bytes.Buffer{}
-	dst := iokit.ErrWriter(buf, 0)
-
-	// --- When ---
-	n, err := WritePaddingIf(dst, 123)
-
-	// --- Then ---
-	assert.ErrorIs(t, err, iokit.ErrWrite)
-	assert.Equal(t, int64(0), n)
-	assert.Equal(t, []byte(nil), buf.Bytes())
-}
-
-func Test_TrimZeroRight(t *testing.T) {
+func Test_TrimZeroRight_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 

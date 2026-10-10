@@ -119,7 +119,50 @@ func fmtChunkWithExtraInvalidSizeOdd(t *testing.T) io.Reader {
 	return src
 }
 
-func Test_ChunkFMT_FMT(t *testing.T) {
+func Test_ChunkFMT_Size(t *testing.T) {
+	t.Run("new chunk", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		ch.CompCode = CompPCM
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, FMTChunkSize, have)
+	})
+
+	t.Run("write zero extra set after SetExtra", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		ch.SetExtra(nil)
+		ch.WriteZeroExtra = true
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(18), have)
+	})
+
+	t.Run("RIFF size matches written bytes", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		ch.CompCode = CompPCM
+		rif := Compose(Chunks{ch})
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := rif.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(36), n)
+		assert.Equal(t, uint32(n-8), le.Uint32(dst.Bytes()[4:8]))
+	})
+}
+
+func Test_FMT(t *testing.T) {
 	// --- When ---
 	ch := FMT()
 
@@ -133,280 +176,7 @@ func Test_ChunkFMT_FMT(t *testing.T) {
 	assert.False(t, ch.WriteZeroExtra)
 }
 
-func Test_ChunkFMT_ReadFrom(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithoutExtraBytes(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(20), n)
-	assert.Equal(t, uint32(16), ch.Size())
-	assert.Equal(t, CompPCM, ch.CompCode)
-	assert.Equal(t, uint16(1), ch.ChannelCnt)
-	assert.Equal(t, uint32(44100), ch.SampleRate)
-	assert.Equal(t, uint32(88200), ch.AvgByteRate)
-	assert.Equal(t, uint16(2), ch.BlockAlign)
-	assert.Equal(t, uint16(16), ch.BitsPerSample)
-	assert.Equal(t, []byte(nil), ch.extra)
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkFMT_ReadFrom_ExtraBytesEven(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraBytesEven(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(24), n)
-	assert.Equal(t, uint32(20), ch.Size())
-	assert.Equal(t, CompPCM, ch.CompCode)
-	assert.Equal(t, uint16(1), ch.ChannelCnt)
-	assert.Equal(t, uint32(44100), ch.SampleRate)
-	assert.Equal(t, uint32(88200), ch.AvgByteRate)
-	assert.Equal(t, uint16(2), ch.BlockAlign)
-	assert.Equal(t, uint16(16), ch.BitsPerSample)
-	assert.Equal(t, []byte{0, 1}, ch.extra)
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkFMT_ReadFrom_ExtraBytesOdd(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraBytesOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(26), n)
-	assert.Equal(t, uint32(22), ch.Size())
-	assert.Equal(t, CompPCM, ch.CompCode)
-	assert.Equal(t, uint16(1), ch.ChannelCnt)
-	assert.Equal(t, uint32(44100), ch.SampleRate)
-	assert.Equal(t, uint32(88200), ch.AvgByteRate)
-	assert.Equal(t, uint16(2), ch.BlockAlign)
-	assert.Equal(t, uint16(16), ch.BitsPerSample)
-	assert.Equal(t, []byte{0, 1, 2}, ch.extra)
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkFMT_ReadFrom_LimitError(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraBytesOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := FMT(WithSizeLimit(21))
-
-	// --- When ---
-	_, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooLarge, err)
-}
-
-func Test_ChunkFMT_ReadFrom_Errors(t *testing.T) {
-	// Reading less than 26 bytes should always result in an error.
-	for i := 1; i < 26; i++ {
-		// --- Given ---
-		src := fmtChunkWithExtraBytesOdd(t)
-		skip4B(t, src) // Skip chunk ID.
-
-		// --- When ---
-		_, err := FMT().ReadFrom(io.LimitReader(src, int64(i)))
-
-		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("errro i=%d", i)
-		}
-	}
-}
-
-func Test_ChunkFMT_ReadFrom_ExtraBytesOfZeroLength(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraOfZeroLen(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(22), n)
-	assert.Equal(t, uint32(18), ch.Size())
-	assert.Equal(t, CompPCM, ch.CompCode)
-	assert.Equal(t, uint16(1), ch.ChannelCnt)
-	assert.Equal(t, uint32(44100), ch.SampleRate)
-	assert.Equal(t, uint32(88200), ch.AvgByteRate)
-	assert.Equal(t, uint16(2), ch.BlockAlign)
-	assert.Equal(t, uint16(16), ch.BitsPerSample)
-	assert.Equal(t, []byte(nil), ch.extra)
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkFMT_ReadFrom_TooShortError(t *testing.T) {
-	// --- Given ---
-	src := &bytes.Buffer{}
-	writeUint32LE(t, src, 15)
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooShort, err)
-	assert.ErrorContain(t, "fmt  chunk", err)
-	assert.Equal(t, int64(4), n)
-}
-
-func Test_ChunkFMT_ReadFrom_LimitReaderError(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraBytesOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-	src = iokit.ErrReader(src, 24)
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, iokit.ErrRead, err)
-	assert.Equal(t, int64(24), n)
-}
-
-func Test_ChunkFMT_ReadFrom_ExtraInvalidSizeEven(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraInvalidSizeEven(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, ErrChunkSizeMismatch, err)
-	assert.ErrorContain(t, "fmt  chunk", err)
-	assert.Equal(t, int64(22), n)
-}
-
-func Test_ChunkFMT_ReadFrom_ExtraInvalidSizeOdd(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraInvalidSizeOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := FMT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.ErrorIs(t, ErrChunkSizeMismatch, err)
-	assert.ErrorContain(t, "fmt  chunk", err)
-	assert.Equal(t, int64(22), n)
-}
-
-func Test_ChunkFMT_Reset(t *testing.T) {
-	// --- Given ---
-	src := fmtChunkWithExtraBytesOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	ch := FMT()
-	_, err := ch.ReadFrom(src)
-	assert.NoError(t, err)
-
-	// --- When ---
-	ch.Reset()
-
-	// --- Then ---
-	assert.Equal(t, FMTChunkSize, ch.Size())
-	assert.Equal(t, CompNone, ch.CompCode)
-	assert.Equal(t, uint16(0), ch.ChannelCnt)
-	assert.Equal(t, uint32(0), ch.SampleRate)
-	assert.Equal(t, uint32(0), ch.AvgByteRate)
-	assert.Equal(t, uint16(0), ch.BlockAlign)
-	assert.Equal(t, uint16(0), ch.BitsPerSample)
-	assert.False(t, ch.WriteZeroExtra)
-	assert.Len(t, 0, ch.extra)
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkFMT_WriteTo(t *testing.T) {
-	tt := []struct {
-		testN string
-
-		n  int64
-		ch func(*testing.T) io.Reader
-	}{
-		{"fmtChunkWithoutExtraBytes", 24, fmtChunkWithoutExtraBytes},
-		{"fmtChunkWithExtraBytesEven", 28, fmtChunkWithExtraBytesEven},
-		{"fmtChunkWithExtraBytesOdd", 30, fmtChunkWithExtraBytesOdd},
-		{"fmtChunkWithExtraOfZeroLen", 26, fmtChunkWithExtraOfZeroLen},
-	}
-
-	for _, tc := range tt {
-		t.Run(tc.testN, func(t *testing.T) {
-			// --- Given ---
-			src := tc.ch(t)
-			skip4B(t, src) // Skip chunk ID.
-
-			ch := FMT()
-			_, err := ch.ReadFrom(src)
-			assert.NoError(t, err)
-
-			// --- When ---
-			dst := &bytes.Buffer{}
-			n, err := ch.WriteTo(dst)
-
-			// --- Then ---
-			assert.NoError(t, err)
-			assert.Equal(t, tc.n, n)
-
-			exp := must.Value(io.ReadAll(tc.ch(t)))
-			assert.Equal(t, exp, dst.Bytes())
-		})
-	}
-}
-
-func Test_ChunkFMT_WriteTo_Errors(t *testing.T) {
-	// Writing less then 30 bytes should always result in an error.
-	for i := 30; i > 0; i-- {
-		// --- Given ---
-		src := fmtChunkWithExtraBytesOdd(t)
-		skip4B(t, src) // Skip chunk ID.
-
-		ch := FMT()
-		_, err := ch.ReadFrom(src)
-		if !assert.NoError(t, err) {
-			t.Logf("errro i=%d", i)
-		}
-
-		// --- When ---
-		dst := &bytes.Buffer{}
-		_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
-
-		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("errro i=%d", i)
-		}
-	}
-}
-
-func Test_ChunkFMT_SetExtra(t *testing.T) {
+func Test_ChunkFMT_SetExtra_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -451,22 +221,267 @@ func Test_ChunkFMT_SetExtra(t *testing.T) {
 	}
 }
 
-func Test_ChunkFMT_CreateAndWrite(t *testing.T) {
-	tt := []struct {
-		testN string
+func Test_ChunkFMT_Duration(t *testing.T) {
+	t.Run("byte rate", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithoutExtraBytes(t)
+		skip4B(t, src)
 
-		ch    func(*testing.T) io.Reader
-		n     int64
-		extra []byte
-	}{
-		{"fmtChunkWithoutExtraBytes", fmtChunkWithoutExtraBytes, 24, []byte{}},
-		{"fmtChunkWithExtraBytesEven", fmtChunkWithExtraBytesEven, 28, []byte{0, 1}},
-		{"fmtChunkWithExtraBytesOdd", fmtChunkWithExtraBytesOdd, 30, []byte{0, 1, 2}},
+		ch := FMT()
+		_, err := ch.ReadFrom(src)
+		assert.NoError(t, err)
+
+		// --- When ---
+		d := ch.Duration(88200)
+
+		// --- Then ---
+		assert.Equal(t, time.Second, d)
+	})
+
+	t.Run("zero byte rate", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+
+		// --- When ---
+		have := ch.Duration(88200)
+
+		// --- Then ---
+		assert.Equal(t, time.Duration(0), have)
+	})
+}
+
+func Test_ChunkFMT_ReadFrom(t *testing.T) {
+	t.Run("without extra bytes", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithoutExtraBytes(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+
+		assert.Equal(t, int64(20), n)
+		assert.Equal(t, uint32(16), ch.Size())
+		assert.Equal(t, CompPCM, ch.CompCode)
+		assert.Equal(t, uint16(1), ch.ChannelCnt)
+		assert.Equal(t, uint32(44100), ch.SampleRate)
+		assert.Equal(t, uint32(88200), ch.AvgByteRate)
+		assert.Equal(t, uint16(2), ch.BlockAlign)
+		assert.Equal(t, uint16(16), ch.BitsPerSample)
+		assert.Equal(t, []byte(nil), ch.extra)
+		assert.True(t, isAllRead(src))
+	})
+
+	t.Run("even extra bytes", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithExtraBytesEven(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+
+		assert.Equal(t, int64(24), n)
+		assert.Equal(t, uint32(20), ch.Size())
+		assert.Equal(t, CompPCM, ch.CompCode)
+		assert.Equal(t, uint16(1), ch.ChannelCnt)
+		assert.Equal(t, uint32(44100), ch.SampleRate)
+		assert.Equal(t, uint32(88200), ch.AvgByteRate)
+		assert.Equal(t, uint16(2), ch.BlockAlign)
+		assert.Equal(t, uint16(16), ch.BitsPerSample)
+		assert.Equal(t, []byte{0, 1}, ch.extra)
+		assert.True(t, isAllRead(src))
+	})
+
+	t.Run("odd extra bytes", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithExtraBytesOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+
+		assert.Equal(t, int64(26), n)
+		assert.Equal(t, uint32(22), ch.Size())
+		assert.Equal(t, CompPCM, ch.CompCode)
+		assert.Equal(t, uint16(1), ch.ChannelCnt)
+		assert.Equal(t, uint32(44100), ch.SampleRate)
+		assert.Equal(t, uint32(88200), ch.AvgByteRate)
+		assert.Equal(t, uint16(2), ch.BlockAlign)
+		assert.Equal(t, uint16(16), ch.BitsPerSample)
+		assert.Equal(t, []byte{0, 1, 2}, ch.extra)
+		assert.True(t, isAllRead(src))
+	})
+
+	t.Run("zero length extra bytes", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithExtraOfZeroLen(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+
+		assert.Equal(t, int64(22), n)
+		assert.Equal(t, uint32(18), ch.Size())
+		assert.Equal(t, CompPCM, ch.CompCode)
+		assert.Equal(t, uint16(1), ch.ChannelCnt)
+		assert.Equal(t, uint32(44100), ch.SampleRate)
+		assert.Equal(t, uint32(88200), ch.AvgByteRate)
+		assert.Equal(t, uint16(2), ch.BlockAlign)
+		assert.Equal(t, uint16(16), ch.BitsPerSample)
+		assert.Equal(t, []byte(nil), ch.extra)
+		assert.True(t, isAllRead(src))
+	})
+
+	t.Run("error - size limit", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithExtraBytesOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := FMT(WithSizeLimit(21))
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+	})
+
+	t.Run("error - truncated input", func(t *testing.T) {
+		// Reading less than 26 bytes should always result in an error.
+		for i := 1; i < 26; i++ {
+			// --- Given ---
+			src := fmtChunkWithExtraBytesOdd(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			// --- When ---
+			_, err := FMT().ReadFrom(io.LimitReader(src, int64(i)))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+		}
+	})
+
+	t.Run("error - too short", func(t *testing.T) {
+		// --- Given ---
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 15)
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooShort, err)
+		assert.ErrorContain(t, "fmt  chunk", err)
+		assert.Equal(t, int64(4), n)
+	})
+
+	t.Run("error - read", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithExtraBytesOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+		src = iokit.ErrReader(src, 24)
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, iokit.ErrRead, err)
+		assert.Equal(t, int64(24), n)
+	})
+
+	t.Run("error - invalid even extra size", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithExtraInvalidSizeEven(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrChunkSizeMismatch, err)
+		assert.ErrorContain(t, "fmt  chunk", err)
+		assert.Equal(t, int64(22), n)
+	})
+
+	t.Run("error - invalid odd extra size", func(t *testing.T) {
+		// --- Given ---
+		src := fmtChunkWithExtraInvalidSizeOdd(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		ch := FMT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrChunkSizeMismatch, err)
+		assert.ErrorContain(t, "fmt  chunk", err)
+		assert.Equal(t, int64(22), n)
+	})
+}
+
+func Test_ChunkFMT_WriteTo(t *testing.T) {
+	t.Run("error - write", func(t *testing.T) {
+		// Writing less then 30 bytes should always result in an error.
+		for i := 30; i > 0; i-- {
+			// --- Given ---
+			src := fmtChunkWithExtraBytesOdd(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			ch := FMT()
+			_, err := ch.ReadFrom(src)
+			if !assert.NoError(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+
+			// --- When ---
+			dst := &bytes.Buffer{}
+			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+		}
+	})
+}
+
+func Test_ChunkFMT_WriteTo_tabular(t *testing.T) {
+	// decoded returns a builder of a chunk decoded from the fixture.
+	decoded := func(fix func(*testing.T) io.Reader) func(*testing.T) *ChunkFMT {
+		return func(t *testing.T) *ChunkFMT {
+			t.Helper()
+			src := fix(t)
+			skip4B(t, src) // Skip chunk ID.
+			ch := FMT()
+			must.Value(ch.ReadFrom(src))
+			return ch
+		}
 	}
 
-	for _, tc := range tt {
-		t.Run(tc.testN, func(t *testing.T) {
-			// --- Given ---
+	// created returns a builder of a new chunk with the extra bytes set.
+	created := func(extra []byte) func(*testing.T) *ChunkFMT {
+		return func(t *testing.T) *ChunkFMT {
+			t.Helper()
 			ch := FMT()
 			ch.CompCode = CompPCM
 			ch.ChannelCnt = 1
@@ -474,92 +489,101 @@ func Test_ChunkFMT_CreateAndWrite(t *testing.T) {
 			ch.AvgByteRate = 88200
 			ch.BlockAlign = 2
 			ch.BitsPerSample = 16
+			ch.SetExtra(extra)
+			return ch
+		}
+	}
+
+	tt := []struct {
+		testN string
+
+		ch   func(*testing.T) *ChunkFMT
+		want func(*testing.T) io.Reader
+		n    int64
+	}{
+		{
+			"decoded without extra bytes",
+			decoded(fmtChunkWithoutExtraBytes),
+			fmtChunkWithoutExtraBytes,
+			24,
+		},
+		{
+			"decoded with even extra bytes",
+			decoded(fmtChunkWithExtraBytesEven),
+			fmtChunkWithExtraBytesEven,
+			28,
+		},
+		{
+			"decoded with odd extra bytes",
+			decoded(fmtChunkWithExtraBytesOdd),
+			fmtChunkWithExtraBytesOdd,
+			30,
+		},
+		{
+			"decoded with zero length extra bytes",
+			decoded(fmtChunkWithExtraOfZeroLen),
+			fmtChunkWithExtraOfZeroLen,
+			26,
+		},
+		{
+			"created without extra bytes",
+			created([]byte{}),
+			fmtChunkWithoutExtraBytes,
+			24,
+		},
+		{
+			"created with even extra bytes",
+			created([]byte{0, 1}),
+			fmtChunkWithExtraBytesEven,
+			28,
+		},
+		{
+			"created with odd extra bytes",
+			created([]byte{0, 1, 2}),
+			fmtChunkWithExtraBytesOdd,
+			30,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			ch := tc.ch(t)
+			dst := &bytes.Buffer{}
 
 			// --- When ---
-			// Setting format extra bytes.
-			ch.SetExtra(tc.extra)
-			assert.Equal(t, uint32(tc.n-8), ch.Size())
-
-			// Writing the chunk.
-			dst := &bytes.Buffer{}
 			n, err := ch.WriteTo(dst)
 
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
-
-			exp := must.Value(io.ReadAll(tc.ch(t)))
-			assert.Equal(t, exp, dst.Bytes())
+			assert.Equal(t, uint32(n-8), ch.Size())
+			assert.Equal(t, must.Value(io.ReadAll(tc.want(t))), dst.Bytes())
 		})
 	}
 }
 
-func Test_ChunkFMT_Size(t *testing.T) {
-	t.Run("new chunk", func(t *testing.T) {
-		// --- Given ---
-		ch := FMT()
-		ch.CompCode = CompPCM
-
-		// --- When ---
-		have := ch.Size()
-
-		// --- Then ---
-		assert.Equal(t, FMTChunkSize, have)
-	})
-
-	t.Run("write zero extra set after SetExtra", func(t *testing.T) {
-		// --- Given ---
-		ch := FMT()
-		ch.SetExtra(nil)
-		ch.WriteZeroExtra = true
-
-		// --- When ---
-		have := ch.Size()
-
-		// --- Then ---
-		assert.Equal(t, uint32(18), have)
-	})
-
-	t.Run("RIFF size matches written bytes", func(t *testing.T) {
-		// --- Given ---
-		ch := FMT()
-		ch.CompCode = CompPCM
-		rif := Compose(Chunks{ch})
-		dst := &bytes.Buffer{}
-
-		// --- When ---
-		n, err := rif.WriteTo(dst)
-
-		// --- Then ---
-		assert.NoError(t, err)
-		assert.Equal(t, int64(36), n)
-		assert.Equal(t, uint32(n-8), le.Uint32(dst.Bytes()[4:8]))
-	})
-}
-
-func Test_ChunkFMT_Duration(t *testing.T) {
+func Test_ChunkFMT_Reset(t *testing.T) {
 	// --- Given ---
-	src := fmtChunkWithoutExtraBytes(t)
-	skip4B(t, src)
+	src := fmtChunkWithExtraBytesOdd(t)
+	skip4B(t, src) // Skip chunk ID.
 
 	ch := FMT()
 	_, err := ch.ReadFrom(src)
 	assert.NoError(t, err)
 
 	// --- When ---
-	d := ch.Duration(88200)
+	ch.Reset()
 
 	// --- Then ---
-	assert.Equal(t, time.Second, d)
-}
-
-func Test_ChunkFMT_Duration_ZeroRate(t *testing.T) {
-	// --- Given ---
-	ch := FMT()
-
-	// --- When ---
-	have := ch.Duration(88200)
-
-	// --- Then ---
-	assert.Equal(t, time.Duration(0), have)
+	assert.Equal(t, FMTChunkSize, ch.Size())
+	assert.Equal(t, CompNone, ch.CompCode)
+	assert.Equal(t, uint16(0), ch.ChannelCnt)
+	assert.Equal(t, uint32(0), ch.SampleRate)
+	assert.Equal(t, uint32(0), ch.AvgByteRate)
+	assert.Equal(t, uint16(0), ch.BlockAlign)
+	assert.Equal(t, uint16(0), ch.BitsPerSample)
+	assert.False(t, ch.WriteZeroExtra)
+	assert.Len(t, 0, ch.extra)
+	assert.True(t, isAllRead(src))
 }

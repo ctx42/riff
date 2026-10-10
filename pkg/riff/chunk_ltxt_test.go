@@ -46,7 +46,7 @@ func ltxtChunkTextLenOdd(t *testing.T) io.Reader {
 	return src
 }
 
-func Test_ChunkLTXT_LTXT(t *testing.T) {
+func Test_LTXT(t *testing.T) {
 	// --- When ---
 	ch := LTXT()
 
@@ -59,105 +59,133 @@ func Test_ChunkLTXT_LTXT(t *testing.T) {
 	assert.False(t, ch.Raw())
 }
 
-func Test_ChunkLTXT_ReadFrom_TextLenEven(t *testing.T) {
-	// --- Given ---
-	src := ltxtChunkTextLenEven(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := LTXT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(28), n)
-	assert.Equal(t, IDltxt, ch.ID())
-	assert.Equal(t, uint32(24), ch.Size())
-	assert.Equal(t, uint32(1), ch.CuePointID)
-	assert.Equal(t, uint32(2), ch.SamLen)
-	assert.Equal(t, uint32(3), ch.PurID)
-	assert.Equal(t, uint16(4), ch.Country)
-	assert.Equal(t, uint16(5), ch.Language)
-	assert.Equal(t, uint16(6), ch.Dialect)
-	assert.Equal(t, uint16(7), ch.CodePage)
-	assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.text)
-	assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Text())))
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkLTXT_ReadFrom_TextLenOdd(t *testing.T) {
-	// --- Given ---
-	src := ltxtChunkTextLenOdd(t)
-	skip4B(t, src) // Skip chunk ID.
-
-	// --- When ---
-	ch := LTXT()
-	n, err := ch.ReadFrom(src)
-
-	// --- Then ---
-	assert.NoError(t, err)
-
-	assert.Equal(t, int64(28), n)
-	assert.Equal(t, IDltxt, ch.ID())
-	assert.Equal(t, uint32(23), ch.Size())
-	assert.Equal(t, uint32(1), ch.CuePointID)
-	assert.Equal(t, uint32(2), ch.SamLen)
-	assert.Equal(t, uint32(3), ch.PurID)
-	assert.Equal(t, uint16(4), ch.Country)
-	assert.Equal(t, uint16(5), ch.Language)
-	assert.Equal(t, uint16(6), ch.Dialect)
-	assert.Equal(t, uint16(7), ch.CodePage)
-	assert.Equal(t, []byte{'a', 'b', 0}, ch.text)
-	assert.Equal(t, []byte{'a', 'b'}, must.Value(io.ReadAll(ch.Text())))
-	assert.True(t, isAllRead(src))
-}
-
-func Test_ChunkLTXT_ReadFrom_Errors(t *testing.T) {
-	// Reading less than 12 bytes should always result in an error.
-	for i := 1; i < 12; i++ {
+func Test_ChunkLTXT_ReadFrom(t *testing.T) {
+	t.Run("even text length", func(t *testing.T) {
 		// --- Given ---
 		src := ltxtChunkTextLenEven(t)
 		skip4B(t, src) // Skip chunk ID.
 
 		// --- When ---
-		_, err := LTXT().ReadFrom(io.LimitReader(src, int64(i)))
+		ch := LTXT()
+		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
-		assert.Error(t, err)
-	}
-}
+		assert.NoError(t, err)
 
-func Test_ChunkLTXT_ReadFrom_TooShortError(t *testing.T) {
-	// --- Given ---
-	src := &bytes.Buffer{}
-	writeUint32LE(t, src, 19)
+		assert.Equal(t, int64(28), n)
+		assert.Equal(t, IDltxt, ch.ID())
+		assert.Equal(t, uint32(24), ch.Size())
+		assert.Equal(t, uint32(1), ch.CuePointID)
+		assert.Equal(t, uint32(2), ch.SamLen)
+		assert.Equal(t, uint32(3), ch.PurID)
+		assert.Equal(t, uint16(4), ch.Country)
+		assert.Equal(t, uint16(5), ch.Language)
+		assert.Equal(t, uint16(6), ch.Dialect)
+		assert.Equal(t, uint16(7), ch.CodePage)
+		assert.Equal(t, []byte{'a', 'b', 'c', 0}, ch.text)
+		assert.Equal(t, []byte{'a', 'b', 'c'}, must.Value(io.ReadAll(ch.Text())))
+		assert.True(t, isAllRead(src))
+	})
 
-	// --- When ---
-	ch := LTXT()
-	n, err := ch.ReadFrom(src)
+	t.Run("odd text length", func(t *testing.T) {
+		// --- Given ---
+		src := ltxtChunkTextLenOdd(t)
+		skip4B(t, src) // Skip chunk ID.
 
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooShort, err)
-	assert.ErrorContain(t, "adtl:ltxt chunk", err)
-	assert.Equal(t, int64(4), n)
-}
+		// --- When ---
+		ch := LTXT()
+		n, err := ch.ReadFrom(src)
 
-func Test_ChunkLTXT_ReadFrom_LimitError(t *testing.T) {
-	// --- Given ---
-	src := ltxtChunkTextLenEven(t)
-	skip4B(t, src) // Skip chunk ID.
+		// --- Then ---
+		assert.NoError(t, err)
 
-	ch := LTXT(WithSizeLimit(23))
+		assert.Equal(t, int64(28), n)
+		assert.Equal(t, IDltxt, ch.ID())
+		assert.Equal(t, uint32(23), ch.Size())
+		assert.Equal(t, uint32(1), ch.CuePointID)
+		assert.Equal(t, uint32(2), ch.SamLen)
+		assert.Equal(t, uint32(3), ch.PurID)
+		assert.Equal(t, uint16(4), ch.Country)
+		assert.Equal(t, uint16(5), ch.Language)
+		assert.Equal(t, uint16(6), ch.Dialect)
+		assert.Equal(t, uint16(7), ch.CodePage)
+		assert.Equal(t, []byte{'a', 'b', 0}, ch.text)
+		assert.Equal(t, []byte{'a', 'b'}, must.Value(io.ReadAll(ch.Text())))
+		assert.True(t, isAllRead(src))
+	})
 
-	// --- When ---
-	_, err := ch.ReadFrom(src)
+	t.Run("error - truncated input", func(t *testing.T) {
+		// Reading less than 12 bytes should always result in an error.
+		for i := 1; i < 12; i++ {
+			// --- Given ---
+			src := ltxtChunkTextLenEven(t)
+			skip4B(t, src) // Skip chunk ID.
 
-	// --- Then ---
-	assert.ErrorIs(t, ErrTooLarge, err)
+			// --- When ---
+			_, err := LTXT().ReadFrom(io.LimitReader(src, int64(i)))
+
+			// --- Then ---
+			assert.Error(t, err)
+		}
+	})
+
+	t.Run("error - too short", func(t *testing.T) {
+		// --- Given ---
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 19)
+
+		// --- When ---
+		ch := LTXT()
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooShort, err)
+		assert.ErrorContain(t, "adtl:ltxt chunk", err)
+		assert.Equal(t, int64(4), n)
+	})
+
+	t.Run("error - size limit", func(t *testing.T) {
+		// --- Given ---
+		src := ltxtChunkTextLenEven(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := LTXT(WithSizeLimit(23))
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+	})
 }
 
 func Test_ChunkLTXT_WriteTo(t *testing.T) {
+	t.Run("error - write", func(t *testing.T) {
+		// Writing less then 32 bytes should always result in an error.
+		for i := 32; i > 0; i-- {
+			// --- Given ---
+			src := ltxtChunkTextLenOdd(t)
+			skip4B(t, src) // Skip chunk ID.
+
+			ch := LTXT()
+			_, err := ch.ReadFrom(src)
+			if !assert.NoError(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+
+			// --- When ---
+			dst := &bytes.Buffer{}
+			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
+
+			// --- Then ---
+			if !assert.Error(t, err) {
+				t.Logf("errro i=%d", i)
+			}
+		}
+	})
+}
+
+func Test_ChunkLTXT_WriteTo_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -189,30 +217,6 @@ func Test_ChunkLTXT_WriteTo(t *testing.T) {
 			exp := must.Value(io.ReadAll(tc.ch(t)))
 			assert.Equal(t, exp, dst.Bytes())
 		})
-	}
-}
-
-func Test_ChunkLTXT_WriteTo_Errors(t *testing.T) {
-	// Writing less then 32 bytes should always result in an error.
-	for i := 32; i > 0; i-- {
-		// --- Given ---
-		src := ltxtChunkTextLenOdd(t)
-		skip4B(t, src) // Skip chunk ID.
-
-		ch := LTXT()
-		_, err := ch.ReadFrom(src)
-		if !assert.NoError(t, err) {
-			t.Logf("errro i=%d", i)
-		}
-
-		// --- When ---
-		dst := &bytes.Buffer{}
-		_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
-
-		// --- Then ---
-		if !assert.Error(t, err) {
-			t.Logf("errro i=%d", i)
-		}
 	}
 }
 
