@@ -90,6 +90,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	if err := binary.Read(cr, be, &ch.ListType); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), err)
 	}
+	name := linkids(IDLIST, ch.ListType)
 
 	var mkr IDMaker
 	switch ch.ListType {
@@ -106,7 +107,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	for cr.Count()-4 < int64(ch.size) {
 		var id uint32
 		if err = ReadChunkID(cr, &id); err != nil {
-			return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, ch.ListType), err)
+			return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 		}
 
 		dec := ch.registry().GetNoRaw(id)
@@ -117,13 +118,14 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 
 		_, err = dec.ReadFrom(cr)
 		if err != nil {
-			return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, id), err)
+			sub := linkids(IDLIST, id)
+			return cr.Count(), fmt.Errorf(errFmtDecode, sub, err)
 		}
 		ch.chunks = append(ch.chunks, dec)
 	}
 
 	if cr.Count()-4 > int64(ch.size) {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDLIST, ch.ListType), ErrChunkSizeMismatch)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrChunkSizeMismatch)
 	}
 
 	return cr.Count(), nil

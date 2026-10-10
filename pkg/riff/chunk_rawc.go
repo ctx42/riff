@@ -66,28 +66,30 @@ func (ch *ChunkRAWC) Body() io.Reader {
 }
 
 func (ch *ChunkRAWC) ReadFrom(r io.Reader) (int64, error) {
+	name := linkids(idRAWC, ch.id)
+
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
-		return 0, fmt.Errorf(errFmtDecode, linkids(idRAWC, ch.id), err)
+		return 0, fmt.Errorf(errFmtDecode, name, err)
 	}
 	ch.size = size
 
 	if !ch.opts.loadData {
 		rs := RealSize(ch.size) // Skip padding byte if present.
 		if err := cr.SkipN(rs); err != nil {
-			return cr.Count(), fmt.Errorf(errFmtDecode, linkids(idRAWC, ch.id), err)
+			return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 		}
 		return cr.Count(), nil
 	}
 
 	ch.data, err = readBytes(cr, ch.data, int(ch.size))
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(idRAWC, ch.id), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 
 	_, err = ReadPaddingIf(cr, ch.size)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(idRAWC, ch.id), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 
 	return cr.Count(), nil

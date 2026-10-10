@@ -69,31 +69,33 @@ func (ch *ChunkLABL) Label() io.Reader {
 }
 
 func (ch *ChunkLABL) ReadFrom(r io.Reader) (int64, error) {
+	name := linkids(IDadtl, IDlabl)
+
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
-		return 0, fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
+		return 0, fmt.Errorf(errFmtDecode, name, err)
 	}
 	ch.size = size
 
 	if ch.size < LABLChunkSize {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), ErrTooShort)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrTooShort)
 	}
 
 	if err := binary.Read(cr, le, &ch.CuePointID); err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 
 	// Subtract the cue point ID field size.
 	ch.label, err = readBytes(cr, ch.label, int(ch.size-LABLChunkSize))
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 
 	// If the length of label bytes is odd, it means the padding byte was added
 	// to the end.
 	_, err = ReadPaddingIf(cr, ch.size)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDlabl), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 
 	return cr.Count(), nil

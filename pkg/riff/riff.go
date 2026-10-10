@@ -64,7 +64,9 @@ var (
 
 	// ErrSkipDataMode is returned when a chunk decoded without
 	// [WithLoadData] is written or edited.
-	ErrSkipDataMode = errors.New("decoder in meta only mode used in write context")
+	ErrSkipDataMode = errors.New(
+		"decoder in meta only mode used in write context",
+	)
 )
 
 // Error format strings.
@@ -194,7 +196,11 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	for {
 		if err = ReadChunkID(cr, &id); err != nil {
 			if !errors.Is(err, io.EOF) {
-				return cr.Count(), fmt.Errorf(errFmtReadingRIFF, cr.Count(), err)
+				return cr.Count(), fmt.Errorf(
+					errFmtReadingRIFF,
+					cr.Count(),
+					err,
+				)
 			}
 			break
 		}

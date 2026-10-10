@@ -104,31 +104,33 @@ func (ch *ChunkLTXT) Text() io.Reader {
 }
 
 func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
+	name := linkids(IDadtl, IDltxt)
+
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
-		return 0, fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
+		return 0, fmt.Errorf(errFmtDecode, name, err)
 	}
 	ch.size = size
 
 	if ch.size < LTXTChunkSize {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), ErrTooShort)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrTooShort)
 	}
 
 	if err := binary.Read(cr, le, &ch.ltxtStatic); err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 
 	tl := int(ch.size - LTXTChunkSize) // Subtract ltxtStatic fields size.
 	ch.text, err = readBytes(cr, ch.text, tl)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 
 	// If the length of text bytes is odd, it means the padding byte was added
 	// to the end.
 	_, err = ReadPaddingIf(cr, ch.size)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
 	}
 	return cr.Count(), nil
 }

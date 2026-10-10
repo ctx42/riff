@@ -175,7 +175,11 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	loops := int64(ch.SampleLoopCnt) * int64(SampleLoopCntSize)
 	extra := int64(size) - int64(SMPLChunkSize) - loops
 	if extra < 0 {
-		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), ErrChunkSizeMismatch)
+		return cr.Count(), fmt.Errorf(
+			errFmtDecode,
+			Uint32(IDsmpl),
+			ErrChunkSizeMismatch,
+		)
 	}
 
 	for i := 0; i < int(ch.SampleLoopCnt); i++ {

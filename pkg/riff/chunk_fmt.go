@@ -166,7 +166,11 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 			ch.WriteZeroExtra = true
 		}
 		if extra != RealSize(uint32(es)) {
-			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), ErrChunkSizeMismatch)
+			return cr.Count(), fmt.Errorf(
+				errFmtDecode,
+				Uint32(IDfmt),
+				ErrChunkSizeMismatch,
+			)
 		}
 
 		ch.extra = grow(ch.extra, int(es))
