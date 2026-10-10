@@ -175,8 +175,7 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	for i := 0; i < int(ch.SampleLoopCnt); i++ {
-		loop := sampleLoopPool.Get().(*SampleLoop) // nolint: forcetypeassert
-		loop.Reset()
+		loop := &SampleLoop{}
 		if err := binary.Read(cr, le, loop); err != nil {
 			return 0, fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 		}
@@ -249,9 +248,6 @@ func (ch *ChunkSMPL) Reset() {
 	ch.SMPTEOffset = 0
 	ch.SampleLoopCnt = 0
 	ch.SamplerDataCnt = 0
-	for _, sl := range ch.SampleLoops {
-		sampleLoopPool.Put(sl)
-	}
 	ch.SampleLoops = ch.SampleLoops[:0]
 	ch.sampleData = ch.sampleData[:0]
 }

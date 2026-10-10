@@ -3,10 +3,6 @@
 
 package riff
 
-import (
-	"sync"
-)
-
 // SampleLoop represents a sample loop used in [ChunkSMPL].
 //
 // Source:
@@ -63,11 +59,4 @@ func (sl *SampleLoop) Reset() {
 	sl.End = 0
 	sl.Fraction = 0
 	sl.PlayCnt = 0
-}
-
-// sampleLoopPool is a pool for SampleLoop instances.
-var sampleLoopPool = &sync.Pool{
-	New: func() interface{} {
-		return &SampleLoop{}
-	},
 }

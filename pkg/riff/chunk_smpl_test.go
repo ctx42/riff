@@ -268,6 +268,29 @@ func Test_ChunkSMPL_ReadFrom_WithLoops(t *testing.T) {
 	assert.True(t, test.IsAllRead(src))
 }
 
+func Test_ChunkSMPL_ReadFrom_HeldLoopNotReused(t *testing.T) {
+	// --- Given ---
+	src := smplWithLoopsNoData(t)
+	test.Skip4B(t, src) // Skip chunk ID.
+
+	ch := SMPL()
+	must.Value(ch.ReadFrom(src))
+	held := ch.SampleLoops[0]
+	ch.Reset()
+
+	src = smplWithLoopsNoData(t)
+	test.Skip4B(t, src) // Skip chunk ID.
+
+	other := SMPL()
+
+	// --- When ---
+	_, err := other.ReadFrom(src)
+
+	// --- Then ---
+	assert.NoError(t, err)
+	assert.NotSame(t, held, other.SampleLoops[0])
+}
+
 func Test_ChunkSMPL_ReadFrom_Errors(t *testing.T) {
 	// Reading less than 64 bytes should always result in an error.
 	for i := 1; i < 64; i++ {
