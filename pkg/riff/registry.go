@@ -24,18 +24,18 @@ func NewRegistry(raw IDMaker) *Registry {
 	}
 }
 
-// Has returns true if decoder for given chunk ID is registered.
+// Has reports whether a decoder for id is registered.
 func (reg *Registry) Has(id uint32) bool {
 	_, ok := reg.makers[id]
 	return ok
 }
 
-// Register registers chunk decoder Maker function.
+// Register registers the decoder maker for id, replacing any previous one.
 func (reg *Registry) Register(id uint32, maker Maker) {
 	reg.makers[id] = maker
 }
 
-// Put chunk decoder back to the pool so it can be reused.
+// Put returns the chunk decoder ch to the pool for reuse.
 func (reg *Registry) Put(ch Chunk) {
 	id := ch.ID()
 	if _, ok := reg.pool[id]; !ok {
@@ -44,8 +44,8 @@ func (reg *Registry) Put(ch Chunk) {
 	reg.pool[id] = append(reg.pool[id], ch)
 }
 
-// Get return decoder for given ID from the pool. For unknown (not registered)
-// chunk ID decoders it returns a raw decoder.
+// Get returns a decoder for id from the pool, or a new one from its maker.
+// For an unregistered id with no pooled decoder it returns a raw decoder.
 func (reg *Registry) Get(id uint32) Chunk {
 	ch := reg.GetNoRaw(id)
 	if ch == nil {
@@ -54,7 +54,8 @@ func (reg *Registry) Get(id uint32) Chunk {
 	return ch
 }
 
-// GetNoRaw returns decoder for given ID from the pool or nil.
+// GetNoRaw works like [Registry.Get] but returns nil instead of a raw
+// decoder.
 func (reg *Registry) GetNoRaw(id uint32) Chunk {
 	chs, ok := reg.pool[id]
 	cl := len(chs)

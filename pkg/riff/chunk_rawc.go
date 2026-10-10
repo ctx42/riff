@@ -12,7 +12,7 @@ import (
 // Compile time checks.
 var _ Chunk = (*ChunkRAWC)(nil)
 
-// idRAWC represents raw chunk ID used only in error reporting from RAWC chunk.
+// idRAWC is the "RAWC" ID naming raw chunks in error messages.
 const idRAWC uint32 = 0x52415743
 
 // ChunkRAWC is a decoder for unknown (not registered) chunks.
@@ -21,7 +21,7 @@ type ChunkRAWC struct {
 	id uint32
 
 	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
+	// The ID, size field, and padding byte are not counted in the chunk size.
 	size uint32
 
 	// Buffer to read the chunk data into.
@@ -38,7 +38,7 @@ func RAWCMake(opts ...OptsFn) IDMaker {
 	}
 }
 
-// RAWC returns a new instance of [ChunkRAWC] for given ID.
+// RAWC returns a new instance of [ChunkRAWC] for the given ID.
 func RAWC(id uint32, opts ...OptsFn) *ChunkRAWC {
 	ch := &ChunkRAWC{
 		id:   id,
@@ -59,6 +59,8 @@ func (ch *ChunkRAWC) Multi() bool    { return true }
 func (ch *ChunkRAWC) Chunks() Chunks { return nil }
 func (ch *ChunkRAWC) Raw() bool      { return true }
 
+// Body returns a reader for the chunk body. Without [WithLoadData] the reader
+// is empty.
 func (ch *ChunkRAWC) Body() io.Reader {
 	return bytes.NewReader(ch.data)
 }

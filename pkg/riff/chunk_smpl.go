@@ -16,11 +16,11 @@ var _ Chunk = (*ChunkSMPL)(nil)
 // IDsmpl represents "smpl" chunk ID.
 const IDsmpl uint32 = 0x736d706c
 
-// SMPLChunkSize represents the size of smpl chunk static part in bytes.
-// Does not count ID, SampleLoops and sampleData bytes.
+// SMPLChunkSize is the size in bytes of the static part of the smpl chunk, not
+// counting the ID, the sample loops, and the sampler data.
 const SMPLChunkSize uint32 = 36
 
-// SampleLoopCntSize represents the size of single sample loop in bytes.
+// SampleLoopCntSize is the size of a single sample loop in bytes.
 const SampleLoopCntSize uint32 = 24
 
 // smplStatic represents chunk static data (always there).
@@ -54,13 +54,13 @@ type smplStatic struct {
 
 	// The sample period specifies the duration of time that passes during
 	// the playback of one sample in nanoseconds (normally equal to
-	// 1 / Samplers Per Second, where Samples Per Second is the value
+	// 1 / Samples Per Second, where Samples Per Second is the value
 	// found in the ChunkFMT chunk).
 	SamplePeriod uint32
 
 	// The MIDI unity note value has the same meaning as the instrument
 	// chunk's MIDI Unshifted Note field which specifies the musical note
-	// at which the sample will be played at it's original sample
+	// at which the sample will be played at its original sample
 	// rate (the sample rate specified in the ChunkFMT chunk).
 	MIDIUnityNote uint32
 
@@ -105,7 +105,7 @@ type smplStatic struct {
 	SamplerDataCnt uint32
 }
 
-// ChunkSMPL represents smpl chunk.
+// ChunkSMPL represents the "smpl" (sampler) chunk.
 //
 // Source:
 // https://sites.google.com/site/musicgapi/technical-documents/wav-file-format
@@ -118,14 +118,14 @@ type ChunkSMPL struct {
 	// the play order. The sampler chunk is optional.
 	SampleLoops []*SampleLoop
 
-	// Optional sampler specific data.
+	// Optional sampler-specific data.
 	sampleData []byte
 
 	// Chunk processing options.
 	opts Opts
 }
 
-// SMPLMake is a [Maker] function for creating [ChunkSMPL] instances.
+// SMPLMake returns a [Maker] function for [ChunkSMPL] instances.
 func SMPLMake(opts ...OptsFn) Maker {
 	return func() Chunk {
 		return SMPL(opts...)
@@ -152,7 +152,7 @@ func (ch *ChunkSMPL) Size() uint32 {
 		uint32(len(ch.sampleData))
 }
 
-// SamplerData returns reader for sampler specific data.
+// SamplerData returns a reader for the sampler-specific data.
 func (ch *ChunkSMPL) SamplerData() io.Reader {
 	return bytes.NewReader(ch.sampleData)
 }

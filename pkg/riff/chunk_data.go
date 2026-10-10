@@ -16,13 +16,13 @@ var _ Chunk = (*ChunkDATA)(nil)
 // IDdata represents "data" chunk ID.
 const IDdata uint32 = 0x64617461
 
-// ChunkDATA represents 'data' chunk decoder.
+// ChunkDATA represents the "data" chunk decoder.
 type ChunkDATA struct {
 	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
+	// The ID, size field, and padding byte are not counted in the chunk size.
 	size uint32
 
-	// Buffer data is read to.
+	// Buffer the chunk data is read into.
 	data []byte
 
 	// Chunk processing options.
@@ -36,16 +36,16 @@ func (ch *ChunkDATA) Multi() bool    { return false }
 func (ch *ChunkDATA) Chunks() Chunks { return nil }
 func (ch *ChunkDATA) Raw() bool      { return false }
 
-// DATAMake returns Maker function for ChunkDATA instances.
+// DATAMake returns a [Maker] function for [ChunkDATA] instances.
 func DATAMake(opts ...OptsFn) Maker {
 	return func() Chunk {
 		return DATA(opts...)
 	}
 }
 
-// DATA returns new instance of ChunkDATA. If load is false
-// the chunk data will not be loaded into memory. It's used to reduce
-// memory footprint of the decoder if only metadata is of interest.
+// DATA returns a new instance of [ChunkDATA]. Without [WithLoadData] the chunk
+// data is skipped instead of loaded into memory, which reduces the memory
+// footprint when only metadata is of interest.
 func DATA(opts ...OptsFn) *ChunkDATA {
 	ch := &ChunkDATA{
 		opts: NewOpts(opts...),
@@ -56,13 +56,14 @@ func DATA(opts ...OptsFn) *ChunkDATA {
 	return ch
 }
 
-// Data returns reader for data. If in SkipData mode, an empty reader is
-// returned.
+// Data returns a reader for the chunk data. Without [WithLoadData] the reader
+// is empty.
 func (ch *ChunkDATA) Data() io.Reader {
 	return bytes.NewReader(ch.data)
 }
 
-// SetData set data bytes. If will return ErrSkipDataMode if in SkipData mode.
+// SetData sets the chunk data. It returns [ErrSkipDataMode] when the chunk was
+// created without [WithLoadData].
 func (ch *ChunkDATA) SetData(data []byte) error {
 	if !ch.opts.LoadData() {
 		return ErrSkipDataMode
@@ -141,7 +142,6 @@ func (ch *ChunkDATA) WriteTo(w io.Writer) (int64, error) {
 	return sum, nil
 }
 
-// Reset resets the chunk so it can be reused.
 func (ch *ChunkDATA) Reset() {
 	ch.size = 0
 	ch.data = ch.data[:0]

@@ -15,7 +15,7 @@ var (
 	_ fmt.Stringer = Uint32(0)
 )
 
-// Uint32 is a helper type wrapping uint32 and adding methods.
+// Uint32 is a chunk ID or type with methods to print and encode it.
 type Uint32 uint32
 
 // String returns the ASCII representation of the uint32 integer.
@@ -26,6 +26,9 @@ func (u32 Uint32) String() string {
 		string(byte(u32&0x000000FF))
 }
 
+// Read writes the value to p in big endian and returns [io.EOF] with it, so a
+// single read consumes the whole value. It returns [ErrTooShort] when p is
+// shorter than four bytes.
 func (u32 Uint32) Read(p []byte) (int, error) {
 	if len(p) < 4 {
 		return 0, fmt.Errorf("buffer too small for uint32: %w", ErrTooShort)

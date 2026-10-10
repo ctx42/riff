@@ -16,8 +16,8 @@ var _ Chunk = (*ChunkLTXT)(nil)
 // IDltxt represents LIST sub-chunk ID "ltxt".
 const IDltxt uint32 = 0x6C747874
 
-// LTXTChunkSize represents the size of ltxt chunk static part in bytes.
-// Does not count ID and text bytes.
+// LTXTChunkSize is the size in bytes of the static part of the ltxt chunk, not
+// counting the ID and the text bytes.
 const LTXTChunkSize uint32 = 20
 
 // ltxtStatic represents chunk static data (always there).
@@ -40,29 +40,29 @@ type ltxtStatic struct {
 	// with other types of RIFF files (not usually found in WAVE files).
 	PurID uint32
 
-	// Information about the location used by the text and is typically
-	// used for queries to collect information from the operating system.
+	// Information about the location used by the text, typically used
+	// for queries to collect information from the operating system.
 	Country uint16
 
-	// Information about the language used by the text and is typically
-	// used for queries to collect information from the operating system.
+	// Information about the language used by the text, typically used
+	// for queries to collect information from the operating system.
 	Language uint16
 
-	// Information about the dialect used by the text and is typically
-	// used for queries to collect information from the operating system.
+	// Information about the dialect used by the text, typically used
+	// for queries to collect information from the operating system.
 	Dialect uint16
 
-	// Information about the code page used by the text and is typically
-	// used for queries to collect information from the operating system.
+	// Information about the code page used by the text, typically used
+	// for queries to collect information from the operating system.
 	CodePage uint16
 }
 
-// ChunkLTXT represents labeled text chunk. It is used to associate a
+// ChunkLTXT represents the labeled text chunk. It is used to associate a
 // text label with a region or section of waveform data. This information
 // is often displayed in marked regions of a waveform in digital audio editors.
 type ChunkLTXT struct {
 	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
+	// The ID, size field, and padding byte are not counted in the chunk size.
 	size uint32
 
 	ltxtStatic
@@ -77,14 +77,14 @@ type ChunkLTXT struct {
 	opts Opts
 }
 
-// LTXTMake is a Maker function for creating ChunkLTXT instances.
+// LTXTMake returns a [Maker] function for [ChunkLTXT] instances.
 func LTXTMake(opts ...OptsFn) Maker {
 	return func() Chunk {
 		return LTXT(opts...)
 	}
 }
 
-// LTXT returns new instance of ChunkLTXT.
+// LTXT returns a new instance of [ChunkLTXT].
 func LTXT(opts ...OptsFn) *ChunkLTXT {
 	return &ChunkLTXT{
 		opts: NewOpts(opts...),
@@ -98,7 +98,7 @@ func (ch *ChunkLTXT) Multi() bool    { return true }
 func (ch *ChunkLTXT) Chunks() Chunks { return nil }
 func (ch *ChunkLTXT) Raw() bool      { return false }
 
-// Text returns reader for text field.
+// Text returns a reader for the text without trailing zero bytes.
 func (ch *ChunkLTXT) Text() io.Reader {
 	return bytes.NewReader(TrimZeroRight(ch.text))
 }

@@ -21,7 +21,7 @@ type SampleLoop struct {
 	// - 0 - Loop forward (normal)
 	// - 1 - Alternating loop (forward/backward, also known as Ping-Pong)
 	// - 2 - Loop backward (reverse)
-	// - 3 - 31	Reserved for future standard types
+	// - 3 - 31 Reserved for future standard types
 	// - 32 - 0xFFFFFFFF Sampler specific types (defined by a manufacturer)
 	//
 	Type uint32
@@ -52,6 +52,7 @@ type SampleLoop struct {
 	PlayCnt uint32
 }
 
+// Reset sets all fields to zero.
 func (sl *SampleLoop) Reset() {
 	sl.CuePointID = 0
 	sl.Type = 0

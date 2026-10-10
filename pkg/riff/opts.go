@@ -13,26 +13,26 @@ import (
 // Compile time checks.
 var _ io.Reader = (*ChunkReader)(nil)
 
-// OptsFn represent signature of option function.
+// OptsFn is a function setting [Opts] options.
 type OptsFn func(*Opts)
 
-// WithSizeLimit is an option setting maximal size of chunk in bytes.
+// WithSizeLimit sets the maximum chunk size in bytes.
 func WithSizeLimit(size uint32) OptsFn {
 	return func(opt *Opts) { opt.sizeLimit = size }
 }
 
-// WithLoadData is an option setting that causes chunks' content to be loaded.
+// WithLoadData makes decoders load chunk content, not only metadata.
 func WithLoadData() OptsFn {
 	return func(opt *Opts) { opt.loadData = true }
 }
 
-// WithIgnoreSize is an option setting that ignores declare chunk size and allows
-// to read more bytes. It also allows to fix main chunk size declaration.
+// WithIgnoreSize makes decoders ignore declared chunk sizes and read past them.
+// The RIFF size is then corrected to the number of bytes read.
 func WithIgnoreSize() OptsFn {
 	return func(opt *Opts) { opt.ignoreDeclaredSize = true }
 }
 
-// WithOpts applies all values from given options.
+// WithOpts copies all values from opts.
 func WithOpts(opts Opts) OptsFn {
 	return func(opt *Opts) {
 		opt.sizeLimit = opts.sizeLimit
@@ -43,16 +43,15 @@ func WithOpts(opts Opts) OptsFn {
 
 // Opts represents options for chunks handling.
 type Opts struct {
-	// Determines external maximal size of chunk in bytes. Zero value means
-	// unlimited size.
+	// Maximum chunk size in bytes. Zero means unlimited.
 	sizeLimit uint32
 
-	// When enabled allows to read more data than indicated in chunk declaration.
+	// When true, allows reading more data than the chunk declares.
 	// By default, it is set to false.
 	ignoreDeclaredSize bool
 
-	// Controls how chunks are processed. If set to false, then only the
-	// metadata about the chunks are read the rest is skipped. This improves
+	// Controls how chunks are processed. If set to false, only chunk
+	// metadata is read and the rest is skipped. This improves
 	// performance in cases when a user is only interested in metadata and
 	// isn't going to modify or write the RIFF file.
 	// It's up to the chunk decoder to decide what is considered data vs.
@@ -61,17 +60,17 @@ type Opts struct {
 	loadData bool
 }
 
-// LoadData getter.
+// LoadData reports whether chunk content is loaded.
 func (opt *Opts) LoadData() bool {
 	return opt.loadData
 }
 
-// IgnoreDeclaredSize getter.
+// IgnoreDeclaredSize reports whether declared chunk sizes are ignored.
 func (opt *Opts) IgnoreDeclaredSize() bool {
 	return opt.ignoreDeclaredSize
 }
 
-// NewOpts crates Opts instance.
+// NewOpts returns [Opts] with fns applied.
 func NewOpts(fns ...OptsFn) Opts {
 	opt := Opts{}
 	for _, fn := range fns {
@@ -80,8 +79,9 @@ func NewOpts(fns ...OptsFn) Opts {
 	return opt
 }
 
-// ChunkReader reads first 4 bytes from reader as chunk size. Checks size
-// constrains and return reader which should be used to read chunk's content.
+// ChunkReader reads the four-byte chunk size from r, checks it against the
+// options, and returns the reader for the chunk content along with the size.
+// It returns [ErrTooLarge] when the size exceeds the limit or cannot be padded.
 func (opt *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
 	var size uint32
 	if err := binary.Read(r, le, &size); err != nil {
@@ -109,40 +109,40 @@ func (opt *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
 	return cr, size, nil
 }
 
-// ChunkReader wraps an io.Reader, tracks the number of bytes read and allows to
-// set read limit.
+// ChunkReader wraps an [io.Reader], counts the bytes read, and limits how many
+// can be read.
 type ChunkReader struct {
 	src    io.Reader // Original reader (may implement io.Seeker).
 	rdr    io.Reader // Main reader (may have limit).
 	cnt    int64     // Number of read bytes from reader.
-	offset int64     // Shift for [Count] func.
+	offset int64     // Shift added to the value Count returns.
 }
 
-// NewChunkReader creates a new ChunkReader.
+// NewChunkReader returns a [ChunkReader] reading from r.
 func NewChunkReader(r io.Reader) *ChunkReader {
 	return &ChunkReader{src: r, rdr: r}
 }
 
-// setOffset add shift to returned value of [Count].
+// setOffset sets the shift added to the value Count returns.
 func (cr *ChunkReader) setOffset(n int) {
 	cr.offset = int64(n)
 }
 
-// setLimit constrains allowed number of bytes to read.
+// setLimit limits the number of bytes that can be read to n.
 func (cr *ChunkReader) setLimit(n int64) {
 	cr.rdr = io.LimitReader(cr.src, n)
 }
 
-// Read implements the io.Reader interface.
 func (cr *ChunkReader) Read(p []byte) (n int, err error) {
 	n, err = cr.rdr.Read(p)
 	cr.cnt += int64(n)
 	return n, err
 }
 
-// SkipN skips n bytes from reader.
-// If the source implements [io.Seeker] SkipN will use it to skip n bytes,
-// otherwise SkipN will read n bytes and discard them.
+// SkipN skips n bytes. When the source implements [io.Seeker], SkipN seeks and
+// reads the last skipped byte to detect truncated input; otherwise it reads
+// and discards n bytes. It returns [io.ErrUnexpectedEOF] when fewer than n
+// bytes are left.
 func (cr *ChunkReader) SkipN(n uint32) error {
 	num := int64(n)
 
@@ -190,8 +190,7 @@ func (cr *ChunkReader) SkipN(n uint32) error {
 	return nil
 }
 
-// canRead checks whether the reader will not reach the limit when trying to read
-// n bytes.
+// canRead reports whether n bytes can be read without passing the limit.
 func (cr *ChunkReader) canRead(n int64) bool {
 	lr, ok := cr.rdr.(*io.LimitedReader)
 	if !ok {
@@ -213,7 +212,7 @@ func (cr *ChunkReader) moveCursors(n int64) {
 	}
 }
 
-// Count return number of read bytes.
+// Count returns the number of bytes read plus the offset.
 func (cr *ChunkReader) Count() int64 {
 	return cr.cnt + cr.offset
 }

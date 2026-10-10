@@ -15,16 +15,16 @@ var _ Chunk = (*ChunkINFO)(nil)
 // IDINFO represents LIST sub-chunk ID "INFO".
 const IDINFO uint32 = 0x494e464f
 
-// The sub-chunk INFO text labels.
+// INFO sub-chunk text label IDs.
 // Source: http://bwfmetaedit.sourceforge.net/listinfo.html
 const (
-	// LabIARL is an Archival location.
+	// LabIARL is the archival location.
 	// Indicates where the subject of the file is archived.
 	//
 	// String value: "IARL"
 	LabIARL uint32 = 0x4941524c
 
-	// LabIART is an Artist.
+	// LabIART is the artist.
 	// Lists the artist of the original subject of the file.
 	//
 	// String value: "IART"
@@ -50,7 +50,7 @@ const (
 	// String value: "ICOP"
 	LabICOP uint32 = 0x49434f50
 
-	// LabICRD Specifies the date the subject of the file was created. List
+	// LabICRD specifies the date the subject of the file was created. List
 	// dates in year-month-day format, padding one-digit months and days with a
 	// zero on the left. For example, 1553-05-03 for May 3, 1553. The year
 	// should always be given using four digits.
@@ -64,18 +64,18 @@ const (
 	// String value: "IENG"
 	LabIENG uint32 = 0x49454e47
 
-	// LabIGNR Describes the genre, such as jazz, classical, rock, etc.
+	// LabIGNR describes the genre, such as jazz, classical, rock, etc.
 	//
 	// String value: "IGNR"
 	LabIGNR uint32 = 0x49474e52
 
-	// LabIKEY Provides a list of keywords that refer to the file or subject
+	// LabIKEY provides a list of keywords that refer to the file or subject
 	// of the file. Separate multiple keywords with a semicolon and a blank.
 	//
 	// String value: "IKEY"
 	LabIKEY uint32 = 0x494b4559
 
-	// LabIMED Describes the original subject of the file, such as record, CD
+	// LabIMED describes the original subject of the file, such as record, CD
 	// and so forth.
 	//
 	// String value: "IMED"
@@ -92,7 +92,7 @@ const (
 	// String value: "IPRD"
 	LabIPRD uint32 = 0x49505244
 
-	// LabITRK
+	// LabITRK is the track number.
 	//
 	// String value: "ITRK"
 	LabITRK uint32 = 0x4954524b
@@ -127,15 +127,15 @@ const (
 	LabITCH uint32 = 0x49544348
 )
 
-// ChunkINFO represents INFO sub-chunk of the LIST chunk.
-// Allows RIFF files to be "tagged" with information falling into
-// a number of predefined categories.
+// ChunkINFO represents a sub-chunk of the INFO LIST chunk. It allows RIFF
+// files to be "tagged" with information falling into a number of predefined
+// categories.
 type ChunkINFO struct {
 	// Chunk ID (label ID).
 	id uint32
 
 	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
+	// The ID, size field, and padding byte are not counted in the chunk size.
 	size uint32
 
 	// Label text.
@@ -167,7 +167,7 @@ func (ch *ChunkINFO) Multi() bool    { return true }
 func (ch *ChunkINFO) Chunks() Chunks { return nil }
 func (ch *ChunkINFO) Raw() bool      { return false }
 
-// Text returns INFO text.
+// Text returns a reader for the INFO text without trailing zero bytes.
 func (ch *ChunkINFO) Text() io.Reader {
 	return bytes.NewReader(TrimZeroRight(ch.text))
 }
@@ -223,9 +223,10 @@ func (ch *ChunkINFO) Reset() {
 	ch.text = ch.text[:0]
 }
 
-// InfoLabel returns human-readable INFO sub-chunk label.
+// InfoLabel returns the human-readable name of the INFO sub-chunk label lab,
+// or lab as ASCII when the label is unknown.
 //
-// nolint: cyclop
+//nolint:cyclop
 func InfoLabel(lab uint32) string {
 	switch lab {
 	case LabIARL:

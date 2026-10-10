@@ -18,8 +18,7 @@ var _ Chunk = (*RIFF)(nil)
 // IDRIFF represents "RIFF" chunk ID.
 const IDRIFF uint32 = 0x52494646
 
-// RIFF file types.
-// Supported file types as defined in [RIFF] chunk.
+// RIFF file types, the type field of the [RIFF] chunk.
 const (
 	// TypeWAVE represents the "WAVE" file type.
 	TypeWAVE uint32 = 0x57415645
@@ -31,7 +30,7 @@ const (
 	TypeRMID uint32 = 0x524d4944
 )
 
-// List of most popular chunk IDs.
+// Common chunk IDs.
 const (
 	// IDJUNK represents "JUNK" chunk ID.
 	IDJUNK uint32 = 0x4a554e4b
@@ -40,7 +39,7 @@ const (
 	IDID3 uint32 = 0x49443320
 )
 
-// Convenience imports.
+// Byte order shorthands.
 var (
 	le = binary.LittleEndian
 	be = binary.BigEndian
@@ -55,40 +54,41 @@ var (
 	// defined length.
 	ErrTooShort = errors.New("length too short")
 
-	// ErrTooLarge is returned when a chunk size is grater than set maximum.
+	// ErrTooLarge is returned when a chunk size is greater than the set
+	// maximum.
 	ErrTooLarge = errors.New("size too large")
 
-	// ErrChunkSizeMismatch is returned when a chunk size mismatch with its
+	// ErrChunkSizeMismatch is returned when a chunk size does not match its
 	// content.
 	ErrChunkSizeMismatch = errors.New("chunk size mismatch")
 
-	// ErrSkipDataMode is returned when the decoder in SkipData mode
-	// is used in write context (e.x. calling WriteTo method).
+	// ErrSkipDataMode is returned when a chunk decoded without
+	// [WithLoadData] is written or edited.
 	ErrSkipDataMode = errors.New("decoder in meta only mode used in write context")
 )
 
 // Error format strings.
 const (
-	// errFmtDecode format string for chunk decoding errors.
+	// errFmtDecode is the format of chunk decoding errors.
 	errFmtDecode = "error decoding %s chunk: %w"
 
-	// errFmtEncode format string for chunk encoding errors.
+	// errFmtEncode is the format of chunk encoding errors.
 	errFmtEncode = "error encoding %s chunk: %w"
 
-	// errFmtReadingRIFF format string for main RIFF chunk reading errors.
+	// errFmtReadingRIFF is the format of RIFF chunk reading errors.
 	errFmtReadingRIFF = "error reading RIFF offset %d: %w"
 )
 
-// Maker is a function signature for instantiating chunk decoder.
+// Maker returns a new chunk decoder.
 type Maker func() Chunk
 
-// IDMaker is a function signature for instantiating chunk decoders for id.
+// IDMaker returns a new chunk decoder for the chunk id.
 type IDMaker func(id uint32) Chunk
 
 // RIFF represents a file in Resource Interchange File Format.
 type RIFF struct {
 	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
+	// The ID, size field, and padding byte are not counted in the chunk size.
 	size uint32
 
 	// Determines the type of the resource (e.g.: WAVE).
@@ -109,8 +109,8 @@ type RIFF struct {
 	opts Opts
 }
 
-// New returns new instance of Riff with all "out-of-the-box" chunk decoders
-// registered.
+// New returns a new instance of [RIFF] with the built-in chunk decoders
+// registered: fmt, data, LIST, and smpl.
 func New(opts ...OptsFn) *RIFF {
 	reg := NewRegistry(RAWCMake(opts...))
 
@@ -123,9 +123,9 @@ func New(opts ...OptsFn) *RIFF {
 	return Bare(reg, opts...)
 }
 
-// Bare returns a new instance of [RIFF] without any chunk decoders registered.
-// If reg is set to nil, it will be created with the default raw chunk decoder
-// (ChunkRAWC) set to skip data.
+// Bare returns a new instance of [RIFF] decoding chunks with decoders from reg.
+// If reg is nil, a registry with only the raw chunk decoder ([ChunkRAWC])
+// skipping data is used.
 func Bare(reg *Registry, opts ...OptsFn) *RIFF {
 	if reg == nil {
 		reg = NewRegistry(RAWCMake())
@@ -138,9 +138,8 @@ func Bare(reg *Registry, opts ...OptsFn) *RIFF {
 	return rif
 }
 
-// Compose returns a new instance of [RIFF] based on [Chunks].
-// This method allows you to create a copy of the original RIFF with
-// modifications.
+// Compose returns a new instance of [RIFF] holding chs. Use it to build a
+// modified copy of a decoded file.
 func Compose(chs Chunks) *RIFF {
 	rif := Bare(nil)
 	rif.Modify(chs)
@@ -155,13 +154,15 @@ func (rif *RIFF) Multi() bool    { return false }
 func (rif *RIFF) Chunks() Chunks { return rif.chunks }
 func (rif *RIFF) Raw() bool      { return false }
 
+// SetType sets the RIFF file type, such as [TypeWAVE].
 func (rif *RIFF) SetType(t uint32) { rif.riffType = t }
 
-// IsRegistered returns true if decoder for id is registered.
+// IsRegistered reports whether a decoder for id is registered.
 func (rif *RIFF) IsRegistered(id uint32) bool {
 	return rif.registry().Has(id)
 }
 
+// ReadFrom resets the instance and decodes a RIFF file from r.
 func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	rif.Reset()
 
@@ -249,7 +250,8 @@ func (rif *RIFF) WriteTo(w io.Writer) (int64, error) {
 	return sum, nil
 }
 
-// Reset resets instance so it can be reused.
+// Reset returns the decoded chunks to the registry pool; chunks set by
+// [RIFF.Modify] are dropped instead.
 func (rif *RIFF) Reset() {
 	if rif.borrowed {
 		rif.chunks = nil
@@ -286,7 +288,8 @@ func (rif *RIFF) decodeChunk(id uint32, r io.Reader) (int64, error) {
 	return n, nil
 }
 
-// Modify set a new set of the chunks.
+// Modify replaces the chunks with chs and updates the RIFF size. [RIFF.Reset]
+// drops chs instead of returning them to the registry pool.
 func (rif *RIFF) Modify(chs Chunks) {
 	rif.chunks = chs
 	rif.borrowed = true

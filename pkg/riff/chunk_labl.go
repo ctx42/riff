@@ -13,17 +13,17 @@ import (
 // Compile time checks.
 var _ Chunk = (*ChunkLABL)(nil)
 
-// LABLChunkSize represents the size of labl chunk static part in bytes.
-// Does not count ID and label bytes.
+// LABLChunkSize is the size in bytes of the static part of the labl chunk, not
+// counting the ID and the label bytes.
 const LABLChunkSize uint32 = 4
 
 // ChunkLABL represents the "labl" chunk which is always contained inside an
-// associated "LIST" chunk. It's used to associate a text label with a Cue
+// "adtl" LIST chunk. It's used to associate a text label with a Cue
 // Point. This information is often displayed next to markers or flags in
 // digital audio editors.
 type ChunkLABL struct {
 	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
+	// The ID, size field, and padding byte are not counted in the chunk size.
 	size uint32
 
 	// The Cue Point ID specifies the sample point that corresponds to
@@ -42,7 +42,7 @@ type ChunkLABL struct {
 	opts Opts
 }
 
-// LABLMake is a [Maker] function for creating [ChunkLABL] instances.
+// LABLMake returns a [Maker] function for [ChunkLABL] instances.
 func LABLMake(opts ...OptsFn) Maker {
 	return func() Chunk {
 		return LABL(opts...)
@@ -63,7 +63,7 @@ func (ch *ChunkLABL) Multi() bool    { return true }
 func (ch *ChunkLABL) Chunks() Chunks { return nil }
 func (ch *ChunkLABL) Raw() bool      { return false }
 
-// Label returns label.
+// Label returns a reader for the label without trailing zero bytes.
 func (ch *ChunkLABL) Label() io.Reader {
 	return bytes.NewReader(TrimZeroRight(ch.label))
 }

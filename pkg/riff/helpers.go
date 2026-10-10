@@ -11,7 +11,7 @@ import (
 	"slices"
 )
 
-// StrToID converts four byte ASCII string to uint32.
+// StrToID converts a four-byte ASCII string to uint32.
 // If the string is shorter than 4 bytes, it will be padded with spaces.
 // If the string is longer than four bytes, it will be trimmed to 4 bytes.
 func StrToID(s string) uint32 {
@@ -29,9 +29,8 @@ func StrToID(s string) uint32 {
 	return id
 }
 
-// ReadChunkID reads four byte chunk ID.
-// It returns [io.ErrUnexpectedEOF] if there are less than four bytes in
-// the reader.
+// ReadChunkID reads a four-byte chunk ID into id. It returns [io.EOF] when r
+// has no bytes left and [io.ErrUnexpectedEOF] when it has fewer than four.
 func ReadChunkID(r io.Reader, id *uint32) error {
 	if err := binary.Read(r, be, id); err != nil {
 		return err
@@ -39,7 +38,8 @@ func ReadChunkID(r io.Reader, id *uint32) error {
 	return nil
 }
 
-// RealSize returns size increased by padding byte if necessary.
+// RealSize returns size rounded up to an even number: the size of a chunk body
+// with its padding byte.
 func RealSize(size uint32) uint32 {
 	if size%2 != 0 {
 		return size + 1
@@ -47,9 +47,9 @@ func RealSize(size uint32) uint32 {
 	return size
 }
 
-// ReadPaddingIf reads chunk padding byte from r if size is odd. Returns 1
-// if the byte was read zero otherwise. It returns read errors unless it
-// was [io.EOF] error.
+// ReadPaddingIf reads and discards the padding byte from r when size is odd.
+// It returns the number of bytes read, and [io.ErrUnexpectedEOF] when the
+// padding byte is missing.
 func ReadPaddingIf(r io.Reader, size uint32) (int64, error) {
 	if size%2 == 0 {
 		return 0, nil
@@ -65,7 +65,8 @@ func ReadPaddingIf(r io.Reader, size uint32) (int64, error) {
 	return n, nil
 }
 
-// WriteIDAndSize writes chunk id and size to writer w.
+// WriteIDAndSize writes the chunk id (big endian) and size (little endian)
+// to w.
 func WriteIDAndSize(w io.Writer, id, size uint32) (int64, error) {
 	var sum int64
 	if err := binary.Write(w, be, id); err != nil {
@@ -79,7 +80,7 @@ func WriteIDAndSize(w io.Writer, id, size uint32) (int64, error) {
 	return sum, nil
 }
 
-// WritePaddingIf writes padding byte (0) to the writer w if size is odd.
+// WritePaddingIf writes a zero padding byte to w when size is odd.
 func WritePaddingIf(w io.Writer, size uint32) (int64, error) {
 	if size%2 == 1 {
 		n, err := w.Write([]byte{0})
@@ -98,13 +99,13 @@ func TrimZeroRight(b []byte) []byte {
 	return b[:0]
 }
 
-// linkids expects two chunk IDs and returns their ASCII representation
-// concatenated with ':' character.
+// linkids returns the ASCII representations of two chunk IDs joined with a
+// colon.
 func linkids(id1, id2 uint32) string {
 	return Uint32(id1).String() + ":" + Uint32(id2).String()
 }
 
-// grow grows byte slice b so it can fit n bytes.
+// grow returns b resized to n bytes, reallocating when its capacity is short.
 func grow(b []byte, n int) []byte {
 	if cap(b) >= n {
 		return b[:n]

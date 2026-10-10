@@ -15,28 +15,28 @@ var _ Chunk = (*ChunkLIST)(nil)
 // IDLIST represents "LIST" chunk ID.
 const IDLIST uint32 = 0x4c495354
 
-// ListTypeSize represents the size of list type in bytes.
+// ListTypeSize is the size of the LIST chunk type field in bytes.
 const ListTypeSize uint32 = 4
 
-// IDs of sub-chunks of the LIST chunk.
+// LIST chunk types and sub-chunk IDs.
 const (
-	// IDlabl represents LIST sub-chunk ID "labl".
+	// IDlabl represents the "labl" sub-chunk ID of the "adtl" LIST chunk.
 	IDlabl uint32 = 0x6C61626C
 
-	// IDadtl represents sub-chunk ID "adtl" of the LIST chunk.
+	// IDadtl represents the "adtl" LIST chunk type.
 	IDadtl uint32 = 0x6164746C
 )
 
-// ChunkLIST represents LIST chunk.
+// ChunkLIST represents the "LIST" chunk holding a list of sub-chunks.
 type ChunkLIST struct {
 	// Chunk size in bytes.
-	// The ID and extra padding byte is not counted in the chunk size.
+	// The ID, size field, and padding byte are not counted in the chunk size.
 	size uint32
 
 	// List type.
 	ListType uint32
 
-	// Sub chunks.
+	// Sub-chunks.
 	chunks Chunks
 
 	// Registered chunk decoders.
@@ -51,7 +51,7 @@ type ChunkLIST struct {
 	opts Opts
 }
 
-// LISTMake returns [Maker] function for creating [ChunkLIST] instances.
+// LISTMake returns a [Maker] function for [ChunkLIST] instances.
 func LISTMake(reg *Registry, opts ...OptsFn) Maker {
 	return func() Chunk {
 		return LIST(reg, opts...)
@@ -201,7 +201,8 @@ func adtlMake(opts ...OptsFn) IDMaker {
 	}
 }
 
-// Modify set a new set of the chunks.
+// Modify replaces the sub-chunks with chs and updates the chunk size.
+// [ChunkLIST.Reset] drops chs instead of returning them to the registry pool.
 func (ch *ChunkLIST) Modify(chs Chunks) {
 	ch.chunks = chs
 	ch.borrowed = true

@@ -17,8 +17,8 @@ var _ Chunk = (*ChunkFMT)(nil)
 // IDfmt represents "fmt " chunk ID.
 const IDfmt uint32 = 0x666d7420
 
-// FMTChunkSize represents the size of fmt chunk static part in bytes.
-// Does not count ID and extra formatting bytes.
+// FMTChunkSize is the size in bytes of the static part of the fmt chunk, not
+// counting the ID and the extra format bytes.
 const FMTChunkSize uint32 = 16
 
 // Compression codes.
@@ -51,7 +51,7 @@ type fmtStatic struct {
 	AvgByteRate uint32
 
 	// The number of bytes per sample.
-	// BlockAlign = round(BitsPerSample / 8) * ChannelCnt
+	// BlockAlign = round(BitsPerSample / 8) * ChannelCnt.
 	BlockAlign uint16
 
 	// This value specifies the number of bits used to define each sample.
@@ -99,26 +99,26 @@ func (ch *ChunkFMT) Size() uint32 {
 	return size
 }
 
-// FMTMake is a Maker function for creating ChunkFMT instances.
+// FMTMake returns a [Maker] function for [ChunkFMT] instances.
 func FMTMake(opts ...OptsFn) Maker {
 	return func() Chunk {
 		return FMT(opts...)
 	}
 }
 
-// FMT returns new instance of ChunkFMT.
+// FMT returns a new instance of [ChunkFMT].
 func FMT(opts ...OptsFn) *ChunkFMT {
 	return &ChunkFMT{
 		opts: NewOpts(opts...),
 	}
 }
 
-// Extra returns reader for extra format bytes.
+// Extra returns a reader for the extra format bytes.
 func (ch *ChunkFMT) Extra() io.Reader {
 	return bytes.NewReader(ch.extra)
 }
 
-// SetExtra set extra format bytes.
+// SetExtra sets the extra format bytes.
 func (ch *ChunkFMT) SetExtra(extra []byte) {
 	ch.extra = grow(ch.extra, len(extra))
 	copy(ch.extra, extra)
