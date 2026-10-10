@@ -213,27 +213,28 @@ func Test_ChunkINFO_Reset(t *testing.T) {
 func Test_ChunkINFO_InfoLabel(t *testing.T) {
 	tt := []struct {
 		label uint32
+		code  string
 		str   string
 	}{
-		{LabIARL, "archival location"},
-		{LabIART, "artist"},
-		{LabICMS, "commissioned"},
-		{LabICMT, "comments"},
-		{LabICOP, "copyright"},
-		{LabICRD, "creation date"},
-		{LabIENG, "engineer"},
-		{LabIGNR, "genre"},
-		{LabIKEY, "keywords"},
-		{LabIMED, "original medium"},
-		{LabINAM, "title"},
-		{LabIPRD, "album"},
-		{LabITRK, "track"},
-		{LabISBJ, "subject"},
-		{LabISFT, "software"},
-		{LabISRC, "source"},
-		{LabISRF, "source form"},
-		{LabITCH, "technician"},
-		{IDINFO, "INFO"},
+		{LabIARL, "IARL", "archival location"},
+		{LabIART, "IART", "artist"},
+		{LabICMS, "ICMS", "commissioned"},
+		{LabICMT, "ICMT", "comments"},
+		{LabICOP, "ICOP", "copyright"},
+		{LabICRD, "ICRD", "creation date"},
+		{LabIENG, "IENG", "engineer"},
+		{LabIGNR, "IGNR", "genre"},
+		{LabIKEY, "IKEY", "keywords"},
+		{LabIMED, "IMED", "original medium"},
+		{LabINAM, "INAM", "title"},
+		{LabIPRD, "IPRD", "album"},
+		{LabITRK, "ITRK", "track"},
+		{LabISBJ, "ISBJ", "subject"},
+		{LabISFT, "ISFT", "software"},
+		{LabISRC, "ISRC", "source"},
+		{LabISRF, "ISRF", "source form"},
+		{LabITCH, "ITCH", "technician"},
+		{IDINFO, "INFO", "INFO"},
 	}
 
 	for _, tc := range tt {
@@ -241,6 +242,7 @@ func Test_ChunkINFO_InfoLabel(t *testing.T) {
 			t.Parallel()
 			got := InfoLabel(tc.label)
 			assert.Equal(t, tc.str, got)
+			assert.Equal(t, tc.code, Uint32(tc.label).String())
 		})
 	}
 }

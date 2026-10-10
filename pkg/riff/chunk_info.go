@@ -103,7 +103,7 @@ const (
 	// file, such as Audacity 1.3.9.
 	//
 	// String value: "ISFT"
-	LabISFT uint32 = 0x746c7374
+	LabISFT uint32 = 0x49534654
 
 	// LabISRC identifies the name of the person or organization who supplied
 	// the original subject of the file.
