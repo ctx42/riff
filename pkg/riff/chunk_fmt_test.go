@@ -554,3 +554,14 @@ func Test_ChunkFMT_Duration(t *testing.T) {
 	// --- Then ---
 	assert.Equal(t, time.Second, d)
 }
+
+func Test_ChunkFMT_Duration_ZeroRate(t *testing.T) {
+	// --- Given ---
+	ch := FMT()
+
+	// --- When ---
+	have := ch.Duration(88200)
+
+	// --- Then ---
+	assert.Equal(t, time.Duration(0), have)
+}

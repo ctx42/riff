@@ -121,8 +121,12 @@ func (ch *ChunkFMT) SetExtra(extra []byte) {
 	copy(ch.extra, extra)
 }
 
-// Duration returns file duration given data size ds.
+// Duration returns file duration given data size ds. It returns zero when
+// the average byte rate is zero.
 func (ch *ChunkFMT) Duration(ds uint32) time.Duration {
+	if ch.AvgByteRate == 0 {
+		return 0
+	}
 	dur := float64(ds) / float64(ch.AvgByteRate)
 	dur *= float64(time.Second)
 	return time.Duration(dur)

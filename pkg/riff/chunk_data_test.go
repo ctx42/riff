@@ -291,6 +291,18 @@ func Test_ChunkDATA_Duration(t *testing.T) {
 	assert.Equal(t, time.Second, d)
 }
 
+func Test_ChunkDATA_Duration_ZeroRate(t *testing.T) {
+	// --- Given ---
+	ch := DATA()
+	ch.size = 88200
+
+	// --- When ---
+	have := ch.Duration(0)
+
+	// --- Then ---
+	assert.Equal(t, time.Duration(0), have)
+}
+
 func Test_ChunkDATA_Reset(t *testing.T) {
 	// --- Given ---
 	ch := DATA(WithLoadData())

@@ -71,8 +71,12 @@ func (ch *ChunkDATA) SetData(data []byte) error {
 	return nil
 }
 
-// Duration returns file duration given average bit rate abr.
+// Duration returns file duration given average byte rate abr. It returns
+// zero when abr is zero.
 func (ch *ChunkDATA) Duration(abr uint32) time.Duration {
+	if abr == 0 {
+		return 0
+	}
 	dur := float64(ch.size) / float64(abr)
 	dur *= float64(time.Second)
 	return time.Duration(dur)
