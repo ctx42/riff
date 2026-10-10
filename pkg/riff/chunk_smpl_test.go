@@ -10,10 +10,12 @@ import (
 
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testing/pkg/tester"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
-func smplWithoutLoopsNoData(t *testing.T) io.Reader {
+func smplWithoutLoopsNoData(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDsmpl) // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 36)     // ( 4) 4 - Chunk size
@@ -30,7 +32,8 @@ func smplWithoutLoopsNoData(t *testing.T) io.Reader {
 	return src
 }
 
-func smplWithoutLoopsWithData(t *testing.T) io.Reader {
+func smplWithoutLoopsWithData(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDsmpl)       // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 39)           // ( 4) 4 - Chunk size
@@ -49,7 +52,8 @@ func smplWithoutLoopsWithData(t *testing.T) io.Reader {
 	return src
 }
 
-func smplWithLoopsNoData(t *testing.T) io.Reader {
+func smplWithLoopsNoData(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDsmpl) // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 60)     // ( 4) 4 - Chunk size
@@ -72,7 +76,8 @@ func smplWithLoopsNoData(t *testing.T) io.Reader {
 	return src
 }
 
-func smplWithLoopsWithData(t *testing.T) io.Reader {
+func smplWithLoopsWithData(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDsmpl)       // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 63)           // ( 4) 4 - Chunk size
@@ -98,7 +103,8 @@ func smplWithLoopsWithData(t *testing.T) io.Reader {
 }
 
 // smplInvalidSize declares one SampleLoop but chunk size declares only 36 bytes.
-func smplInvalidSize(t *testing.T) io.Reader {
+func smplInvalidSize(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDsmpl) // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 36)     // ( 4) 4 - Chunk size
@@ -456,7 +462,7 @@ func Test_ChunkSMPL_WriteTo_tabular(t *testing.T) {
 		testN string
 
 		n  int64
-		ch func(*testing.T) io.Reader
+		ch func(tester.T) io.Reader
 	}{
 		{"smplWithoutLoopsNoData", 44, smplWithoutLoopsNoData},
 		{"smplWithoutLoopsWithData", 48, smplWithoutLoopsWithData},

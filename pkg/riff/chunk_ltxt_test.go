@@ -10,10 +10,12 @@ import (
 
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testing/pkg/tester"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
-func ltxtChunkTextLenEven(t *testing.T) io.Reader {
+func ltxtChunkTextLenEven(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDltxt)                // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 24)                    // ( 4) 4 - Chunk size
@@ -29,7 +31,8 @@ func ltxtChunkTextLenEven(t *testing.T) io.Reader {
 	return src
 }
 
-func ltxtChunkTextLenOdd(t *testing.T) io.Reader {
+func ltxtChunkTextLenOdd(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDltxt)           // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 23)               // ( 4) 4 - Chunk size
@@ -192,7 +195,7 @@ func Test_ChunkLTXT_WriteTo_tabular(t *testing.T) {
 		testN string
 
 		n  int64
-		ch func(*testing.T) io.Reader
+		ch func(tester.T) io.Reader
 	}{
 		{"ltxtChunkTextLenEven", 32, ltxtChunkTextLenEven},
 		{"ltxtChunkTextLenOdd", 32, ltxtChunkTextLenOdd},

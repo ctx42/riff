@@ -11,10 +11,12 @@ import (
 
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testing/pkg/tester"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
-func infoChunkTextLenEven(t *testing.T) io.Reader {
+func infoChunkTextLenEven(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, LabIART)               // (0) 4 - Chunk ID
 	writeUint32LE(t, src, 4)                     // (4) 4 - Chunk size
@@ -23,7 +25,8 @@ func infoChunkTextLenEven(t *testing.T) io.Reader {
 	return src
 }
 
-func infoChunkTextLenOdd(t *testing.T) io.Reader {
+func infoChunkTextLenOdd(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, LabIART)          // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 3)                // ( 4) 4 - Chunk size
@@ -33,7 +36,8 @@ func infoChunkTextLenOdd(t *testing.T) io.Reader {
 	return src
 }
 
-func infoChunkThree(t *testing.T) io.Reader {
+func infoChunkThree(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, LabIART)               // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 4)                     // ( 4) 4 - Chunk size
@@ -188,7 +192,7 @@ func Test_ChunkINFO_WriteTo_tabular(t *testing.T) {
 
 		id uint32
 		n  int64
-		ch func(*testing.T) io.Reader
+		ch func(tester.T) io.Reader
 	}{
 		{"infoChunkTextLenEven", LabIART, 12, infoChunkTextLenEven},
 		{"infoChunkTextLenOdd", LabIART, 12, infoChunkTextLenOdd},

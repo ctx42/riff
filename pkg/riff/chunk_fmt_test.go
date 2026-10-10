@@ -11,11 +11,13 @@ import (
 
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testing/pkg/tester"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
 // fmtChunkWithoutExtraBytes constructs fmt chunk without extra bytes.
-func fmtChunkWithoutExtraBytes(t *testing.T) io.Reader {
+func fmtChunkWithoutExtraBytes(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDfmt)   // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 16)      // ( 4) 4 - Chunk size
@@ -31,7 +33,8 @@ func fmtChunkWithoutExtraBytes(t *testing.T) io.Reader {
 
 // fmtChunkWithExtraBytesEven constructs fmt chunk with extra bytes of
 // even length.
-func fmtChunkWithExtraBytesEven(t *testing.T) io.Reader {
+func fmtChunkWithExtraBytesEven(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDfmt)     // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 16+4)      // ( 4) 4 - Chunk size
@@ -49,7 +52,8 @@ func fmtChunkWithExtraBytesEven(t *testing.T) io.Reader {
 
 // fmtChunkWithExtraBytesOdd constructs fmt chunk with extra bytes of
 // odd length.
-func fmtChunkWithExtraBytesOdd(t *testing.T) io.Reader {
+func fmtChunkWithExtraBytesOdd(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDfmt)        // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 16+2+4)       // ( 4) 4 - Chunk size
@@ -68,7 +72,8 @@ func fmtChunkWithExtraBytesOdd(t *testing.T) io.Reader {
 
 // fmtChunkWithExtraOfZeroLen constructs fmt chunk with extra bytes of
 // zero length.
-func fmtChunkWithExtraOfZeroLen(t *testing.T) io.Reader {
+func fmtChunkWithExtraOfZeroLen(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDfmt)   // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 16+2)    // ( 4) 4 - Chunk size
@@ -85,7 +90,8 @@ func fmtChunkWithExtraOfZeroLen(t *testing.T) io.Reader {
 
 // fmtChunkWithExtraInvalidSize constructs fmt chunk with extra bytes declaring
 // invalid even size.
-func fmtChunkWithExtraInvalidSizeEven(t *testing.T) io.Reader {
+func fmtChunkWithExtraInvalidSizeEven(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDfmt)        // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 16+2)         // ( 4) 4 - Chunk size
@@ -103,7 +109,8 @@ func fmtChunkWithExtraInvalidSizeEven(t *testing.T) io.Reader {
 
 // fmtChunkWithExtraInvalidSizeOdd constructs fmt chunk with extra bytes
 // declaring invalid odd size.
-func fmtChunkWithExtraInvalidSizeOdd(t *testing.T) io.Reader {
+func fmtChunkWithExtraInvalidSizeOdd(t tester.T) io.Reader {
+	t.Helper()
 	src := &bytes.Buffer{}
 	writeUint32BE(t, src, IDfmt)        // ( 0) 4 - Chunk ID
 	writeUint32LE(t, src, 16+2)         // ( 4) 4 - Chunk size
@@ -180,7 +187,7 @@ func Test_ChunkFMT_SetExtra_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
-		ch    func(*testing.T) io.Reader
+		ch    func(tester.T) io.Reader
 		extra []byte
 		wSize uint32
 	}{
@@ -469,7 +476,7 @@ func Test_ChunkFMT_WriteTo(t *testing.T) {
 
 func Test_ChunkFMT_WriteTo_tabular(t *testing.T) {
 	// decoded returns a builder of a chunk decoded from the fixture.
-	decoded := func(fix func(*testing.T) io.Reader) func(*testing.T) *ChunkFMT {
+	decoded := func(fix func(tester.T) io.Reader) func(*testing.T) *ChunkFMT {
 		return func(t *testing.T) *ChunkFMT {
 			t.Helper()
 			src := fix(t)
@@ -500,7 +507,7 @@ func Test_ChunkFMT_WriteTo_tabular(t *testing.T) {
 		testN string
 
 		ch   func(*testing.T) *ChunkFMT
-		want func(*testing.T) io.Reader
+		want func(tester.T) io.Reader
 		n    int64
 	}{
 		{

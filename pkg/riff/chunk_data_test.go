@@ -11,11 +11,13 @@ import (
 
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
+	"github.com/ctx42/testing/pkg/tester"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
 // dataChunkEven constructs data chunk with even number of data bytes.
-func dataChunkEven(t *testing.T) io.Reader {
+func dataChunkEven(t tester.T) io.Reader {
+	t.Helper()
 	data := []byte{
 		0x00, 0x01, 0x02, 0x03,
 		0x04, 0x05, 0x06, 0x07,
@@ -32,7 +34,8 @@ func dataChunkEven(t *testing.T) io.Reader {
 }
 
 // dataChunkOdd constructs data chunk with odd number of data bytes.
-func dataChunkOdd(t *testing.T) io.Reader {
+func dataChunkOdd(t tester.T) io.Reader {
+	t.Helper()
 	data := []byte{
 		0x00, 0x01, 0x02, 0x03,
 		0x04, 0x05, 0x06, 0x07,
@@ -283,7 +286,7 @@ func Test_ChunkDATA_WriteTo_tabular(t *testing.T) {
 		testN string
 
 		n  int64
-		ch func(*testing.T) io.Reader
+		ch func(tester.T) io.Reader
 	}{
 		{"dataChunkEven", 24, dataChunkEven},
 		{"dataChunkOdd", 24, dataChunkOdd},
