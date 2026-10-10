@@ -48,15 +48,15 @@ func ltxtChunkTextLenOdd(t *testing.T) io.Reader {
 
 func Test_LTXT(t *testing.T) {
 	// --- When ---
-	ch := LTXT()
+	have := LTXT()
 
 	// --- Then ---
-	assert.Equal(t, IDltxt, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.True(t, ch.Multi())
-	assert.Nil(t, ch.Chunks())
-	assert.False(t, ch.Raw())
+	assert.Equal(t, IDltxt, have.ID())
+	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, uint32(0), have.Type())
+	assert.True(t, have.Multi())
+	assert.Nil(t, have.Chunks())
+	assert.False(t, have.Raw())
 }
 
 func Test_ChunkLTXT_ReadFrom(t *testing.T) {
@@ -65,8 +65,9 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 		src := ltxtChunkTextLenEven(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := LTXT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -134,8 +135,9 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 		src := &bytes.Buffer{}
 		writeUint32LE(t, src, 19)
 
-		// --- When ---
 		ch := LTXT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -214,8 +216,8 @@ func Test_ChunkLTXT_WriteTo_tabular(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
 
-			exp := must.Value(io.ReadAll(tc.ch(t)))
-			assert.Equal(t, exp, dst.Bytes())
+			want := must.Value(io.ReadAll(tc.ch(t)))
+			assert.Equal(t, want, dst.Bytes())
 		})
 	}
 }

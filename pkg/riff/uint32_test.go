@@ -25,10 +25,10 @@ func Test_Uint32_String_tabular(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.idS, func(t *testing.T) {
 			// --- When ---
-			got := Uint32(tc.idI).String()
+			have := Uint32(tc.idI).String()
 
 			// --- Then ---
-			assert.Equal(t, tc.idS, got)
+			assert.Equal(t, tc.idS, have)
 		})
 	}
 }

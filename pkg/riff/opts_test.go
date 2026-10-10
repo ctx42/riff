@@ -19,41 +19,41 @@ import (
 func Test_NewOpts(t *testing.T) {
 	t.Run("no options", func(t *testing.T) {
 		// --- When ---
-		opts := NewOpts()
+		have := NewOpts()
 
 		// --- Then ---
-		assert.Equal(t, uint32(0), opts.sizeLimit)
-		assert.False(t, opts.loadData)
-		assert.False(t, opts.ignoreDeclaredSize)
-		assert.False(t, opts.LoadData())
-		assert.False(t, opts.IgnoreDeclaredSize())
+		assert.Equal(t, uint32(0), have.sizeLimit)
+		assert.False(t, have.loadData)
+		assert.False(t, have.ignoreDeclaredSize)
+		assert.False(t, have.LoadData())
+		assert.False(t, have.IgnoreDeclaredSize())
 	})
 
 	t.Run("WithSizeLimit", func(t *testing.T) {
 
 		// --- When ---
-		opts := NewOpts(WithSizeLimit(1024))
+		have := NewOpts(WithSizeLimit(1024))
 
 		// --- Then ---
-		assert.Equal(t, uint32(1024), opts.sizeLimit)
+		assert.Equal(t, uint32(1024), have.sizeLimit)
 	})
 
 	t.Run("WithLoadData", func(t *testing.T) {
 		// --- When ---
-		opts := NewOpts(WithLoadData())
+		have := NewOpts(WithLoadData())
 
 		// --- Then ---
-		assert.True(t, opts.loadData)
-		assert.True(t, opts.LoadData())
+		assert.True(t, have.loadData)
+		assert.True(t, have.LoadData())
 	})
 
 	t.Run("WithIgnoreSize", func(t *testing.T) {
 		// --- When ---
-		opts := NewOpts(WithIgnoreSize())
+		have := NewOpts(WithIgnoreSize())
 
 		// --- Then ---
-		assert.True(t, opts.ignoreDeclaredSize)
-		assert.True(t, opts.IgnoreDeclaredSize())
+		assert.True(t, have.ignoreDeclaredSize)
+		assert.True(t, have.IgnoreDeclaredSize())
 	})
 }
 
@@ -323,8 +323,8 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 
 		// --- Then ---
 		assert.NoError(t, err)
-		exp := []byte{20, 21, 22, 23, 24, 25, 26, 27, 28, 29}
-		assert.Equal(t, exp, must.Value(io.ReadAll(buf)))
+		want := []byte{20, 21, 22, 23, 24, 25, 26, 27, 28, 29}
+		assert.Equal(t, want, must.Value(io.ReadAll(buf)))
 
 		assert.Equal(t, int64(24), cr.Count())
 	})
@@ -349,8 +349,8 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(24), iokit.Offset(buf))
 
-		exp := []byte{20, 21, 22, 23, 24, 25, 26, 27, 28, 29}
-		assert.Equal(t, exp, must.Value(io.ReadAll(buf)))
+		want := []byte{20, 21, 22, 23, 24, 25, 26, 27, 28, 29}
+		assert.Equal(t, want, must.Value(io.ReadAll(buf)))
 
 		assert.Equal(t, int64(24), cr.Count())
 	})
@@ -537,8 +537,8 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		assert.Equal(t, int64(14), cr.Count())
 
 		// Reads all up to chunk limit.
-		exp := []byte{10, 11, 12, 13, 14, 15}
-		assert.Equal(t, exp, must.Value(io.ReadAll(cr)))
+		want := []byte{10, 11, 12, 13, 14, 15}
+		assert.Equal(t, want, must.Value(io.ReadAll(cr)))
 
 		// Next reads returns EOF.
 		_, err = io.CopyN(io.Discard, cr, 1)

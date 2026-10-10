@@ -37,8 +37,9 @@ func Test_Registry_Get(t *testing.T) {
 		reg := NewRegistry(RAWCMake(WithLoadData()))
 		reg.Register(IDfmt, FMTMake())
 
-		// --- When ---
 		ch0 := reg.Get(IDfmt)
+
+		// --- When ---
 		reg.Put(ch0)
 		ch1 := reg.Get(IDfmt)
 
@@ -52,8 +53,8 @@ func Test_Registry_GetNoRaw(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	// --- When ---
-	ch0 := reg.GetNoRaw(IDfmt)
+	have := reg.GetNoRaw(IDfmt)
 
 	// --- Then ---
-	assert.Nil(t, ch0)
+	assert.Nil(t, have)
 }

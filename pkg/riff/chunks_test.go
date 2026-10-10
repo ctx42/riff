@@ -19,11 +19,11 @@ func Test_Chunks_First(t *testing.T) {
 		chs := rif.Chunks()
 
 		// --- When ---
-		ch := chs.First(IDfmt)
+		have := chs.First(IDfmt)
 
 		// --- Then ---
-		assert.Equal(t, uint32(IDfmt), ch.ID())
-		assert.Equal(t, uint32(0x10), ch.Size())
+		assert.Equal(t, uint32(IDfmt), have.ID())
+		assert.Equal(t, uint32(0x10), have.Size())
 	})
 
 	t.Run("not present", func(t *testing.T) {
@@ -33,10 +33,10 @@ func Test_Chunks_First(t *testing.T) {
 		chs := rif.Chunks()
 
 		// --- When ---
-		ch := chs.First(IDUNKN)
+		have := chs.First(IDUNKN)
 
 		// --- Then ---
-		assert.Nil(t, ch)
+		assert.Nil(t, have)
 	})
 }
 
@@ -47,10 +47,10 @@ func Test_Chunks_Count(t *testing.T) {
 	chs := rif.Chunks()
 
 	// --- When ---
-	cnt := chs.Count(IDJUNK)
+	have := chs.Count(IDJUNK)
 
 	// --- Then ---
-	assert.Equal(t, 7, cnt)
+	assert.Equal(t, 7, have)
 }
 
 func Test_Chunks_IDs(t *testing.T) {
@@ -60,10 +60,10 @@ func Test_Chunks_IDs(t *testing.T) {
 	chs := rif.Chunks()
 
 	// --- When ---
-	ids := chs.IDs()
+	have := chs.IDs()
 
 	// --- Then ---
-	exp := []uint32{
+	want := []uint32{
 		0x62657874, // bext
 		IDfmt,      // fmt
 		IDdata,     // data
@@ -79,7 +79,7 @@ func Test_Chunks_IDs(t *testing.T) {
 		0x41466d64, // AFmd
 		IDID3,      // ID3+
 	}
-	assert.Equal(t, exp, ids)
+	assert.Equal(t, want, have)
 }
 
 func Test_Chunks_Size(t *testing.T) {
@@ -89,11 +89,11 @@ func Test_Chunks_Size(t *testing.T) {
 	chs := rif.Chunks()
 
 	// --- When ---
-	size := chs.Size()
+	have := chs.Size()
 
 	// --- Then ---
-	// The 27074 is the file size, we add 12 for ID, type and size fields.
-	assert.Equal(t, uint32(27074), size+12)
+	// The 27074 is the file have, we add 12 for ID, type and have fields.
+	assert.Equal(t, uint32(27074), have+12)
 }
 
 func Test_Chunks_Remove(t *testing.T) {
@@ -105,10 +105,10 @@ func Test_Chunks_Remove(t *testing.T) {
 		el := len(rif.Chunks().IDs())
 
 		// --- When ---
-		chs := rif.Chunks().Remove(IDfmt).IDs()
+		have := rif.Chunks().Remove(IDfmt).IDs()
 
 		// --- Then ---
-		assert.Equal(t, el-1, len(chs))
+		assert.Equal(t, el-1, len(have))
 		assert.Equal(t, 14, el)
 	})
 
@@ -119,13 +119,13 @@ func Test_Chunks_Remove(t *testing.T) {
 		chsIDs := rif.Chunks().IDs()
 
 		// --- When ---
-		chs := rif.Chunks().Remove(IDfmt).IDs()
+		have := rif.Chunks().Remove(IDfmt).IDs()
 
 		// --- Then ---
-		for i := 1; i < len(chs); i++ {
-			assert.Equal(t, chsIDs[i+1], chs[i])
+		for i := 1; i < len(have); i++ {
+			assert.Equal(t, chsIDs[i+1], have[i])
 		}
-		assert.Equal(t, len(chsIDs)-1, len(chs))
+		assert.Equal(t, len(chsIDs)-1, len(have))
 		assert.Equal(t, 14, len(chsIDs))
 	})
 
@@ -149,9 +149,9 @@ func Test_Chunks_Remove(t *testing.T) {
 		id := uint32(1)
 
 		// --- When ---
-		chs := rif.Chunks().Remove(id).IDs()
+		have := rif.Chunks().Remove(id).IDs()
 
 		// --- Then ---
-		assert.Equal(t, len(chsIDs), len(chs))
+		assert.Equal(t, len(chsIDs), len(have))
 	})
 }

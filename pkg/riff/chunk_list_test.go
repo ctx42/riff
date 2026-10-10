@@ -65,15 +65,15 @@ func Test_LIST(t *testing.T) {
 	reg := NewRegistry(RAWCMake(WithLoadData()))
 
 	// --- When ---
-	ch := LIST(reg, WithLoadData())
+	have := LIST(reg, WithLoadData())
 
 	// --- Then ---
-	assert.Equal(t, IDLIST, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.True(t, ch.Multi())
-	assert.Nil(t, ch.Chunks())
-	assert.False(t, ch.Raw())
+	assert.Equal(t, IDLIST, have.ID())
+	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, uint32(0), have.Type())
+	assert.True(t, have.Multi())
+	assert.Nil(t, have.Chunks())
+	assert.False(t, have.Raw())
 }
 
 func Test_ChunkLIST_ReadFrom(t *testing.T) {
@@ -84,8 +84,9 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		src := listChunkType_INFO(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := LIST(reg, WithLoadData())
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -235,8 +236,9 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 		src := listChunkType_adtl(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := LIST(reg, WithLoadData(), WithSizeLimit(51))
+
+		// --- When ---
 		_, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -337,8 +339,8 @@ func Test_ChunkLIST_WriteTo_tabular(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
 
-			exp := must.Value(io.ReadAll(tc.ch(t)))
-			assert.Equal(t, exp, dst.Bytes())
+			want := must.Value(io.ReadAll(tc.ch(t)))
+			assert.Equal(t, want, dst.Bytes())
 		})
 	}
 }

@@ -117,27 +117,27 @@ func smplInvalidSize(t *testing.T) io.Reader {
 
 func Test_SMPL(t *testing.T) {
 	// --- When ---
-	ch := SMPL()
+	have := SMPL()
 
 	// --- Then ---
-	assert.Equal(t, IDsmpl, ch.ID())
-	assert.Equal(t, SMPLChunkSize, ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.False(t, ch.Multi())
-	assert.Nil(t, ch.Chunks())
-	assert.False(t, ch.Raw())
+	assert.Equal(t, IDsmpl, have.ID())
+	assert.Equal(t, SMPLChunkSize, have.Size())
+	assert.Equal(t, uint32(0), have.Type())
+	assert.False(t, have.Multi())
+	assert.Nil(t, have.Chunks())
+	assert.False(t, have.Raw())
 
-	assert.Equal(t, uint32(0), ch.Manufacturer)
-	assert.Equal(t, uint32(0), ch.Product)
-	assert.Equal(t, uint32(0), ch.SamplePeriod)
-	assert.Equal(t, uint32(0), ch.MIDIUnityNote)
-	assert.Equal(t, uint32(0), ch.MIDIPitchFraction)
-	assert.Equal(t, uint32(0), ch.SMPTEFormat)
-	assert.Equal(t, uint32(0), ch.SMPTEOffset)
-	assert.Equal(t, uint32(0), ch.SampleLoopCnt)
-	assert.Equal(t, uint32(0), ch.SamplerDataCnt)
-	assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.SamplerData())))
-	assert.Len(t, 0, ch.SampleLoops)
+	assert.Equal(t, uint32(0), have.Manufacturer)
+	assert.Equal(t, uint32(0), have.Product)
+	assert.Equal(t, uint32(0), have.SamplePeriod)
+	assert.Equal(t, uint32(0), have.MIDIUnityNote)
+	assert.Equal(t, uint32(0), have.MIDIPitchFraction)
+	assert.Equal(t, uint32(0), have.SMPTEFormat)
+	assert.Equal(t, uint32(0), have.SMPTEOffset)
+	assert.Equal(t, uint32(0), have.SampleLoopCnt)
+	assert.Equal(t, uint32(0), have.SamplerDataCnt)
+	assert.Equal(t, []byte{}, must.Value(io.ReadAll(have.SamplerData())))
+	assert.Len(t, 0, have.SampleLoops)
 }
 
 func Test_ChunkSMPL_Size(t *testing.T) {
@@ -175,8 +175,9 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		src := smplWithoutLoopsNoData(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := SMPL()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -339,8 +340,9 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		src := &bytes.Buffer{}
 		writeUint32LE(t, src, 35)
 
-		// --- When ---
 		ch := SMPL()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -480,8 +482,8 @@ func Test_ChunkSMPL_WriteTo_tabular(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
 
-			exp := must.Value(io.ReadAll(tc.ch(t)))
-			assert.Equal(t, exp, dst.Bytes())
+			want := must.Value(io.ReadAll(tc.ch(t)))
+			assert.Equal(t, want, dst.Bytes())
 		})
 	}
 }

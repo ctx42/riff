@@ -164,25 +164,25 @@ func Test_ChunkFMT_Size(t *testing.T) {
 
 func Test_FMT(t *testing.T) {
 	// --- When ---
-	ch := FMT()
+	have := FMT()
 
 	// --- Then ---
-	assert.Equal(t, IDfmt, ch.ID())
-	assert.Equal(t, FMTChunkSize, ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.False(t, ch.Multi())
-	assert.Nil(t, ch.Chunks())
-	assert.False(t, ch.Raw())
-	assert.False(t, ch.WriteZeroExtra)
+	assert.Equal(t, IDfmt, have.ID())
+	assert.Equal(t, FMTChunkSize, have.Size())
+	assert.Equal(t, uint32(0), have.Type())
+	assert.False(t, have.Multi())
+	assert.Nil(t, have.Chunks())
+	assert.False(t, have.Raw())
+	assert.False(t, have.WriteZeroExtra)
 }
 
 func Test_ChunkFMT_SetExtra_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
-		ch      func(*testing.T) io.Reader
-		extra   []byte
-		expSize uint32
+		ch    func(*testing.T) io.Reader
+		extra []byte
+		wSize uint32
 	}{
 		{"fmtWithoutExtraBytes1", fmtChunkWithoutExtraBytes, []byte{}, 16},
 		{"fmtWithoutExtraBytes2", fmtChunkWithoutExtraBytes, []byte{5, 6}, 20},
@@ -216,7 +216,7 @@ func Test_ChunkFMT_SetExtra_tabular(t *testing.T) {
 
 			// --- Then ---
 			assert.Equal(t, tc.extra, must.Value(io.ReadAll(ch.Extra())))
-			assert.Equal(t, tc.expSize, ch.Size())
+			assert.Equal(t, tc.wSize, ch.Size())
 		})
 	}
 }
@@ -232,10 +232,10 @@ func Test_ChunkFMT_Duration(t *testing.T) {
 		assert.NoError(t, err)
 
 		// --- When ---
-		d := ch.Duration(88200)
+		have := ch.Duration(88200)
 
 		// --- Then ---
-		assert.Equal(t, time.Second, d)
+		assert.Equal(t, time.Second, have)
 	})
 
 	t.Run("zero byte rate", func(t *testing.T) {
@@ -256,8 +256,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := fmtChunkWithoutExtraBytes(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := FMT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -383,8 +384,9 @@ func Test_ChunkFMT_ReadFrom(t *testing.T) {
 		src := &bytes.Buffer{}
 		writeUint32LE(t, src, 15)
 
-		// --- When ---
 		ch := FMT()
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---

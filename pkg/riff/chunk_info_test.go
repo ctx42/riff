@@ -51,15 +51,15 @@ func infoChunkThree(t *testing.T) io.Reader {
 
 func Test_INFO(t *testing.T) {
 	// --- When ---
-	ch := INFO(LabIART)
+	have := INFO(LabIART)
 
 	// --- Then ---
-	assert.Equal(t, LabIART, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.True(t, ch.Multi())
-	assert.Nil(t, ch.Chunks())
-	assert.False(t, ch.Raw())
+	assert.Equal(t, LabIART, have.ID())
+	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, uint32(0), have.Type())
+	assert.True(t, have.Multi())
+	assert.Nil(t, have.Chunks())
+	assert.False(t, have.Raw())
 }
 
 func Test_ChunkINFO_ReadFrom(t *testing.T) {
@@ -68,8 +68,9 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 		src := infoChunkTextLenEven(t)
 		skip4B(t, src) // Skip chunk ID.
 
-		// --- When ---
 		ch := INFO(LabIART)
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -211,8 +212,8 @@ func Test_ChunkINFO_WriteTo_tabular(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
 
-			exp := must.Value(io.ReadAll(tc.ch(t)))
-			assert.Equal(t, exp, dst.Bytes())
+			want := must.Value(io.ReadAll(tc.ch(t)))
+			assert.Equal(t, want, dst.Bytes())
 		})
 	}
 }
@@ -263,8 +264,8 @@ func Test_InfoLabel_tabular(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.str, func(t *testing.T) {
 			t.Parallel()
-			got := InfoLabel(tc.label)
-			assert.Equal(t, tc.str, got)
+			have := InfoLabel(tc.label)
+			assert.Equal(t, tc.str, have)
 			assert.Equal(t, tc.code, Uint32(tc.label).String())
 		})
 	}

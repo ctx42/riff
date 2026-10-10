@@ -15,15 +15,15 @@ import (
 
 func Test_RAWC(t *testing.T) {
 	// --- When ---
-	ch := RAWC(IDUNKN, WithLoadData())
+	have := RAWC(IDUNKN, WithLoadData())
 
 	// --- Then ---
-	assert.Equal(t, uint32(IDUNKN), ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
-	assert.Equal(t, uint32(0), ch.Type())
-	assert.True(t, ch.Multi())
-	assert.Len(t, 0, ch.Chunks())
-	assert.True(t, ch.Raw())
+	assert.Equal(t, uint32(IDUNKN), have.ID())
+	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, uint32(0), have.Type())
+	assert.True(t, have.Multi())
+	assert.Len(t, 0, have.Chunks())
+	assert.True(t, have.Raw())
 }
 
 func Test_ChunkRAWC_ReadFrom(t *testing.T) {
@@ -34,8 +34,9 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		src.Write([]byte{'A', 'B', 'C'}) // Chunk data (*).
 		src.WriteByte(0)                 // Padding byte (1).
 
-		// --- When ---
 		ch := RAWC(IDUNKN, WithLoadData())
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -94,8 +95,9 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		src := &bytes.Buffer{}
 		src.Write([]byte{0, 1, 2}) // Too short chunk size.
 
-		// --- When ---
 		ch := RAWC(IDUNKN, WithLoadData())
+
+		// --- When ---
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
@@ -168,12 +170,12 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(10), n)
 
-		exp := []byte{
+		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x2, 0x0, 0x0, 0x0, // Size.
 			0x0, 0x1, // Data.
 		}
-		assert.Equal(t, exp, dst.Bytes())
+		assert.Equal(t, want, dst.Bytes())
 	})
 
 	t.Run("with padding", func(t *testing.T) {
@@ -190,13 +192,13 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(12), n)
 
-		exp := []byte{
+		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x3, 0x0, 0x0, 0x0, // Size.
 			0x0, 0x1, 0x2, // Data.
 			0x0, // Padding.
 		}
-		assert.Equal(t, exp, dst.Bytes())
+		assert.Equal(t, want, dst.Bytes())
 	})
 
 	t.Run("error - writing ID", func(t *testing.T) {
@@ -216,8 +218,8 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
 		assert.Equal(t, int64(0), n)
 
-		exp := []byte{0x41, 0x42, 0x43}
-		assert.Equal(t, exp, buf.Bytes())
+		want := []byte{0x41, 0x42, 0x43}
+		assert.Equal(t, want, buf.Bytes())
 	})
 
 	t.Run("error - writing data", func(t *testing.T) {
@@ -237,12 +239,12 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
 		assert.Equal(t, int64(10), n)
 
-		exp := []byte{
+		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x3, 0x0, 0x0, 0x0, // Size.
 			0x0, 0x1, // Data.
 		}
-		assert.Equal(t, exp, buf.Bytes())
+		assert.Equal(t, want, buf.Bytes())
 	})
 
 	t.Run("error - writing padding", func(t *testing.T) {
@@ -262,13 +264,13 @@ func Test_ChunkRAWC_WriteTo(t *testing.T) {
 		assert.ErrorContain(t, "error encoding RAWC:ABCD chunk: ", err)
 		assert.Equal(t, int64(12), n)
 
-		exp := []byte{
+		want := []byte{
 			0x41, 0x42, 0x43, 0x44, // ID.
 			0x3, 0x0, 0x0, 0x0, // Size.
 			0x0, 0x1, 0x2, // Data.
 			0x0, // Padding
 		}
-		assert.Equal(t, exp, buf.Bytes())
+		assert.Equal(t, want, buf.Bytes())
 	})
 
 	t.Run("error - skip data mode", func(t *testing.T) {

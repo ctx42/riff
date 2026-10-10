@@ -15,8 +15,8 @@ import (
 
 func Test_StrToID_tabular(t *testing.T) {
 	tt := []struct {
-		id  string
-		exp uint32
+		id   string
+		want uint32
 	}{
 		{"RIFF", IDRIFF},
 		{"fmt ", IDfmt},
@@ -58,10 +58,10 @@ func Test_StrToID_tabular(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.id, func(t *testing.T) {
 			// --- When ---
-			got := StrToID(tc.id)
+			have := StrToID(tc.id)
 
 			// --- Then ---
-			assert.Equal(t, tc.exp, got)
+			assert.Equal(t, tc.want, have)
 		})
 	}
 }
@@ -162,8 +162,8 @@ func Test_WriteIDAndSize(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(8), n)
 
-		exp := []byte{0x52, 0x49, 0x46, 0x46, 0x7c, 0x0, 0x0, 0x0}
-		assert.Equal(t, exp, dst.Bytes())
+		want := []byte{0x52, 0x49, 0x46, 0x46, 0x7c, 0x0, 0x0, 0x0}
+		assert.Equal(t, want, dst.Bytes())
 	})
 
 	t.Run("error - writing ID", func(t *testing.T) {
@@ -178,8 +178,8 @@ func Test_WriteIDAndSize(t *testing.T) {
 		assert.ErrorIs(t, err, iokit.ErrWrite)
 		assert.Equal(t, int64(0), n)
 
-		exp := []byte{0x52, 0x49, 0x46}
-		assert.Equal(t, exp, buf.Bytes())
+		want := []byte{0x52, 0x49, 0x46}
+		assert.Equal(t, want, buf.Bytes())
 	})
 
 	t.Run("error - writing size", func(t *testing.T) {
@@ -194,8 +194,8 @@ func Test_WriteIDAndSize(t *testing.T) {
 		assert.ErrorIs(t, err, iokit.ErrWrite)
 		assert.Equal(t, int64(4), n)
 
-		exp := []byte{0x52, 0x49, 0x46, 0x46, 0x7c}
-		assert.Equal(t, exp, buf.Bytes())
+		want := []byte{0x52, 0x49, 0x46, 0x46, 0x7c}
+		assert.Equal(t, want, buf.Bytes())
 	})
 }
 
@@ -211,8 +211,8 @@ func Test_WritePaddingIf(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), n)
 
-		exp := []byte{0x00}
-		assert.Equal(t, exp, dst.Bytes())
+		want := []byte{0x00}
+		assert.Equal(t, want, dst.Bytes())
 	})
 
 	t.Run("even size", func(t *testing.T) {
@@ -247,8 +247,8 @@ func Test_TrimZeroRight_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
-		in  []byte
-		exp []byte
+		in   []byte
+		want []byte
 	}{
 		{"1", []byte{}, []byte{}},
 		{"2", []byte{0}, []byte{}},
@@ -262,17 +262,17 @@ func Test_TrimZeroRight_tabular(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.testN, func(t *testing.T) {
-			assert.Equal(t, tc.exp, TrimZeroRight(tc.in))
+			assert.Equal(t, tc.want, TrimZeroRight(tc.in))
 		})
 	}
 }
 
 func Test_linkids(t *testing.T) {
 	// --- When ---
-	got := linkids(idRAWC, IDRIFF)
+	have := linkids(idRAWC, IDRIFF)
 
 	// --- Then ---
-	assert.Equal(t, "RAWC:RIFF", got)
+	assert.Equal(t, "RAWC:RIFF", have)
 }
 
 func Test_readBytes(t *testing.T) {

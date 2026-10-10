@@ -52,32 +52,32 @@ func dataChunkOdd(t *testing.T) io.Reader {
 func Test_DATA(t *testing.T) {
 	t.Run("skip data mode", func(t *testing.T) {
 		// --- When ---
-		ch := DATA()
+		have := DATA()
 
 		// --- Then ---
-		assert.Equal(t, IDdata, ch.ID())
-		assert.Equal(t, uint32(0), ch.Size())
-		assert.Equal(t, uint32(0), ch.Type())
-		assert.False(t, ch.Multi())
-		assert.Nil(t, ch.Chunks())
-		assert.False(t, ch.Raw())
-		assert.Nil(t, ch.data)
-		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+		assert.Equal(t, IDdata, have.ID())
+		assert.Equal(t, uint32(0), have.Size())
+		assert.Equal(t, uint32(0), have.Type())
+		assert.False(t, have.Multi())
+		assert.Nil(t, have.Chunks())
+		assert.False(t, have.Raw())
+		assert.Nil(t, have.data)
+		assert.Equal(t, []byte{}, must.Value(io.ReadAll(have.Data())))
 	})
 
 	t.Run("load data mode", func(t *testing.T) {
 		// --- When ---
-		ch := DATA(WithLoadData())
+		have := DATA(WithLoadData())
 
 		// --- Then ---
-		assert.Equal(t, IDdata, ch.ID())
-		assert.Equal(t, uint32(0), ch.Size())
-		assert.Equal(t, uint32(0), ch.Type())
-		assert.False(t, ch.Multi())
-		assert.Nil(t, ch.Chunks())
-		assert.False(t, ch.Raw())
-		assert.NotNil(t, ch.data)
-		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+		assert.Equal(t, IDdata, have.ID())
+		assert.Equal(t, uint32(0), have.Size())
+		assert.Equal(t, uint32(0), have.Type())
+		assert.False(t, have.Multi())
+		assert.Nil(t, have.Chunks())
+		assert.False(t, have.Raw())
+		assert.NotNil(t, have.data)
+		assert.Equal(t, []byte{}, must.Value(io.ReadAll(have.Data())))
 	})
 }
 
@@ -130,10 +130,10 @@ func Test_ChunkDATA_Duration(t *testing.T) {
 		ch.data = bytes.Repeat([]byte{0}, 88200)
 
 		// --- When ---
-		d := ch.Duration(88200)
+		have := ch.Duration(88200)
 
 		// --- Then ---
-		assert.Equal(t, time.Second, d)
+		assert.Equal(t, time.Second, have)
 	})
 
 	t.Run("zero byte rate", func(t *testing.T) {
@@ -166,13 +166,13 @@ func Test_ChunkDATA_ReadFrom(t *testing.T) {
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, uint32(16), ch.Size())
 
-		exp := []byte{
+		want := []byte{
 			0x00, 0x01, 0x02, 0x03,
 			0x04, 0x05, 0x06, 0x07,
 			0x08, 0x09, 0x0a, 0x0b,
 			0x0c, 0x0d, 0x0e, 0x0f,
 		}
-		assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
+		assert.Equal(t, want, must.Value(io.ReadAll(ch.Data())))
 		assert.True(t, isAllRead(src))
 	})
 
@@ -192,13 +192,13 @@ func Test_ChunkDATA_ReadFrom(t *testing.T) {
 		assert.Equal(t, int64(20), n)
 		assert.Equal(t, uint32(15), ch.Size())
 
-		exp := []byte{
+		want := []byte{
 			0x00, 0x01, 0x02, 0x03,
 			0x04, 0x05, 0x06, 0x07,
 			0x08, 0x09, 0x0a, 0x0b,
 			0x0c, 0x0d, 0x0e,
 		}
-		assert.Equal(t, exp, must.Value(io.ReadAll(ch.Data())))
+		assert.Equal(t, want, must.Value(io.ReadAll(ch.Data())))
 		assert.True(t, isAllRead(src))
 	})
 
@@ -265,8 +265,9 @@ func Test_ChunkDATA_WriteTo(t *testing.T) {
 				t.Logf("error i=%d", i)
 			}
 
-			// --- When ---
 			dst := &bytes.Buffer{}
+
+			// --- When ---
 			_, err = ch.WriteTo(iokit.ErrWriter(dst, i))
 
 			// --- Then ---
@@ -297,16 +298,17 @@ func Test_ChunkDATA_WriteTo_tabular(t *testing.T) {
 			ch := DATA(WithLoadData())
 			must.Value(ch.ReadFrom(src))
 
-			// --- When ---
 			dst := &bytes.Buffer{}
+
+			// --- When ---
 			n, err := ch.WriteTo(dst)
 
 			// --- Then ---
 			assert.NoError(t, err)
 			assert.Equal(t, tc.n, n)
 
-			exp := must.Value(io.ReadAll(tc.ch(t)))
-			assert.Equal(t, exp, dst.Bytes())
+			want := must.Value(io.ReadAll(tc.ch(t)))
+			assert.Equal(t, want, dst.Bytes())
 		})
 	}
 }

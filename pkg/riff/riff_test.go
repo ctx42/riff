@@ -17,23 +17,24 @@ import (
 
 func Test_New(t *testing.T) {
 	// --- When ---
-	rif := New(WithLoadData())
+	have := New(WithLoadData())
 
 	// --- Then ---
-	assert.Equal(t, IDRIFF, rif.ID())
-	assert.Equal(t, uint32(0), rif.Size())
-	assert.Equal(t, uint32(0), rif.Type())
-	assert.False(t, rif.Multi())
+	assert.Equal(t, IDRIFF, have.ID())
+	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, uint32(0), have.Type())
+	assert.False(t, have.Multi())
 
-	assert.True(t, rif.IsRegistered(IDfmt))
-	assert.True(t, rif.IsRegistered(IDdata))
-	assert.False(t, rif.IsRegistered(0))
+	assert.True(t, have.IsRegistered(IDfmt))
+	assert.True(t, have.IsRegistered(IDdata))
+	assert.False(t, have.IsRegistered(0))
 }
 
 func Test_Bare(t *testing.T) {
 	t.Run("registry", func(t *testing.T) {
-		// --- When ---
 		reg := NewRegistry(RAWCMake(WithLoadData()))
+
+		// --- When ---
 		rif := Bare(reg)
 
 		// --- Then ---
@@ -48,16 +49,16 @@ func Test_Bare(t *testing.T) {
 
 	t.Run("nil registry", func(t *testing.T) {
 		// --- When ---
-		rif := Bare(nil)
+		have := Bare(nil)
 
 		// --- Then ---
-		assert.Equal(t, IDRIFF, rif.ID())
-		assert.Equal(t, uint32(0), rif.Size())
-		assert.Equal(t, uint32(0), rif.Type())
-		assert.False(t, rif.Multi())
+		assert.Equal(t, IDRIFF, have.ID())
+		assert.Equal(t, uint32(0), have.Size())
+		assert.Equal(t, uint32(0), have.Type())
+		assert.False(t, have.Multi())
 
-		assert.False(t, rif.IsRegistered(IDfmt))
-		assert.False(t, rif.IsRegistered(IDdata))
+		assert.False(t, have.IsRegistered(IDfmt))
+		assert.False(t, have.IsRegistered(IDdata))
 	})
 }
 
@@ -69,11 +70,11 @@ func Test_Compose(t *testing.T) {
 		chs := rif.Chunks()
 
 		// --- When ---
-		nw := Compose(chs.Remove(IDfmt))
+		have := Compose(chs.Remove(IDfmt))
 
 		// --- Then ---
 		assert.Equal(t, 14, len(chs.IDs()))
-		assert.Equal(t, 13, len(nw.Chunks()))
+		assert.Equal(t, 13, len(have.Chunks()))
 	})
 
 	t.Run("same size", func(t *testing.T) {
@@ -83,11 +84,11 @@ func Test_Compose(t *testing.T) {
 		chs := rif.Chunks()
 
 		// --- When ---
-		nw := Compose(chs)
+		have := Compose(chs)
 
 		// --- Then ---
-		assert.Equal(t, rif.Size(), nw.Size())
-		assert.Equal(t, len(chs.IDs()), len(nw.Chunks().IDs()))
+		assert.Equal(t, rif.Size(), have.Size())
+		assert.Equal(t, len(chs.IDs()), len(have.Chunks().IDs()))
 	})
 }
 
