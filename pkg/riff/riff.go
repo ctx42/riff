@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (c) 2020 Rafal Zajac <rzajac@gmail.com>
+// SPDX-License-Identifier: MIT
+
 // Package riff provides low level tools for working with files in Resource
 // Interchange File Format (RIFF).
 package riff

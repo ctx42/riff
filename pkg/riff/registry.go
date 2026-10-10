@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (c) 2020 Rafal Zajac <rzajac@gmail.com>
+// SPDX-License-Identifier: MIT
+
 package riff
 
 // Registry represents a registry of chunk decoders.
