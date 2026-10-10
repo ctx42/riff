@@ -4,7 +4,6 @@
 package riff
 
 import (
-	"encoding/binary"
 	"io"
 )
 
@@ -47,18 +46,3 @@ type Chunk interface {
 	// Reset resets the chunk so it can be reused.
 	Reset()
 }
-
-// List of most popular chunk IDs.
-const (
-	// IDJUNK represents "JUNK" chunk ID.
-	IDJUNK uint32 = 0x4a554e4b
-
-	// IDID3 represents "ID3 " chunk ID.
-	IDID3 uint32 = 0x49443320
-)
-
-// Convenience imports.
-var (
-	le = binary.LittleEndian
-	be = binary.BigEndian
-)

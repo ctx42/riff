@@ -31,6 +31,54 @@ const (
 	TypeRMID uint32 = 0x524d4944
 )
 
+// List of most popular chunk IDs.
+const (
+	// IDJUNK represents "JUNK" chunk ID.
+	IDJUNK uint32 = 0x4a554e4b
+
+	// IDID3 represents "ID3 " chunk ID.
+	IDID3 uint32 = 0x49443320
+)
+
+// Convenience imports.
+var (
+	le = binary.LittleEndian
+	be = binary.BigEndian
+)
+
+// Errors.
+var (
+	// ErrNotRIFF is returned when a file is not in the RIFF format.
+	ErrNotRIFF = errors.New("not RIFF file")
+
+	// ErrTooShort is returned when a chunk or field is shorter than its
+	// defined length.
+	ErrTooShort = errors.New("length too short")
+
+	// ErrTooLarge is returned when a chunk size is grater than set maximum.
+	ErrTooLarge = errors.New("size too large")
+
+	// ErrChunkSizeMismatch is returned when a chunk size mismatch with its
+	// content.
+	ErrChunkSizeMismatch = errors.New("chunk size mismatch")
+
+	// ErrSkipDataMode is returned when the decoder in SkipData mode
+	// is used in write context (e.x. calling WriteTo method).
+	ErrSkipDataMode = errors.New("decoder in meta only mode used in write context")
+)
+
+// Error format strings.
+const (
+	// errFmtDecode format string for chunk decoding errors.
+	errFmtDecode = "error decoding %s chunk: %w"
+
+	// errFmtEncode format string for chunk encoding errors.
+	errFmtEncode = "error encoding %s chunk: %w"
+
+	// errFmtReadingRIFF format string for main RIFF chunk reading errors.
+	errFmtReadingRIFF = "error reading RIFF offset %d: %w"
+)
+
 // Maker is a function signature for instantiating chunk decoder.
 type Maker func() Chunk
 
