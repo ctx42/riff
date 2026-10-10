@@ -189,11 +189,6 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 		}
 	}
 
-	_, err = ReadPaddingIf(cr, size)
-	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
-	}
-
 	return cr.Count(), nil
 }
 
@@ -236,12 +231,6 @@ func (ch *ChunkFMT) WriteTo(w io.Writer) (int64, error) {
 		if err != nil {
 			return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)
 		}
-	}
-
-	n, err = WritePaddingIf(w, size)
-	sum += n
-	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)
 	}
 
 	return sum, nil

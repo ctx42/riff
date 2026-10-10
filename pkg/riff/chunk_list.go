@@ -157,12 +157,6 @@ func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDLIST), err)
 	}
 
-	n, err = WritePaddingIf(w, size)
-	sum += n
-	if err != nil {
-		return sum, fmt.Errorf(errFmtEncode, Uint32(IDLIST), err)
-	}
-
 	return sum, nil
 }
 
