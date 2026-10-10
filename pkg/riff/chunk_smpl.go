@@ -10,6 +10,9 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkSMPL)(nil)
+
 // IDsmpl represents "smpl" chunk ID.
 const IDsmpl uint32 = 0x736d706c
 

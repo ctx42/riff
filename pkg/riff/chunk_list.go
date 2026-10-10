@@ -9,6 +9,9 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkLIST)(nil)
+
 // IDLIST represents "LIST" chunk ID.
 const IDLIST uint32 = 0x4c495354
 

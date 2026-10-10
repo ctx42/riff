@@ -9,6 +9,9 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkINFO)(nil)
+
 // IDINFO represents LIST sub-chunk ID "INFO".
 const IDINFO uint32 = 0x494e464f
 

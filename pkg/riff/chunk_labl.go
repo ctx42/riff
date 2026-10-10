@@ -10,6 +10,9 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkLABL)(nil)
+
 // LABLChunkSize represents the size of labl chunk static part in bytes.
 // Does not count ID and label bytes.
 const LABLChunkSize uint32 = 4

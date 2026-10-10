@@ -12,6 +12,9 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var _ Chunk = (*RIFF)(nil)
+
 // IDRIFF represents "RIFF" chunk ID.
 const IDRIFF uint32 = 0x52494646
 

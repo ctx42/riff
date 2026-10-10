@@ -10,6 +10,9 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkLTXT)(nil)
+
 // IDltxt represents LIST sub-chunk ID "ltxt".
 const IDltxt uint32 = 0x6C747874
 

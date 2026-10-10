@@ -10,6 +10,9 @@ import (
 	"math"
 )
 
+// Compile time checks.
+var _ io.Reader = (*ChunkReader)(nil)
+
 // OptsFn represent signature of option function.
 type OptsFn func(*Opts)
 

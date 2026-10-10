@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkDATA)(nil)
+
 // IDdata represents "data" chunk ID.
 const IDdata uint32 = 0x64617461
 

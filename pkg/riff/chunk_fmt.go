@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkFMT)(nil)
+
 // IDfmt represents "fmt " chunk ID.
 const IDfmt uint32 = 0x666d7420
 

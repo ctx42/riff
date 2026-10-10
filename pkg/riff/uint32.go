@@ -9,6 +9,12 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var (
+	_ io.Reader    = Uint32(0)
+	_ fmt.Stringer = Uint32(0)
+)
+
 // Uint32 is a helper type wrapping uint32 and adding methods.
 type Uint32 uint32
 

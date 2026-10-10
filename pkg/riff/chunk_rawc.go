@@ -9,6 +9,9 @@ import (
 	"io"
 )
 
+// Compile time checks.
+var _ Chunk = (*ChunkRAWC)(nil)
+
 // idRAWC represents raw chunk ID used only in error reporting from RAWC chunk.
 const idRAWC uint32 = 0x52415743
 
