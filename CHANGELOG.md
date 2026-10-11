@@ -1,0 +1,78 @@
+## v0.1.0 (Sun, 11 Oct 2026 11:55:13 UTC)
+- chore: scaffold project.
+- feat: import riff from github.com/rzajac/riff.
+- build(deps): move test helpers to ctx42/testkit.
+- chore: add SPDX headers to Go sources.
+- docs(riff): turn the example program into testable examples.
+- docs: add AGENTS.md, CI workflow, and ctx42 README header.
+- fix(riff): keep a leading non-zero byte in TrimZeroRight.
+- fix(riff): set LabISFT to the "ISFT" chunk ID.
+- fix(riff): stop Chunks.Remove from rewriting its receiver.
+- fix(riff): decode a LIST chunk with no sub-chunks.
+- fix(riff): leave the registry alone when decoding an adtl LIST.
+- fix(riff): compute fmt and smpl chunk sizes from their content.
+- fix(riff): grow chunk buffers as bytes arrive, not by declared size.
+- fix(riff): reject a declared chunk size of 0xFFFFFFFF.
+- fix(riff): report truncated input when skipping chunks by seeking.
+- fix(riff): stop recycling sample loops through a global pool.
+- fix(riff): keep chunks passed to Modify out of the decoder pool.
+- fix(riff): return zero Duration for a zero byte rate.
+- fix(riff): report smpl decode errors accurately.
+- fix(riff): name the adtl list in labl and ltxt errors.
+- fix(riff): decode with a nil registry instead of panicking.
+- test(riff): close opened test files and stop discarding setup errors.
+- test(riff): move test helpers into the riff package.
+- style(riff): assert interface implementations at compile time.
+- refactor(riff): keep package-wide declarations in riff.go.
+- style(riff): use three-letter receivers for Opts and Uint32.
+- docs(riff): complete and correct the godoc.
+- style(riff): wrap production lines over 80 columns.
+- style(riff): reuse the declared err instead of shadowing it.
+- refactor(riff): simplify a few encode and read paths.
+- test(riff): skip raw chunk data through a seeker in the seek test.
+- test(riff): group scenario tests into subtests per function.
+- test(riff): name test results have and want.
+- test(riff): make chunk fixture builders tester.T helpers.
+- test(riff): keep one action under test per When section.
+- test(riff): drop blank lines between assertions on one result.
+- test(riff): wrap test lines over 80 columns.
+- refactor(riff)!: rename SampleLoopCntSize to SampleLoopSize.
+- fix(riff): remove every chunk with the ID in Chunks.Remove.
+- fix(riff): reject fmt extra bytes that do not fit their uint16 length.
+- test(riff): fix lint findings in tests and examples.
+- test(riff): unwrap setup errors with must instead of asserting them.
+- test(riff): assert whole error messages.
+- test(riff): pass the sentinel first to assert.ErrorIs.
+- test(riff): compare the whole result in the Remove order test.
+- fix(riff): report io.ErrUnexpectedEOF when skipping past a short reader.
+- fix(riff): add context to the RIFF ID read error.
+- test(riff): cover remaining error paths and accessors.
+- refactor(riff): drop padding handling for always-even chunk sizes.
+- test(riff): keep LIST sub-chunk readbacks in one assertion group.
+- docs: rework README for the ctx42 module.
+- fix(riff): pool only decoders of registered chunk IDs.
+- fix(riff)!: compute RIFF and LIST sizes from their chunks.
+- fix(riff): reject data over 4 GiB in ChunkDATA.SetData.
+- fix(riff)!: pass Bare options to its default raw decoder.
+- fix(riff): reject RIFF and LIST content over 4 GiB.
+- fix(riff)!: write only the sampler data size to SamplerDataCnt.
+- fix(riff): count truncated skips the same with and without seeking.
+- fix(riff)!: reject a non-zero pad byte after odd-sized chunk data.
+- feat(riff): accept a missing pad byte at the end of input.
+- docs(riff): document the odd RIFF size tolerance.
+- docs: correct the README edit example and options.
+- fix(riff): convert lengths to chunk sizes without wrapping.
+- fix(riff): replace previous content when a chunk is decoded again.
+- test(riff): benchmark decoding and encoding representative files.
+- perf(riff): build chunk names for errors only on the error path.
+- perf(riff): reuse one chunk reader per decoder.
+- perf(riff): decode fixed-size fields without binary.Read.
+- perf(riff)!: pool raw and LIST sub-chunk decoders.
+- perf(riff): encode fixed-size fields without binary.Write.
+- test(riff): guard decoding and encoding allocation budgets.
+- feat(riff): add setters for chunk text, labels, and bodies.
+- fix(riff): encode a modified LIST without WithLoadData.
+- feat(riff): report chunk offsets in RIFF decode errors.
+- docs: show how to set a tag and locate decode errors.
+- ci: run tests on all branches and fuzz weekly.
+
