@@ -770,6 +770,44 @@ func Test_RIFF_ReadFrom_tabular(t *testing.T) {
 	}
 }
 
+func Test_RIFF_ReadFrom_allocs_tabular(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		pth  string
+		opts []OptsFn
+		want float64
+	}{
+		{"kick meta", "testdata/kick.wav", nil, 0},
+		{"bwf meta", "testdata/bwf.wav", nil, 0},
+		{"listinfo meta", "testdata/listinfo.wav", nil, 0},
+		{"flloop meta", "testdata/flloop.wav", nil, 1}, // Sample loops.
+		{"misaligned meta", "testdata/misaligned-chunk.wav", nil, 0},
+		{"kick load", "testdata/kick.wav", []OptsFn{WithLoadData()}, 0},
+		{"bwf load", "testdata/bwf.wav", []OptsFn{WithLoadData()}, 0},
+		{"flloop load", "testdata/flloop.wav", []OptsFn{WithLoadData()}, 1},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			data := must.Value(os.ReadFile(tc.pth))
+			src := bytes.NewReader(data)
+			rif := New(tc.opts...)
+			must.Value(rif.ReadFrom(src)) // Fill the decoder pools.
+
+			// --- When ---
+			have := testing.AllocsPerRun(10, func() {
+				src.Reset(data)
+				_, _ = rif.ReadFrom(src)
+			})
+
+			// --- Then ---
+			assert.Equal(t, tc.want, have)
+		})
+	}
+}
+
 func Test_RIFF_WriteTo(t *testing.T) {
 	t.Run("corrects size", func(t *testing.T) {
 		// --- Given ---
@@ -1026,6 +1064,25 @@ func Test_RIFF_WriteTo_tabular(t *testing.T) {
 			size := int64(RealSize(rif.Size()) + 8)
 			assert.Equal(t, tc.size, size)
 			assert.Equal(t, tc.hash, testkit.SHA1Reader(buf))
+		})
+	}
+}
+
+func Test_RIFF_WriteTo_allocs_tabular(t *testing.T) {
+	for _, pth := range benchFiles {
+		t.Run(filepath.Base(pth), func(t *testing.T) {
+			// --- Given ---
+			data := must.Value(os.ReadFile(pth))
+			rif := New(WithLoadData())
+			must.Value(rif.ReadFrom(bytes.NewReader(data)))
+
+			// --- When ---
+			have := testing.AllocsPerRun(10, func() {
+				_, _ = rif.WriteTo(io.Discard)
+			})
+
+			// --- Then ---
+			assert.Equal(t, float64(0), have)
 		})
 	}
 }
