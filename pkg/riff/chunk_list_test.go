@@ -423,6 +423,34 @@ func Test_ChunkLIST_WriteTo(t *testing.T) {
 		}
 	})
 
+	t.Run("modified without load data", func(t *testing.T) {
+		// --- Given ---
+		sub := INFO(LabINAM)
+		must.Nil(sub.SetText([]byte("ab")))
+
+		ch := LIST(nil)
+		ch.ListType = IDINFO
+		ch.Modify(Chunks{sub})
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := ch.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(24), n)
+		want := []byte{
+			'L', 'I', 'S', 'T', // ID.
+			0x10, 0x0, 0x0, 0x0, // Size.
+			'I', 'N', 'F', 'O', // List type.
+			'I', 'N', 'A', 'M', // Sub-chunk ID.
+			0x3, 0x0, 0x0, 0x0, // Sub-chunk size.
+			'a', 'b', 0x0, // Text.
+			0x0, // Padding.
+		}
+		assert.Equal(t, want, dst.Bytes())
+	})
+
 	t.Run("error - skip data mode", func(t *testing.T) {
 		// --- Given ---
 		ch := LIST(nil)

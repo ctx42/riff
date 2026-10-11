@@ -136,7 +136,8 @@ func (ch *ChunkLIST) errDecode(err error) error {
 }
 
 func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
-	if !ch.opts.LoadData() {
+	// Sub-chunks set by Modify are complete whatever the options.
+	if !ch.borrowed && !ch.opts.LoadData() {
 		return 0, ErrSkipDataMode
 	}
 
@@ -237,8 +238,9 @@ func adtlMake(opts ...OptsFn) IDMaker {
 	}
 }
 
-// Modify replaces the sub-chunks with chs. [ChunkLIST.Reset] drops chs
-// instead of returning them to the registry pool.
+// Modify replaces the sub-chunks with chs. [ChunkLIST.WriteTo] then encodes
+// them also without [WithLoadData], and [ChunkLIST.Reset] drops them instead
+// of returning them to the registry pool.
 func (ch *ChunkLIST) Modify(chs Chunks) {
 	ch.chunks = chs
 	ch.borrowed = true
