@@ -161,6 +161,57 @@ func Test_ReadPaddingIf(t *testing.T) {
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 		assert.Equal(t, int64(0), n)
 	})
+	t.Run("missing at end of chunk reader source", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader(nil))
+
+		// --- When ---
+		n, err := ReadPaddingIf(cr, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), n)
+	})
+
+	t.Run("missing at end of parent chunk reader source", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(NewChunkReader(bytes.NewReader(nil)))
+
+		// --- When ---
+		n, err := ReadPaddingIf(cr, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), n)
+	})
+
+	t.Run("error - missing at chunk reader limit", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader([]byte{0}))
+		cr.setLimit(0)
+
+		// --- When ---
+		n, err := ReadPaddingIf(cr, 3)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, int64(0), n)
+	})
+
+	t.Run("error - missing at parent chunk reader limit", func(t *testing.T) {
+		// --- Given ---
+		pcr := NewChunkReader(bytes.NewReader([]byte{0}))
+		pcr.setLimit(0)
+		cr := NewChunkReader(pcr)
+
+		// --- When ---
+		n, err := ReadPaddingIf(cr, 3)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, int64(0), n)
+	})
+
 	t.Run("error - non-zero pad byte", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewReader([]byte{1})
@@ -172,6 +223,70 @@ func Test_ReadPaddingIf(t *testing.T) {
 		assert.ErrorIs(t, ErrPadByte, err)
 		assert.Equal(t, int64(1), n)
 	})
+}
+
+func Test_discardPaddingIf(t *testing.T) {
+	t.Run("odd size any value", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{0xFF, 1})
+
+		// --- When ---
+		err := discardPaddingIf(src, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, 1, src.Len())
+	})
+
+	t.Run("even size", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{0xFF})
+
+		// --- When ---
+		err := discardPaddingIf(src, 2)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, 1, src.Len())
+	})
+
+	t.Run("error - missing", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader(nil)
+
+		// --- When ---
+		err := discardPaddingIf(src, 3)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
+}
+
+func Test_shortRead_tabular(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		size int64
+		read int64
+		want bool
+	}{
+		{"read all", 8, 8, false},
+		{"read more", 8, 10, false},
+		{"missing final pad", 8, 7, false},
+		{"even read short", 8, 6, true},
+		{"odd read short", 8, 5, true},
+		{"odd size one short", 7, 6, true},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- When ---
+			have := shortRead(tc.size, tc.read)
+
+			// --- Then ---
+			assert.Equal(t, tc.want, have)
+		})
+	}
 }
 
 func Test_WriteIDAndSize(t *testing.T) {

@@ -433,7 +433,7 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		assert.ErrorIs(t, ErrTooLarge, err)
 	})
 
-	t.Run("error - missing padding", func(t *testing.T) {
+	t.Run("missing padding at end of input", func(t *testing.T) {
 		// --- Given ---
 		src := smplWithoutLoopsWithData(t)
 		skip4B(t, src) // Skip chunk ID.
@@ -441,11 +441,11 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		ch := SMPL()
 
 		// --- When ---
-		_, err := ch.ReadFrom(io.LimitReader(src, 43))
+		n, err := ch.ReadFrom(io.LimitReader(src, 43))
 
 		// --- Then ---
-		assert.ErrorEqual(t, "error decoding smpl chunk: unexpected EOF", err)
-		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(43), n)
 	})
 }
 

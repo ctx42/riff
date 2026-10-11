@@ -198,6 +198,19 @@ its ID, as in [Decode only selected chunks](#decode-only-selected-chunks).
 They are decoded and encoded by `ChunkRAWC`. Decode with `WithLoadData` to
 keep their bodies so a decode, edit, encode round trip preserves them.
 
+### How strict is the decoder?
+
+It follows the RIFF specification ([doc/riffmci.pdf](doc/riffmci.pdf)) and
+rejects input that breaks it, such as a pad byte that is not zero. It
+tolerates these deviations, which some encoders write:
+
+- **Missing final pad byte**: odd-sized chunk data is followed by a zero pad
+  byte. When the input ends right after the data of the last chunk, also
+  inside a LIST, the missing pad byte is accepted. A pad byte missing
+  anywhere else is an error.
+
+`WriteTo` always writes a conforming file, with every pad byte.
+
 ## License
 
 `riff` is released under the [MIT License](LICENSE.md).

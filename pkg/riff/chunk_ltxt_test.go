@@ -194,7 +194,23 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 	})
 
-	t.Run("error - missing padding", func(t *testing.T) {
+	t.Run("error - non-zero padding", func(t *testing.T) {
+		// --- Given ---
+		data := must.Value(io.ReadAll(ltxtChunkTextLenOdd(t)))
+		data[len(data)-1] = 1
+
+		ch := LTXT()
+
+		// --- When ---
+		_, err := ch.ReadFrom(bytes.NewReader(data[4:]))
+
+		// --- Then ---
+		want := "error decoding adtl:ltxt chunk: non-zero pad byte"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, ErrPadByte, err)
+	})
+
+	t.Run("missing padding at end of input", func(t *testing.T) {
 		// --- Given ---
 		src := ltxtChunkTextLenOdd(t)
 		skip4B(t, src) // Skip chunk ID.
@@ -202,12 +218,11 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 		ch := LTXT()
 
 		// --- When ---
-		_, err := ch.ReadFrom(io.LimitReader(src, 27))
+		n, err := ch.ReadFrom(io.LimitReader(src, 27))
 
 		// --- Then ---
-		want := "error decoding adtl:ltxt chunk: unexpected EOF"
-		assert.ErrorEqual(t, want, err)
-		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(27), n)
 	})
 }
 

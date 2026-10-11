@@ -169,6 +169,16 @@ func (rif *RIFF) IsRegistered(id uint32) bool {
 }
 
 // ReadFrom resets the instance and decodes a RIFF file from r.
+//
+// Decoding follows the RIFF specification strictly, except for these
+// deviations, written by some encoders, which it tolerates:
+//
+//   - A missing pad byte after the final chunk. The specification writes a
+//     zero pad byte after odd-sized chunk data. When the input ends right
+//     after the data of the last chunk, also inside a LIST, the missing byte
+//     is accepted. A pad byte missing anywhere else is an error.
+//
+// [RIFF.WriteTo] always writes a conforming file, with every pad byte.
 func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	rif.Reset()
 
@@ -221,7 +231,8 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	}
 	readSize := uint32(cr.Count() - 8)
 
-	if !rif.opts.IgnoreDeclaredSize() && size > readSize {
+	ignore := rif.opts.IgnoreDeclaredSize()
+	if !ignore && shortRead(int64(size), int64(readSize)) {
 		return cr.Count(), fmt.Errorf(
 			"RIFF declared %d bytes, decoder read %d bytes: %w",
 			size,

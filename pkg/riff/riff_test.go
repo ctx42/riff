@@ -468,6 +468,77 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		assert.ErrorIs(t, ErrTooLarge, err)
 	})
 
+	t.Run("missing final pad re-encodes with pad", func(t *testing.T) {
+		// --- Given ---
+		want := kitchenSink(t)
+		rif := New(WithLoadData())
+		must.Value(rif.ReadFrom(bytes.NewReader(want[:len(want)-1])))
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		_, err := rif.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, want, dst.Bytes())
+	})
+
+	t.Run("missing final pad in last list", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4+8+16)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32BE(t, src, IDLIST)
+		writeUint32LE(t, src, 4+8+3+1)
+		writeUint32BE(t, src, IDINFO)
+		writeUint32BE(t, src, LabIART)
+		writeUint32LE(t, src, 3)
+		writeBytes(t, src, []byte{'a', 'b', 0}) // No pad byte.
+
+		rif := New()
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(35), n)
+		assert.Equal(t, uint32(28), rif.Size())
+	})
+
+	t.Run("error - missing pad mid-file", func(t *testing.T) {
+		// --- Given ---
+		data := kitchenSink(t)
+		data = append(data[:215:215], data[216:]...) // Drop raw pad byte.
+		le.PutUint32(data[4:], 219)
+
+		rif := New(WithLoadData())
+
+		// --- When ---
+		_, err := rif.ReadFrom(bytes.NewReader(data))
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrPadByte, err)
+	})
+
+	t.Run("error - missing final pad and more", func(t *testing.T) {
+		// --- Given ---
+		data := kitchenSink(t)
+		data = data[:len(data)-1] // Drop the data chunk pad byte.
+		le.PutUint32(data[4:], 222)
+
+		rif := New(WithLoadData())
+
+		// --- When ---
+		_, err := rif.ReadFrom(bytes.NewReader(data))
+
+		// --- Then ---
+		want := "RIFF declared 222 bytes, decoder read 219 bytes: " +
+			"unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+	})
+
 	t.Run("reuse - sub-chunk decoder of other list type", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
@@ -518,6 +589,48 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		assert.NoError(t, err)
 		assert.SameType(t, &ChunkRAWC{}, rif.Chunks().First(LabIART))
 	})
+}
+
+func Test_RIFF_ReadFrom_missingFinalPad_tabular(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		size uint32 // Declared RIFF size.
+		opts OptsFn // Decoding options.
+		seek bool   // Source implements io.Seeker.
+	}{
+		{"pad counted load data", 220, WithLoadData(), true},
+		{"pad counted skip seeker", 220, WithOpts(Opts{}), true},
+		{"pad counted skip no seeker", 220, WithOpts(Opts{}), false},
+		{"pad not counted load data", 219, WithLoadData(), true},
+		{"pad not counted skip seeker", 219, WithOpts(Opts{}), true},
+		{"pad not counted skip no seeker", 219, WithOpts(Opts{}), false},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			data := kitchenSink(t)
+			data = data[:len(data)-1] // Drop the data chunk pad byte.
+			le.PutUint32(data[4:], tc.size)
+
+			var src io.Reader = bytes.NewReader(data)
+			if !tc.seek {
+				src = nonSeeker{src}
+			}
+
+			rif := New(tc.opts)
+
+			// --- When ---
+			n, err := rif.ReadFrom(src)
+
+			// --- Then ---
+			assert.NoError(t, err)
+			assert.Equal(t, int64(227), n)
+			assert.Equal(t, uint32(220), rif.Size())
+			assert.Len(t, 6, rif.Chunks())
+		})
+	}
 }
 
 func Test_RIFF_ReadFrom_padByte_tabular(t *testing.T) {

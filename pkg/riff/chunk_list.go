@@ -90,17 +90,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	}
 	name := linkids(IDLIST, ch.ListType)
 
-	var mkr IDMaker
-	switch ch.ListType {
-	case IDINFO:
-		mkr = INFOMake(WithOpts(ch.opts))
-
-	case IDadtl:
-		mkr = adtlMake(WithOpts(ch.opts))
-
-	default:
-		mkr = RAWCMake(WithOpts(ch.opts))
-	}
+	mkr := ch.subMaker()
 
 	// Decode sub-chunks until all bytes declared in size are read.
 	for cr.Count()-4 < int64(size) {
@@ -121,10 +111,19 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 			return cr.Count(), fmt.Errorf(errFmtDecode, sub, err)
 		}
 		ch.chunks = append(ch.chunks, dec)
+
+		// Sub-chunks take an even number of bytes, so an odd count means the
+		// input ended without the final padding byte.
+		if (cr.Count()-4)%2 != 0 {
+			break
+		}
 	}
 
 	if cr.Count()-4 > int64(size) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrChunkSizeMismatch)
+	}
+	if shortRead(int64(size), cr.Count()-4) {
+		return cr.Count(), fmt.Errorf(errFmtDecode, name, io.ErrUnexpectedEOF)
 	}
 
 	return cr.Count(), nil
@@ -182,6 +181,21 @@ func (ch *ChunkLIST) registry() *Registry {
 		ch.reg = NewRegistry(RAWCMake(WithOpts(ch.opts)))
 	}
 	return ch.reg
+}
+
+// subMaker returns the maker of sub-chunk decoders for the list type, used for
+// IDs without a registered decoder.
+func (ch *ChunkLIST) subMaker() IDMaker {
+	switch ch.ListType {
+	case IDINFO:
+		return INFOMake(WithOpts(ch.opts))
+
+	case IDadtl:
+		return adtlMake(WithOpts(ch.opts))
+
+	default:
+		return RAWCMake(WithOpts(ch.opts))
+	}
 }
 
 // adtlMake returns an [IDMaker] creating decoders for sub-chunks of the

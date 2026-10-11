@@ -116,6 +116,7 @@ type ChunkReader struct {
 	rdr    io.Reader // Main reader (may have limit).
 	cnt    int64     // Number of read bytes from reader.
 	offset int64     // Shift added to the value Count returns.
+	srcEOF bool      // Read hit the end of the source, not of a limit.
 }
 
 // NewChunkReader returns a [ChunkReader] reading from r.
@@ -136,7 +137,23 @@ func (cr *ChunkReader) setLimit(n int64) {
 func (cr *ChunkReader) Read(p []byte) (n int, err error) {
 	n, err = cr.rdr.Read(p)
 	cr.cnt += int64(n)
+	if err == io.EOF {
+		cr.srcEOF = cr.eofFromSource()
+	}
 	return n, err
+}
+
+// eofFromSource reports whether an [io.EOF] returned by the main reader came
+// from the end of the source input rather than from a limit, of this or of
+// a parent [ChunkReader].
+func (cr *ChunkReader) eofFromSource() bool {
+	if lr, ok := cr.rdr.(*io.LimitedReader); ok && lr.N <= 0 {
+		return false
+	}
+	if pcr, ok := cr.src.(*ChunkReader); ok {
+		return pcr.srcEOF
+	}
+	return true
 }
 
 // SkipN skips n bytes. When the source implements [io.Seeker], SkipN seeks and
@@ -150,11 +167,20 @@ func (cr *ChunkReader) SkipN(n uint32) error {
 }
 
 // skipBody skips a chunk body of size bytes and its padding byte. It returns
-// [ErrPadByte] when the padding byte is not zero.
+// [ErrPadByte] when the padding byte is not zero. A padding byte missing
+// because the input ends right after the body is tolerated.
 func (cr *ChunkReader) skipBody(size uint32) error {
-	_, last, err := cr.skipN(int64(RealSize(size)))
-	if err == nil && size%2 != 0 && last != 0 {
+	num := int64(RealSize(size))
+	m, last, err := cr.skipN(num)
+	if size%2 == 0 {
+		return err
+	}
+	if err == nil && last != 0 {
 		return ErrPadByte
+	}
+	// Every limit allowed num bytes, so the source ended after the body.
+	if errors.Is(err, io.ErrUnexpectedEOF) && m == num-1 {
+		return nil
 	}
 	return err
 }

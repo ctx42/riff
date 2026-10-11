@@ -236,8 +236,9 @@ func Test_ChunkDATA_ReadFrom(t *testing.T) {
 	})
 
 	t.Run("error - truncated input", func(t *testing.T) {
-		// Reading less than 20 bytes should always result in an error.
-		for i := 1; i < 20; i++ {
+		// Reading less than 19 bytes, all but the padding byte, should always
+		// result in an error.
+		for i := 1; i < 19; i++ {
 			// --- Given ---
 			src := dataChunkOdd(t)
 			skip4B(t, src) // Skip chunk ID.

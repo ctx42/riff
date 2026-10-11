@@ -144,7 +144,7 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 		assert.True(t, after.TotalAlloc-before.TotalAlloc < 1<<20)
 	})
 
-	t.Run("error - missing padding", func(t *testing.T) {
+	t.Run("missing padding at end of input", func(t *testing.T) {
 		// --- Given ---
 		src := infoChunkTextLenOdd(t)
 		skip4B(t, src) // Skip chunk ID.
@@ -152,12 +152,11 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 		ch := INFO(LabIART)
 
 		// --- When ---
-		_, err := ch.ReadFrom(io.LimitReader(src, 7))
+		n, err := ch.ReadFrom(io.LimitReader(src, 7))
 
 		// --- Then ---
-		want := "error decoding INFO:IART chunk: unexpected EOF"
-		assert.ErrorEqual(t, want, err)
-		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(7), n)
 	})
 }
 

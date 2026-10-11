@@ -46,7 +46,9 @@ func RealSize(size uint32) uint32 {
 
 // ReadPaddingIf reads the padding byte from r when size is odd. It returns the
 // number of bytes read, [io.ErrUnexpectedEOF] when the padding byte is
-// missing, and [ErrPadByte] when it is not zero.
+// missing, and [ErrPadByte] when it is not zero. When r is a [ChunkReader]
+// whose source input ends where the padding byte should be, the missing byte
+// is tolerated: no bytes are read and no error is returned.
 func ReadPaddingIf(r io.Reader, size uint32) (int64, error) {
 	if size%2 == 0 {
 		return 0, nil
@@ -54,6 +56,9 @@ func ReadPaddingIf(r io.Reader, size uint32) (int64, error) {
 
 	var pad [1]byte
 	if _, err := io.ReadFull(r, pad[:]); err != nil {
+		if cr, ok := r.(*ChunkReader); ok && err == io.EOF && cr.srcEOF {
+			return 0, nil
+		}
 		if errors.Is(err, io.EOF) {
 			err = io.ErrUnexpectedEOF
 		}
@@ -79,6 +84,14 @@ func discardPaddingIf(r io.Reader, size uint32) error {
 		return err
 	}
 	return nil
+}
+
+// shortRead reports whether read bytes of chunk content fall short of the
+// declared size. Chunks take an even number of bytes, so an odd read one byte
+// short of size means the input ended without the final padding byte, which
+// is tolerated.
+func shortRead(size, read int64) bool {
+	return read < size && (read%2 == 0 || read+1 != size)
 }
 
 // WriteIDAndSize writes the chunk id (big endian) and size (little endian)

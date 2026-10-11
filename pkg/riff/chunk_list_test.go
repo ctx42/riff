@@ -108,6 +108,45 @@ func Test_ChunkLIST_Size(t *testing.T) {
 }
 
 func Test_ChunkLIST_ReadFrom(t *testing.T) {
+	t.Run("missing final padding at end of input", func(t *testing.T) {
+		// --- Given ---
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 4+8+3+1)          // Chunk size.
+		writeUint32BE(t, src, IDINFO)           // List type.
+		writeUint32BE(t, src, LabIART)          // Sub-chunk ID.
+		writeUint32LE(t, src, 3)                // Sub-chunk size.
+		writeBytes(t, src, []byte{'a', 'b', 0}) // Text, no padding byte.
+
+		ch := LIST(nil)
+
+		// --- When ---
+		n, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(19), n)
+		assert.Equal(t, uint32(16), ch.Size())
+	})
+
+	t.Run("error - input ends before declared size", func(t *testing.T) {
+		// --- Given ---
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 4+8+3+1+8)        // Chunk size.
+		writeUint32BE(t, src, IDINFO)           // List type.
+		writeUint32BE(t, src, LabIART)          // Sub-chunk ID.
+		writeUint32LE(t, src, 3)                // Sub-chunk size.
+		writeBytes(t, src, []byte{'a', 'b', 0}) // Text, no padding byte.
+
+		ch := LIST(nil)
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		want := "error decoding LIST:INFO chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
 	t.Run("INFO list", func(t *testing.T) {
 		// --- Given ---
 		reg := NewRegistry(RAWCMake(WithLoadData()))
@@ -433,6 +472,33 @@ func Test_ChunkLIST_Reset(t *testing.T) {
 		// --- Then ---
 		assert.Nil(t, reg.GetNoRaw(LabIART))
 	})
+}
+
+func Test_ChunkLIST_subMaker_tabular(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		typ  uint32
+		want Chunk
+	}{
+		{"INFO", IDINFO, &ChunkINFO{}},
+		{"adtl", IDadtl, &ChunkLABL{}},
+		{"other", IDUNKN, &ChunkRAWC{}},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			ch := LIST(nil)
+			ch.ListType = tc.typ
+
+			// --- When ---
+			have := ch.subMaker()
+
+			// --- Then ---
+			assert.SameType(t, tc.want, have(IDlabl))
+		})
+	}
 }
 
 func Test_adtlMake_tabular(t *testing.T) {

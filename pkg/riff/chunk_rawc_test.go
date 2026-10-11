@@ -125,7 +125,7 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		assert.Equal(t, int64(8), n)
 	})
 
-	t.Run("error - reading padding", func(t *testing.T) {
+	t.Run("missing padding at end of input", func(t *testing.T) {
 		// --- Given ---
 		src := &bytes.Buffer{}
 		writeUint32LE(t, src, 3)         // Chunk size (4).
@@ -136,9 +136,7 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 		n, err := ch.ReadFrom(src)
 
 		// --- Then ---
-		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
-		want := "error decoding RAWC:ABCD chunk: unexpected EOF"
-		assert.ErrorEqual(t, want, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(7), n)
 	})
 
