@@ -777,7 +777,7 @@ func Test_RIFF_WriteTo_tabular(t *testing.T) {
 		{
 			"testdata/flloop.wav",
 			434838,
-			"d12b046588af5475d846dd4a72f957cf03a33591",
+			"673928ba8a28bced469c35bc64c26530b89b91b7",
 		},
 		{
 			"testdata/junkKick.wav",

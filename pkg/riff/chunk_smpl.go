@@ -98,10 +98,10 @@ type smplStatic struct {
 	// sample loops follow.
 	SampleLoopCnt uint32
 
-	// The sampler data value specifies the number of bytes that will follow
-	// this chunk (including the entire sample loop list). This value is
-	// greater than 0 when an application needs to save additional
-	// information. This value is reflected in this chunk data size value.
+	// The sampler data value specifies the size in bytes of the optional
+	// sampler specific data that follows the sample loops; it is 0 when there
+	// is none. Decoding reads the sampler data by the chunk size instead, and
+	// encoding sets the value from the sampler data.
 	SamplerDataCnt uint32
 }
 
@@ -209,8 +209,7 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 	size := ch.Size()
 
 	ch.SampleLoopCnt = uint32(len(ch.SampleLoops))
-	ch.SamplerDataCnt = ch.SampleLoopCnt*SampleLoopSize +
-		uint32(len(ch.sampleData))
+	ch.SamplerDataCnt = uint32(len(ch.sampleData))
 
 	n, err := WriteIDAndSize(w, IDsmpl, size)
 	sum += n

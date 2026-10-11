@@ -65,7 +65,7 @@ func smplWithLoopsNoData(t tester.T) io.Reader {
 	writeUint32LE(t, src, 6)      // (28) 4 - SMPTEFormat
 	writeUint32LE(t, src, 7)      // (32) 4 - SMPTEOffset
 	writeUint32LE(t, src, 1)      // (36) 4 - SampleLoopCnt
-	writeUint32LE(t, src, 24)     // (40) 4 - SamplerData
+	writeUint32LE(t, src, 0)      // (40) 4 - SamplerData
 	writeUint32LE(t, src, 9)      // (44) 4 - CuePointID
 	writeUint32LE(t, src, 10)     // (48) 4 - Type
 	writeUint32LE(t, src, 11)     // (52) 4 - Start
@@ -89,7 +89,7 @@ func smplWithLoopsWithData(t tester.T) io.Reader {
 	writeUint32LE(t, src, 6)            // (28) 4 - SMPTEFormat
 	writeUint32LE(t, src, 7)            // (32) 4 - SMPTEOffset
 	writeUint32LE(t, src, 1)            // (36) 4 - SampleLoopCnt
-	writeUint32LE(t, src, 27)           // (40) 4 - SamplerData
+	writeUint32LE(t, src, 3)            // (40) 4 - SamplerData
 	writeUint32LE(t, src, 9)            // (44) 4 - CuePointID
 	writeUint32LE(t, src, 10)           // (48) 4 - Type
 	writeUint32LE(t, src, 11)           // (52) 4 - Start
@@ -255,7 +255,7 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(6), ch.SMPTEFormat)
 		assert.Equal(t, uint32(7), ch.SMPTEOffset)
 		assert.Equal(t, uint32(1), ch.SampleLoopCnt)
-		assert.Equal(t, uint32(24), ch.SamplerDataCnt)
+		assert.Equal(t, uint32(0), ch.SamplerDataCnt)
 		assert.Len(t, 1, ch.SampleLoops)
 		assert.Equal(t, uint32(9), ch.SampleLoops[0].CuePointID)
 		assert.Equal(t, uint32(10), ch.SampleLoops[0].Type)
@@ -289,7 +289,7 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(6), ch.SMPTEFormat)
 		assert.Equal(t, uint32(7), ch.SMPTEOffset)
 		assert.Equal(t, uint32(1), ch.SampleLoopCnt)
-		assert.Equal(t, uint32(27), ch.SamplerDataCnt)
+		assert.Equal(t, uint32(3), ch.SamplerDataCnt)
 		assert.Len(t, 1, ch.SampleLoops)
 		assert.Equal(t, uint32(9), ch.SampleLoops[0].CuePointID)
 		assert.Equal(t, uint32(10), ch.SampleLoops[0].Type)
