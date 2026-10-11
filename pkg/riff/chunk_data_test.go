@@ -133,8 +133,10 @@ func Test_ChunkDATA_SetData(t *testing.T) {
 		// --- Given ---
 		ch := DATA(WithLoadData())
 
-		// Fresh zero pages from the OS; never touched, so never resident.
-		data := make([]byte, uint64(math.MaxUint32)+1)
+		// Fresh zero pages from the OS; never touched, so never resident. The
+		// length is a variable so the file still compiles where int is 32-bit.
+		n := uint64(math.MaxUint32) + 1
+		data := make([]byte, n)
 
 		// --- When ---
 		err := ch.SetData(data)

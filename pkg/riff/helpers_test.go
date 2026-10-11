@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
@@ -259,6 +260,31 @@ func Test_discardPaddingIf(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+	})
+}
+
+func Test_size32(t *testing.T) {
+	t.Run("fits", func(t *testing.T) {
+		// --- When ---
+		have := size32(7)
+
+		// --- Then ---
+		assert.Equal(t, uint32(7), have)
+	})
+
+	t.Run("over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		n := uint64(math.MaxUint32) + 1
+
+		// --- When ---
+		have := size32(int(n))
+
+		// --- Then ---
+		assert.Equal(t, uint32(math.MaxUint32), have)
 	})
 }
 

@@ -101,7 +101,7 @@ func (ch *ChunkRAWC) WriteTo(w io.Writer) (int64, error) {
 
 	var sum int64
 
-	n, err := WriteIDAndSize(w, ch.id, uint32(len(ch.data)))
+	n, err := WriteIDAndSize(w, ch.id, ch.size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(idRAWC, ch.id), err)

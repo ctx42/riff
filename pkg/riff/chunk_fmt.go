@@ -95,7 +95,7 @@ func (ch *ChunkFMT) Size() uint32 {
 	size := FMTChunkSize
 	if len(ch.extra) > 0 || ch.WriteZeroExtra {
 		// Add two bytes for the extra format bytes size.
-		size += 2 + RealSize(uint32(len(ch.extra)))
+		size += 2 + RealSize(size32(len(ch.extra)))
 	}
 	return size
 }

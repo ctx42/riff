@@ -229,10 +229,11 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	}
 	// EOF reached. With ignored sizes nothing limits the input, but a RIFF
 	// size is a 32-bit value.
-	if cr.Count()-8 > math.MaxUint32 {
+	read := cr.Count() - 8
+	if read < 0 || read > math.MaxUint32 {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDRIFF), ErrTooLarge)
 	}
-	readSize := uint32(cr.Count() - 8)
+	readSize := uint32(read)
 
 	ignore := rif.opts.IgnoreDeclaredSize()
 	if !ignore && shortRead(int64(size), int64(readSize)) {

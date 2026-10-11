@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"math"
 	"slices"
 )
 
@@ -84,6 +85,17 @@ func discardPaddingIf(r io.Reader, size uint32) error {
 		return err
 	}
 	return nil
+}
+
+// size32 returns the length n as a chunk size, capped at [math.MaxUint32] so
+// a length that does not fit cannot wrap to a small size. Encoders reject a
+// chunk that large with [ErrTooLarge].
+func size32(n int) uint32 {
+	n64 := int64(n)
+	if n64 < 0 || n64 > math.MaxUint32 {
+		return math.MaxUint32
+	}
+	return uint32(n64)
 }
 
 // shortRead reports whether read bytes of chunk content fall short of the

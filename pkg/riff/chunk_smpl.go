@@ -148,8 +148,8 @@ func (ch *ChunkSMPL) Raw() bool      { return false }
 // Size returns the chunk size computed from its current content.
 func (ch *ChunkSMPL) Size() uint32 {
 	return SMPLChunkSize +
-		uint32(len(ch.SampleLoops))*SampleLoopSize +
-		uint32(len(ch.sampleData))
+		size32(len(ch.SampleLoops))*SampleLoopSize +
+		size32(len(ch.sampleData))
 }
 
 // SamplerData returns a reader for the sampler-specific data.
@@ -208,8 +208,8 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 
 	size := ch.Size()
 
-	ch.SampleLoopCnt = uint32(len(ch.SampleLoops))
-	ch.SamplerDataCnt = uint32(len(ch.sampleData))
+	ch.SampleLoopCnt = size32(len(ch.SampleLoops))
+	ch.SamplerDataCnt = size32(len(ch.sampleData))
 
 	n, err := WriteIDAndSize(w, IDsmpl, size)
 	sum += n
