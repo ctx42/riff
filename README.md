@@ -115,7 +115,9 @@ func main() {
 	if chi == nil {
 		log.Fatal("no fmt chunk")
 	}
-	chi.(*riff.ChunkFMT).SampleRate = 44100
+	fch := chi.(*riff.ChunkFMT)
+	fch.SampleRate = 44100
+	fch.AvgByteRate = fch.SampleRate * uint32(fch.BlockAlign)
 
 	dst, err := os.Create("edited.wav")
 	if err != nil {
@@ -169,13 +171,16 @@ func main() {
 
 ### Options
 
-Pass options to `New`, `Bare`, or a chunk maker such as `RAWCMake`.
+Pass options to `New`, `Bare`, or a chunk maker such as `RAWCMake`. With a
+registry, `Bare` applies them to the RIFF chunk only; the registry's decoders
+take their options from their makers. `Bare(nil, ...)` also passes them to its
+raw chunk decoder.
 
-| Option             | Effect                                                  |
-|--------------------|---------------------------------------------------------|
-| `WithLoadData()`   | Load chunk bodies; required to write a file back.       |
-| `WithSizeLimit(n)` | Reject chunks larger than `n` bytes with `ErrTooLarge`. |
-| `WithIgnoreSize()` | Read past declared chunk sizes; correct the RIFF size.  |
+| Option             | Effect                                                |
+|--------------------|-------------------------------------------------------|
+| `WithLoadData()`   | Load chunk bodies; required to write a file back.     |
+| `WithSizeLimit(n)` | `ErrTooLarge` for any chunk over `n` bytes, RIFF too. |
+| `WithIgnoreSize()` | Read past declared sizes; skip the RIFF size check.   |
 
 ## FAQ
 
