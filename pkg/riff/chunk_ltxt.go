@@ -73,6 +73,9 @@ type ChunkLTXT struct {
 	// chunk's chunk size field.
 	text []byte
 
+	// Reader of the chunk content, reused across decodes.
+	cr ChunkReader
+
 	// Chunk processing options.
 	opts Opts
 }
@@ -104,7 +107,8 @@ func (ch *ChunkLTXT) Text() io.Reader {
 }
 
 func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
-	cr, size, err := ch.opts.ChunkReader(r)
+	cr := &ch.cr
+	size, err := ch.opts.startChunk(cr, r)
 	if err != nil {
 		return 0, ch.errDecode(err)
 	}

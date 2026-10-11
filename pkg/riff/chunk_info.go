@@ -141,6 +141,9 @@ type ChunkINFO struct {
 	// Label text.
 	text []byte
 
+	// Reader of the chunk content, reused across decodes.
+	cr ChunkReader
+
 	// Chunk processing options.
 	opts Opts
 }
@@ -173,7 +176,8 @@ func (ch *ChunkINFO) Text() io.Reader {
 }
 
 func (ch *ChunkINFO) ReadFrom(r io.Reader) (int64, error) {
-	cr, size, err := ch.opts.ChunkReader(r)
+	cr := &ch.cr
+	size, err := ch.opts.startChunk(cr, r)
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, linkids(IDINFO, ch.id), err)
 	}

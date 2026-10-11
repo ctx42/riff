@@ -121,6 +121,9 @@ type ChunkSMPL struct {
 	// Optional sampler-specific data.
 	sampleData []byte
 
+	// Reader of the chunk content, reused across decodes.
+	cr ChunkReader
+
 	// Chunk processing options.
 	opts Opts
 }
@@ -160,7 +163,8 @@ func (ch *ChunkSMPL) SamplerData() io.Reader {
 func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 	ch.Reset() // Decoding replaces any previous content.
 
-	cr, size, err := ch.opts.ChunkReader(r)
+	cr := &ch.cr
+	size, err := ch.opts.startChunk(cr, r)
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 	}

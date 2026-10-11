@@ -83,20 +83,31 @@ func NewOpts(fns ...OptsFn) Opts {
 // options, and returns the reader for the chunk content along with the size.
 // It returns [ErrTooLarge] when the size exceeds the limit or cannot be padded.
 func (opt *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
+	cr := &ChunkReader{}
+	size, err := opt.startChunk(cr, r)
+	if err != nil {
+		return nil, 0, err
+	}
+	return cr, size, nil
+}
+
+// startChunk works like [Opts.ChunkReader] but sets up cr instead of
+// allocating a reader, so a decoder can reuse its reader for every chunk.
+func (opt *Opts) startChunk(cr *ChunkReader, r io.Reader) (uint32, error) {
 	var size uint32
 	if err := binary.Read(r, le, &size); err != nil {
-		return nil, 0, err
+		return 0, err
 	}
 
 	// The padded size of an odd chunk at the uint32 maximum overflows.
 	if size == math.MaxUint32 {
-		return nil, 0, ErrTooLarge
+		return 0, ErrTooLarge
 	}
 	if opt.sizeLimit != 0 && opt.sizeLimit < RealSize(size) {
-		return nil, 0, ErrTooLarge
+		return 0, ErrTooLarge
 	}
 
-	cr := NewChunkReader(r)
+	*cr = ChunkReader{src: r, rdr: r}
 	cr.setOffset(4) // Already read chunk size.
 
 	if !opt.IgnoreDeclaredSize() {
@@ -106,17 +117,18 @@ func (opt *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
 		cr.setLimit(int64(opt.sizeLimit))
 	}
 
-	return cr, size, nil
+	return size, nil
 }
 
 // ChunkReader wraps an [io.Reader], counts the bytes read, and limits how many
 // can be read.
 type ChunkReader struct {
-	src    io.Reader // Original reader (may implement io.Seeker).
-	rdr    io.Reader // Main reader (may have limit).
-	cnt    int64     // Number of read bytes from reader.
-	offset int64     // Shift added to the value Count returns.
-	srcEOF bool      // Read hit the end of the source, not of a limit.
+	src    io.Reader        // Original reader (may implement io.Seeker).
+	rdr    io.Reader        // Main reader (src or lim).
+	lim    io.LimitedReader // Limit on src, kept inline to save an allocation.
+	cnt    int64            // Number of read bytes from reader.
+	offset int64            // Shift added to the value Count returns.
+	srcEOF bool             // Read hit the end of the source, not of a limit.
 }
 
 // NewChunkReader returns a [ChunkReader] reading from r.
@@ -131,7 +143,8 @@ func (cr *ChunkReader) setOffset(n int) {
 
 // setLimit limits the number of bytes that can be read to n.
 func (cr *ChunkReader) setLimit(n int64) {
-	cr.rdr = io.LimitReader(cr.src, n)
+	cr.lim = io.LimitedReader{R: cr.src, N: n}
+	cr.rdr = &cr.lim
 }
 
 func (cr *ChunkReader) Read(p []byte) (n int, err error) {

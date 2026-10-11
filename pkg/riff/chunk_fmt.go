@@ -80,6 +80,9 @@ type ChunkFMT struct {
 	// controls this behavior. When set to true, the zero size will be written.
 	WriteZeroExtra bool
 
+	// Reader of the chunk content, reused across decodes.
+	cr ChunkReader
+
 	// Chunk processing options.
 	opts Opts
 }
@@ -140,7 +143,8 @@ func (ch *ChunkFMT) Duration(ds uint32) time.Duration {
 func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 	ch.Reset() // Decoding replaces any previous content.
 
-	cr, size, err := ch.opts.ChunkReader(r)
+	cr := &ch.cr
+	size, err := ch.opts.startChunk(cr, r)
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 	}

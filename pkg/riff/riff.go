@@ -108,6 +108,9 @@ type RIFF struct {
 	// overwrites them.
 	borrowed bool
 
+	// Reader of the chunk content, reused across decodes.
+	cr ChunkReader
+
 	// Main chunk processing options.
 	opts Opts
 }
@@ -197,7 +200,8 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 		return 4, ErrNotRIFF
 	}
 
-	cr, size, err := rif.opts.ChunkReader(r)
+	cr := &rif.cr
+	size, err := rif.opts.startChunk(cr, r)
 	if err != nil {
 		return 4, fmt.Errorf(errFmtDecode, Uint32(IDRIFF), err)
 	}

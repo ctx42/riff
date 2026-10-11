@@ -26,6 +26,9 @@ type ChunkDATA struct {
 	// Buffer the chunk data is read into.
 	data []byte
 
+	// Reader of the chunk content, reused across decodes.
+	cr ChunkReader
+
 	// Chunk processing options.
 	opts Opts
 }
@@ -92,7 +95,8 @@ func (ch *ChunkDATA) Duration(abr uint32) time.Duration {
 }
 
 func (ch *ChunkDATA) ReadFrom(r io.Reader) (int64, error) {
-	cr, size, err := ch.opts.ChunkReader(r)
+	cr := &ch.cr
+	size, err := ch.opts.startChunk(cr, r)
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, Uint32(IDdata), err)
 	}

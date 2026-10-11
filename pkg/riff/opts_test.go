@@ -291,6 +291,42 @@ func Test_Opts_ChunkReader(t *testing.T) {
 	})
 }
 
+func Test_Opts_startChunk(t *testing.T) {
+	t.Run("resets a reused reader", func(t *testing.T) {
+		// --- Given ---
+		opts := NewOpts()
+		cr := NewChunkReader(bytes.NewReader(nil))
+		_, _ = cr.Read(make([]byte, 1)) // Sets the end of source flag.
+
+		src := &bytes.Buffer{}
+		writeUint32LE(t, src, 2)
+		writeBytes(t, src, []byte{1, 2, 3})
+
+		// --- When ---
+		size, err := opts.startChunk(cr, src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(2), size)
+		assert.Equal(t, int64(4), cr.Count())
+		assert.False(t, cr.srcEOF)
+		assert.Equal(t, []byte{1, 2}, must.Value(io.ReadAll(cr)))
+	})
+
+	t.Run("error - reading size", func(t *testing.T) {
+		// --- Given ---
+		opts := NewOpts()
+		cr := &ChunkReader{}
+
+		// --- When ---
+		size, err := opts.startChunk(cr, bytes.NewReader([]byte{1}))
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, uint32(0), size)
+	})
+}
+
 func Test_ChunkReader_SkipN(t *testing.T) {
 	t.Run("no seeker skips by reading", func(t *testing.T) {
 		// --- Given ---
