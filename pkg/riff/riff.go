@@ -192,15 +192,16 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	var err error
 	var id uint32
 
-	if err = ReadChunkID(r, &id); err != nil {
+	cr := &rif.cr
+	if _, err = io.ReadFull(r, cr.buf[:4]); err != nil {
 		return 0, fmt.Errorf(errFmtDecode, Uint32(IDRIFF), err)
 	}
+	id = be.Uint32(cr.buf[:4])
 
 	if id != IDRIFF {
 		return 4, ErrNotRIFF
 	}
 
-	cr := &rif.cr
 	size, err := rif.opts.startChunk(cr, r)
 	if err != nil {
 		return 4, fmt.Errorf(errFmtDecode, Uint32(IDRIFF), err)
@@ -210,12 +211,12 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	// An odd RIFF size is tolerated and rounded up (see the godoc).
 	size = RealSize(size)
 
-	if err = binary.Read(cr, be, &rif.riffType); err != nil {
+	if rif.riffType, err = cr.readUint32BE(); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDRIFF), err)
 	}
 
 	for {
-		if err = ReadChunkID(cr, &id); err != nil {
+		if id, err = cr.readUint32BE(); err != nil {
 			if !errors.Is(err, io.EOF) {
 				return cr.Count(), fmt.Errorf(
 					errFmtReadingRIFF,

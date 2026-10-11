@@ -647,3 +647,108 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 		assert.Equal(t, int64(12), cr.Count())
 	})
 }
+
+func Test_ChunkReader_readFull(t *testing.T) {
+	t.Run("read", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader([]byte{1, 2, 3}))
+
+		// --- When ---
+		have, err := cr.readFull(2)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{1, 2}, have)
+		assert.Same(t, &cr.buf[0], &have[0])
+	})
+
+	t.Run("error - short input", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader([]byte{1}))
+
+		// --- When ---
+		have, err := cr.readFull(2)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Nil(t, have)
+	})
+}
+
+func Test_ChunkReader_readUint32BE(t *testing.T) {
+	t.Run("read", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader([]byte{1, 2, 3, 4}))
+
+		// --- When ---
+		have, err := cr.readUint32BE()
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(0x01020304), have)
+	})
+
+	t.Run("error - no input", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader(nil))
+
+		// --- When ---
+		have, err := cr.readUint32BE()
+
+		// --- Then ---
+		assert.ErrorIs(t, io.EOF, err)
+		assert.Equal(t, uint32(0), have)
+	})
+}
+
+func Test_ChunkReader_readUint32LE(t *testing.T) {
+	t.Run("read", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader([]byte{1, 2, 3, 4}))
+
+		// --- When ---
+		have, err := cr.readUint32LE()
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(0x04030201), have)
+	})
+
+	t.Run("error - no input", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader(nil))
+
+		// --- When ---
+		have, err := cr.readUint32LE()
+
+		// --- Then ---
+		assert.ErrorIs(t, io.EOF, err)
+		assert.Equal(t, uint32(0), have)
+	})
+}
+
+func Test_ChunkReader_readUint16LE(t *testing.T) {
+	t.Run("read", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader([]byte{1, 2}))
+
+		// --- When ---
+		have, err := cr.readUint16LE()
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint16(0x0201), have)
+	})
+
+	t.Run("error - no input", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader(nil))
+
+		// --- When ---
+		have, err := cr.readUint16LE()
+
+		// --- Then ---
+		assert.ErrorIs(t, io.EOF, err)
+		assert.Equal(t, uint16(0), have)
+	})
+}

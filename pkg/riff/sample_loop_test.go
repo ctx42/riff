@@ -9,6 +9,29 @@ import (
 	"github.com/ctx42/testing/pkg/assert"
 )
 
+func Test_SampleLoop_decode(t *testing.T) {
+	// --- Given ---
+	b := make([]byte, 24)
+	for i := range 6 {
+		le.PutUint32(b[i*4:], uint32(i+1))
+	}
+	slp := &SampleLoop{}
+
+	// --- When ---
+	slp.decode(b)
+
+	// --- Then ---
+	want := &SampleLoop{
+		CuePointID: 1,
+		Type:       2,
+		Start:      3,
+		End:        4,
+		Fraction:   5,
+		PlayCnt:    6,
+	}
+	assert.Equal(t, want, slp)
+}
+
 func Test_SampleLoop_Reset(t *testing.T) {
 	// --- Given ---
 	sl := &SampleLoop{}

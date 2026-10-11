@@ -83,7 +83,7 @@ func (ch *ChunkLABL) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), ch.errDecode(ErrTooShort)
 	}
 
-	if err = binary.Read(cr, le, &ch.CuePointID); err != nil {
+	if ch.CuePointID, err = cr.readUint32LE(); err != nil {
 		return cr.Count(), ch.errDecode(err)
 	}
 

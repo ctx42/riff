@@ -24,8 +24,8 @@ const SMPLChunkSize uint32 = 36
 const SampleLoopSize uint32 = 24
 
 // smplStatic represents chunk static data (always there).
-// This struct is defined separately to allow for binary
-// decoding / encoding in one call to binary.Read / binary.Write.
+// This struct is defined separately to decode and encode it as one
+// fixed-size block.
 type smplStatic struct {
 	// The manufacturer field specifies the MIDI Manufacturer's
 	// Association (MMA) Manufacturer code for the sampler intended
@@ -105,6 +105,19 @@ type smplStatic struct {
 	SamplerDataCnt uint32
 }
 
+// decode sets the fields from b, the little endian encoded static data.
+func (sst *smplStatic) decode(b []byte) {
+	sst.Manufacturer = le.Uint32(b[0:])
+	sst.Product = le.Uint32(b[4:])
+	sst.SamplePeriod = le.Uint32(b[8:])
+	sst.MIDIUnityNote = le.Uint32(b[12:])
+	sst.MIDIPitchFraction = le.Uint32(b[16:])
+	sst.SMPTEFormat = le.Uint32(b[20:])
+	sst.SMPTEOffset = le.Uint32(b[24:])
+	sst.SampleLoopCnt = le.Uint32(b[28:])
+	sst.SamplerDataCnt = le.Uint32(b[32:])
+}
+
 // ChunkSMPL represents the "smpl" (sampler) chunk.
 //
 // Source:
@@ -173,9 +186,11 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), ErrTooShort)
 	}
 
-	if err = binary.Read(cr, le, &ch.smplStatic); err != nil {
+	b, err := cr.readFull(int(SMPLChunkSize))
+	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 	}
+	ch.decode(b)
 
 	// We trust size more than SamplerDataCnt.
 	loops := int64(ch.SampleLoopCnt) * int64(SampleLoopSize)
@@ -188,12 +203,19 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 		)
 	}
 
-	for i := 0; i < int(ch.SampleLoopCnt); i++ {
-		loop := &SampleLoop{}
-		if err = binary.Read(cr, le, loop); err != nil {
+	// The loops share one backing array that grows as they are read, so a
+	// large declared count cannot force a large allocation up front.
+	var vals []SampleLoop
+	for range ch.SampleLoopCnt {
+		if b, err = cr.readFull(int(SampleLoopSize)); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDsmpl), err)
 		}
-		ch.SampleLoops = append(ch.SampleLoops, loop)
+		var slp SampleLoop
+		slp.decode(b)
+		vals = append(vals, slp)
+	}
+	for i := range vals {
+		ch.SampleLoops = append(ch.SampleLoops, &vals[i])
 	}
 
 	ch.sampleData, err = readBytes(cr, ch.sampleData, int(extra))

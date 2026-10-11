@@ -55,8 +55,8 @@ func ReadPaddingIf(r io.Reader, size uint32) (int64, error) {
 		return 0, nil
 	}
 
-	var pad [1]byte
-	if _, err := io.ReadFull(r, pad[:]); err != nil {
+	pad := padBuf(r)
+	if _, err := io.ReadFull(r, pad); err != nil {
 		if cr, ok := r.(*ChunkReader); ok && err == io.EOF && cr.srcEOF {
 			return 0, nil
 		}
@@ -78,13 +78,22 @@ func discardPaddingIf(r io.Reader, size uint32) error {
 		return nil
 	}
 
-	if _, err := io.ReadFull(r, make([]byte, 1)); err != nil {
+	if _, err := io.ReadFull(r, padBuf(r)); err != nil {
 		if errors.Is(err, io.EOF) {
 			err = io.ErrUnexpectedEOF
 		}
 		return err
 	}
 	return nil
+}
+
+// padBuf returns a one-byte buffer for reading a padding byte from r: the
+// scratch buffer when r is a [ChunkReader], so the read allocates nothing.
+func padBuf(r io.Reader) []byte {
+	if cr, ok := r.(*ChunkReader); ok {
+		return cr.buf[:1]
+	}
+	return make([]byte, 1)
 }
 
 // size32 returns the length n as a chunk size, capped at [math.MaxUint32] so

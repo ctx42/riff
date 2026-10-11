@@ -49,6 +49,34 @@ func ltxtChunkTextLenOdd(t tester.T) io.Reader {
 	return src
 }
 
+func Test_ltxtStatic_decode(t *testing.T) {
+	// --- Given ---
+	b := make([]byte, 20)
+	le.PutUint32(b[0:], 1)
+	le.PutUint32(b[4:], 2)
+	le.PutUint32(b[8:], 3)
+	le.PutUint16(b[12:], 4)
+	le.PutUint16(b[14:], 5)
+	le.PutUint16(b[16:], 6)
+	le.PutUint16(b[18:], 7)
+	lts := &ltxtStatic{}
+
+	// --- When ---
+	lts.decode(b)
+
+	// --- Then ---
+	want := &ltxtStatic{
+		CuePointID: 1,
+		SamLen:     2,
+		PurID:      3,
+		Country:    4,
+		Language:   5,
+		Dialect:    6,
+		CodePage:   7,
+	}
+	assert.Equal(t, want, lts)
+}
+
 func Test_LTXTMake(t *testing.T) {
 	// --- Given ---
 	mkr := LTXTMake(WithLoadData())

@@ -122,6 +122,32 @@ func smplInvalidSize(t tester.T) io.Reader {
 	return src
 }
 
+func Test_smplStatic_decode(t *testing.T) {
+	// --- Given ---
+	b := make([]byte, 36)
+	for i := range 9 {
+		le.PutUint32(b[i*4:], uint32(i+1))
+	}
+	sst := &smplStatic{}
+
+	// --- When ---
+	sst.decode(b)
+
+	// --- Then ---
+	want := &smplStatic{
+		Manufacturer:      1,
+		Product:           2,
+		SamplePeriod:      3,
+		MIDIUnityNote:     4,
+		MIDIPitchFraction: 5,
+		SMPTEFormat:       6,
+		SMPTEOffset:       7,
+		SampleLoopCnt:     8,
+		SamplerDataCnt:    9,
+	}
+	assert.Equal(t, want, sst)
+}
+
 func Test_SMPL(t *testing.T) {
 	// --- When ---
 	have := SMPL()

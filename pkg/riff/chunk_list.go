@@ -91,7 +91,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), ErrTooShort)
 	}
 
-	if err = binary.Read(cr, be, &ch.ListType); err != nil {
+	if ch.ListType, err = cr.readUint32BE(); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), err)
 	}
 	mkr := ch.subMaker()
@@ -99,7 +99,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	// Decode sub-chunks until all bytes declared in size are read.
 	for cr.Count()-4 < int64(size) {
 		var id uint32
-		if err = ReadChunkID(cr, &id); err != nil {
+		if id, err = cr.readUint32BE(); err != nil {
 			return cr.Count(), ch.errDecode(err)
 		}
 

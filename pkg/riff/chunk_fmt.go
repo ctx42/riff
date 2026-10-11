@@ -29,8 +29,8 @@ const (
 )
 
 // fmtStatic represents chunk static data (always there).
-// This struct is defined separately to allow for binary
-// decoding / encoding in one call to binary.Read / binary.Write.
+// This struct is defined separately to decode and encode it as one
+// fixed-size block.
 type fmtStatic struct {
 	// Compression code.
 	//
@@ -61,6 +61,16 @@ type fmtStatic struct {
 	// per sample is rounded up to the nearest byte size, and the unused
 	// bytes are set to 0 and ignored.
 	BitsPerSample uint16
+}
+
+// decode sets the fields from b, the little endian encoded static data.
+func (fst *fmtStatic) decode(b []byte) {
+	fst.CompCode = le.Uint16(b[0:])
+	fst.ChannelCnt = le.Uint16(b[2:])
+	fst.SampleRate = le.Uint32(b[4:])
+	fst.AvgByteRate = le.Uint32(b[8:])
+	fst.BlockAlign = le.Uint16(b[12:])
+	fst.BitsPerSample = le.Uint16(b[14:])
 }
 
 // ChunkFMT represents a format chunk containing information about
@@ -153,9 +163,11 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), ErrTooShort)
 	}
 
-	if err = binary.Read(cr, le, &ch.fmtStatic); err != nil {
+	b, err := cr.readFull(int(FMTChunkSize))
+	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 	}
+	ch.decode(b)
 
 	if size > FMTChunkSize {
 		// The first uint16 value in the byte slice is the uint16 length of
@@ -165,7 +177,7 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 		// padding should be added to the end of this data to word align it,
 		// but the value should remain non-aligned.
 		var es uint16
-		if err = binary.Read(cr, le, &es); err != nil {
+		if es, err = cr.readUint16LE(); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 		}
 

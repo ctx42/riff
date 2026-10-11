@@ -21,8 +21,8 @@ const IDltxt uint32 = 0x6C747874
 const LTXTChunkSize uint32 = 20
 
 // ltxtStatic represents chunk static data (always there).
-// This struct is defined separately to allow for binary
-// decoding / encoding in one call to binary.Read / binary.Write.
+// This struct is defined separately to decode and encode it as one
+// fixed-size block.
 type ltxtStatic struct {
 	// Cue Point ID specifies the starting sample point that corresponds to
 	// this text label by providing the ID of a Cue Point defined in the
@@ -55,6 +55,17 @@ type ltxtStatic struct {
 	// Information about the code page used by the text, typically used
 	// for queries to collect information from the operating system.
 	CodePage uint16
+}
+
+// decode sets the fields from b, the little endian encoded static data.
+func (lts *ltxtStatic) decode(b []byte) {
+	lts.CuePointID = le.Uint32(b[0:])
+	lts.SamLen = le.Uint32(b[4:])
+	lts.PurID = le.Uint32(b[8:])
+	lts.Country = le.Uint16(b[12:])
+	lts.Language = le.Uint16(b[14:])
+	lts.Dialect = le.Uint16(b[16:])
+	lts.CodePage = le.Uint16(b[18:])
 }
 
 // ChunkLTXT represents the labeled text chunk. It is used to associate a
@@ -118,9 +129,11 @@ func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
 		return cr.Count(), ch.errDecode(ErrTooShort)
 	}
 
-	if err = binary.Read(cr, le, &ch.ltxtStatic); err != nil {
+	b, err := cr.readFull(int(LTXTChunkSize))
+	if err != nil {
 		return cr.Count(), ch.errDecode(err)
 	}
+	ch.decode(b)
 
 	tl := int(ch.size - LTXTChunkSize) // Subtract ltxtStatic fields size.
 	ch.text, err = readBytes(cr, ch.text, tl)

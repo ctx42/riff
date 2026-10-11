@@ -263,6 +263,28 @@ func Test_discardPaddingIf(t *testing.T) {
 	})
 }
 
+func Test_padBuf(t *testing.T) {
+	t.Run("chunk reader", func(t *testing.T) {
+		// --- Given ---
+		cr := NewChunkReader(bytes.NewReader(nil))
+
+		// --- When ---
+		have := padBuf(cr)
+
+		// --- Then ---
+		assert.Len(t, 1, have)
+		assert.Same(t, &cr.buf[0], &have[0])
+	})
+
+	t.Run("other reader", func(t *testing.T) {
+		// --- When ---
+		have := padBuf(bytes.NewReader(nil))
+
+		// --- Then ---
+		assert.Len(t, 1, have)
+	})
+}
+
 func Test_size32(t *testing.T) {
 	t.Run("fits", func(t *testing.T) {
 		// --- When ---

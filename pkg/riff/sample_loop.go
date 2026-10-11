@@ -52,12 +52,22 @@ type SampleLoop struct {
 	PlayCnt uint32
 }
 
+// decode sets the fields from b, the little endian encoded sample loop.
+func (slp *SampleLoop) decode(b []byte) {
+	slp.CuePointID = le.Uint32(b[0:])
+	slp.Type = le.Uint32(b[4:])
+	slp.Start = le.Uint32(b[8:])
+	slp.End = le.Uint32(b[12:])
+	slp.Fraction = le.Uint32(b[16:])
+	slp.PlayCnt = le.Uint32(b[20:])
+}
+
 // Reset sets all fields to zero.
-func (sl *SampleLoop) Reset() {
-	sl.CuePointID = 0
-	sl.Type = 0
-	sl.Start = 0
-	sl.End = 0
-	sl.Fraction = 0
-	sl.PlayCnt = 0
+func (slp *SampleLoop) Reset() {
+	slp.CuePointID = 0
+	slp.Type = 0
+	slp.Start = 0
+	slp.End = 0
+	slp.Fraction = 0
+	slp.PlayCnt = 0
 }

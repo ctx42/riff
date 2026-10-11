@@ -4,7 +4,6 @@
 package riff
 
 import (
-	"encoding/binary"
 	"errors"
 	"io"
 	"math"
@@ -94,10 +93,10 @@ func (opt *Opts) ChunkReader(r io.Reader) (*ChunkReader, uint32, error) {
 // startChunk works like [Opts.ChunkReader] but sets up cr instead of
 // allocating a reader, so a decoder can reuse its reader for every chunk.
 func (opt *Opts) startChunk(cr *ChunkReader, r io.Reader) (uint32, error) {
-	var size uint32
-	if err := binary.Read(r, le, &size); err != nil {
+	if _, err := io.ReadFull(r, cr.buf[:4]); err != nil {
 		return 0, err
 	}
+	size := le.Uint32(cr.buf[:4])
 
 	// The padded size of an odd chunk at the uint32 maximum overflows.
 	if size == math.MaxUint32 {
@@ -129,6 +128,7 @@ type ChunkReader struct {
 	cnt    int64            // Number of read bytes from reader.
 	offset int64            // Shift added to the value Count returns.
 	srcEOF bool             // Read hit the end of the source, not of a limit.
+	buf    [36]byte         // Scratch space for fixed-size fields.
 }
 
 // NewChunkReader returns a [ChunkReader] reading from r.
@@ -218,13 +218,13 @@ func (cr *ChunkReader) skipN(num int64) (int64, byte, error) {
 
 	// When src implements Seeker, we can just skip n bytes. Seeking past the
 	// end succeeds, so read the last skipped byte to prove it exists.
-	var last [1]byte
+	last := cr.buf[:1]
 	if skr, ok := cr.src.(io.Seeker); ok {
 		pos, err := skr.Seek(num-1, io.SeekCurrent)
 		if err != nil {
 			return 0, 0, err
 		}
-		if _, err = io.ReadFull(cr.src, last[:]); err != nil {
+		if _, err = io.ReadFull(cr.src, last); err != nil {
 			if !errors.Is(err, io.EOF) {
 				return 0, 0, err
 			}
@@ -246,13 +246,50 @@ func (cr *ChunkReader) skipN(num int64) (int64, byte, error) {
 	m, err := io.CopyN(io.Discard, cr, num-1)
 	if err == nil {
 		var k int
-		k, err = io.ReadFull(cr, last[:])
+		k, err = io.ReadFull(cr, last)
 		m += int64(k)
 	}
 	if errors.Is(err, io.EOF) {
 		err = io.ErrUnexpectedEOF
 	}
 	return m, last[0], err
+}
+
+// readFull reads exactly n bytes, at most the scratch buffer size, into the
+// scratch buffer and returns them. It fails like [io.ReadFull].
+func (cr *ChunkReader) readFull(n int) ([]byte, error) {
+	b := cr.buf[:n]
+	if _, err := io.ReadFull(cr, b); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+// readUint32BE reads a big endian uint32, the byte order of chunk IDs.
+func (cr *ChunkReader) readUint32BE() (uint32, error) {
+	b, err := cr.readFull(4)
+	if err != nil {
+		return 0, err
+	}
+	return be.Uint32(b), nil
+}
+
+// readUint32LE reads a little endian uint32.
+func (cr *ChunkReader) readUint32LE() (uint32, error) {
+	b, err := cr.readFull(4)
+	if err != nil {
+		return 0, err
+	}
+	return le.Uint32(b), nil
+}
+
+// readUint16LE reads a little endian uint16.
+func (cr *ChunkReader) readUint16LE() (uint16, error) {
+	b, err := cr.readFull(2)
+	if err != nil {
+		return 0, err
+	}
+	return le.Uint16(b), nil
 }
 
 // canRead reports whether n bytes can be read without passing the limit.
