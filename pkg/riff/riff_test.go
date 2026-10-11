@@ -539,6 +539,23 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		assert.ErrorEqual(t, want, err)
 	})
 
+	t.Run("odd RIFF size rounded up", func(t *testing.T) {
+		// --- Given ---
+		data := kitchenSink(t)
+		// Final pad byte present but not counted, as in testdata/bwf.wav.
+		le.PutUint32(data[4:], 219)
+
+		rif := New()
+
+		// --- When ---
+		n, err := rif.ReadFrom(bytes.NewReader(data))
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(228), n)
+		assert.Equal(t, uint32(220), rif.Size())
+	})
+
 	t.Run("reuse - sub-chunk decoder of other list type", func(t *testing.T) {
 		// --- Given ---
 		rif := New()

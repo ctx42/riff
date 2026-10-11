@@ -208,8 +208,12 @@ tolerates these deviations, which some encoders write:
   byte. When the input ends right after the data of the last chunk, also
   inside a LIST, the missing pad byte is accepted. A pad byte missing
   anywhere else is an error.
+- **Odd RIFF size**: the RIFF chunk holds whole, padded chunks, so its size is
+  even. Encoders that leave the final pad byte out of it write an odd size,
+  which is rounded up.
 
-`WriteTo` always writes a conforming file, with every pad byte.
+`WriteTo` always writes a conforming file, with every pad byte and an even
+RIFF size.
 
 ## License
 

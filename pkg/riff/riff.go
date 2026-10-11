@@ -177,8 +177,12 @@ func (rif *RIFF) IsRegistered(id uint32) bool {
 //     zero pad byte after odd-sized chunk data. When the input ends right
 //     after the data of the last chunk, also inside a LIST, the missing byte
 //     is accepted. A pad byte missing anywhere else is an error.
+//   - An odd RIFF size. The RIFF chunk holds its type and whole, padded
+//     chunks, so its size is even. Encoders that leave the final pad byte out
+//     of it write an odd size, which is rounded up.
 //
-// [RIFF.WriteTo] always writes a conforming file, with every pad byte.
+// [RIFF.WriteTo] always writes a conforming file, with every pad byte and an
+// even RIFF size.
 func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	rif.Reset()
 
@@ -199,8 +203,7 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	}
 	cr.setOffset(int(cr.Count()) + 4) // IDRIFF was already read.
 
-	// Main chunk RIFF size should never be odd. Since it's a small infraction,
-	// we can simply round it up.
+	// An odd RIFF size is tolerated and rounded up (see the godoc).
 	size = RealSize(size)
 
 	if err = binary.Read(cr, be, &rif.riffType); err != nil {
