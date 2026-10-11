@@ -90,15 +90,13 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	if err = binary.Read(cr, be, &ch.ListType); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), err)
 	}
-	name := linkids(IDLIST, ch.ListType)
-
 	mkr := ch.subMaker()
 
 	// Decode sub-chunks until all bytes declared in size are read.
 	for cr.Count()-4 < int64(size) {
 		var id uint32
 		if err = ReadChunkID(cr, &id); err != nil {
-			return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
+			return cr.Count(), ch.errDecode(err)
 		}
 
 		dec := ch.registry().GetNoRaw(id)
@@ -122,13 +120,19 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	if cr.Count()-4 > int64(size) {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrChunkSizeMismatch)
+		return cr.Count(), ch.errDecode(ErrChunkSizeMismatch)
 	}
 	if shortRead(int64(size), cr.Count()-4) {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, io.ErrUnexpectedEOF)
+		return cr.Count(), ch.errDecode(io.ErrUnexpectedEOF)
 	}
 
 	return cr.Count(), nil
+}
+
+// errDecode returns err wrapped with the chunk name. The name is built only
+// for an error, so decoding allocates nothing for it.
+func (ch *ChunkLIST) errDecode(err error) error {
+	return fmt.Errorf(errFmtDecode, linkids(IDLIST, ch.ListType), err)
 }
 
 func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {

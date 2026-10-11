@@ -173,6 +173,18 @@ func Test_ChunkRAWC_ReadFrom(t *testing.T) {
 	})
 }
 
+func Test_ChunkRAWC_errDecode(t *testing.T) {
+	// --- Given ---
+	ch := RAWC(IDUNKN)
+
+	// --- When ---
+	err := ch.errDecode(io.EOF)
+
+	// --- Then ---
+	assert.ErrorEqual(t, "error decoding RAWC:ABCD chunk: EOF", err)
+	assert.ErrorIs(t, io.EOF, err)
+}
+
 func Test_ChunkRAWC_WriteTo(t *testing.T) {
 	t.Run("without padding", func(t *testing.T) {
 		// --- Given ---

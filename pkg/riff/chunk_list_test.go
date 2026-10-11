@@ -371,6 +371,19 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 	})
 }
 
+func Test_ChunkLIST_errDecode(t *testing.T) {
+	// --- Given ---
+	ch := LIST(nil)
+	ch.ListType = IDINFO
+
+	// --- When ---
+	err := ch.errDecode(io.EOF)
+
+	// --- Then ---
+	assert.ErrorEqual(t, "error decoding LIST:INFO chunk: EOF", err)
+	assert.ErrorIs(t, io.EOF, err)
+}
+
 func Test_ChunkLIST_WriteTo(t *testing.T) {
 	t.Run("error - sub-chunks over 4 GiB", func(t *testing.T) {
 		// --- Given ---

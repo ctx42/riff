@@ -66,32 +66,36 @@ func (ch *ChunkRAWC) Body() io.Reader {
 }
 
 func (ch *ChunkRAWC) ReadFrom(r io.Reader) (int64, error) {
-	name := linkids(idRAWC, ch.id)
-
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
-		return 0, fmt.Errorf(errFmtDecode, name, err)
+		return 0, ch.errDecode(err)
 	}
 	ch.size = size
 
 	if !ch.opts.LoadData() {
 		if err = cr.skipBody(ch.size); err != nil {
-			return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
+			return cr.Count(), ch.errDecode(err)
 		}
 		return cr.Count(), nil
 	}
 
 	ch.data, err = readBytes(cr, ch.data, int(ch.size))
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
+		return cr.Count(), ch.errDecode(err)
 	}
 
 	_, err = ReadPaddingIf(cr, ch.size)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
+		return cr.Count(), ch.errDecode(err)
 	}
 
 	return cr.Count(), nil
+}
+
+// errDecode returns err wrapped with the chunk name. The name is built only
+// for an error, so decoding allocates nothing for it.
+func (ch *ChunkRAWC) errDecode(err error) error {
+	return fmt.Errorf(errFmtDecode, linkids(idRAWC, ch.id), err)
 }
 
 func (ch *ChunkRAWC) WriteTo(w io.Writer) (int64, error) {

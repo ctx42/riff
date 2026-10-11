@@ -226,6 +226,18 @@ func Test_ChunkLTXT_ReadFrom(t *testing.T) {
 	})
 }
 
+func Test_ChunkLTXT_errDecode(t *testing.T) {
+	// --- Given ---
+	ch := LTXT()
+
+	// --- When ---
+	err := ch.errDecode(io.EOF)
+
+	// --- Then ---
+	assert.ErrorEqual(t, "error decoding adtl:ltxt chunk: EOF", err)
+	assert.ErrorIs(t, io.EOF, err)
+}
+
 func Test_ChunkLTXT_WriteTo(t *testing.T) {
 	t.Run("error - write", func(t *testing.T) {
 		// Writing less then 32 bytes should always result in an error.

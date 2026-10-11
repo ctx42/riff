@@ -172,6 +172,18 @@ func Test_ChunkLABL_ReadFrom(t *testing.T) {
 	})
 }
 
+func Test_ChunkLABL_errDecode(t *testing.T) {
+	// --- Given ---
+	ch := LABL()
+
+	// --- When ---
+	err := ch.errDecode(io.EOF)
+
+	// --- Then ---
+	assert.ErrorEqual(t, "error decoding adtl:labl chunk: EOF", err)
+	assert.ErrorIs(t, io.EOF, err)
+}
+
 func Test_ChunkLABL_WriteTo(t *testing.T) {
 	t.Run("error - write", func(t *testing.T) {
 		// Writing less then 16 bytes should always result in an error.

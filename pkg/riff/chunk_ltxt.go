@@ -104,35 +104,39 @@ func (ch *ChunkLTXT) Text() io.Reader {
 }
 
 func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
-	name := linkids(IDadtl, IDltxt)
-
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
-		return 0, fmt.Errorf(errFmtDecode, name, err)
+		return 0, ch.errDecode(err)
 	}
 	ch.size = size
 
 	if ch.size < LTXTChunkSize {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrTooShort)
+		return cr.Count(), ch.errDecode(ErrTooShort)
 	}
 
 	if err = binary.Read(cr, le, &ch.ltxtStatic); err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
+		return cr.Count(), ch.errDecode(err)
 	}
 
 	tl := int(ch.size - LTXTChunkSize) // Subtract ltxtStatic fields size.
 	ch.text, err = readBytes(cr, ch.text, tl)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
+		return cr.Count(), ch.errDecode(err)
 	}
 
 	// If the length of text bytes is odd, it means the padding byte was added
 	// to the end.
 	_, err = ReadPaddingIf(cr, ch.size)
 	if err != nil {
-		return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
+		return cr.Count(), ch.errDecode(err)
 	}
 	return cr.Count(), nil
+}
+
+// errDecode returns err wrapped with the chunk name. The name is built only
+// for an error, so decoding allocates nothing for it.
+func (ch *ChunkLTXT) errDecode(err error) error {
+	return fmt.Errorf(errFmtDecode, linkids(IDadtl, IDltxt), err)
 }
 
 func (ch *ChunkLTXT) WriteTo(w io.Writer) (int64, error) {
