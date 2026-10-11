@@ -18,6 +18,56 @@ import (
 	"github.com/ctx42/testkit/pkg/testkit"
 )
 
+func Test_DecodeError_Error(t *testing.T) {
+	t.Run("chunk", func(t *testing.T) {
+		// --- Given ---
+		der := &DecodeError{
+			ID:          IDfmt,
+			ChunkOffset: 12,
+			Offset:      20,
+			Err:         io.ErrUnexpectedEOF,
+		}
+
+		// --- When ---
+		have := der.Error()
+
+		// --- Then ---
+		want := "" +
+			"error reading RIFF offset 20: fmt  chunk at offset 12: " +
+			"unexpected EOF"
+		assert.Equal(t, want, have)
+	})
+
+	t.Run("chunk ID", func(t *testing.T) {
+		// --- Given ---
+		der := &DecodeError{
+			ChunkOffset: 12,
+			Offset:      14,
+			Err:         io.ErrUnexpectedEOF,
+		}
+
+		// --- When ---
+		have := der.Error()
+
+		// --- Then ---
+		want := "" +
+			"error reading RIFF offset 14: chunk ID at offset 12: " +
+			"unexpected EOF"
+		assert.Equal(t, want, have)
+	})
+}
+
+func Test_DecodeError_Unwrap(t *testing.T) {
+	// --- Given ---
+	der := &DecodeError{Err: io.ErrUnexpectedEOF}
+
+	// --- When ---
+	have := der.Unwrap()
+
+	// --- Then ---
+	assert.Same(t, io.ErrUnexpectedEOF, have)
+}
+
 func Test_New(t *testing.T) {
 	// --- When ---
 	have := New(WithLoadData())
@@ -247,7 +297,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		want := "" +
-			"error reading RIFF offset 24: " +
+			"error reading RIFF offset 24: dddd chunk at offset 12: " +
 			"error decoding RAWC:dddd chunk: " +
 			"unexpected EOF"
 		assert.ErrorEqual(t, want, err)
@@ -279,6 +329,43 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		assert.Len(t, 1, rif.Chunks())
 	})
 
+	t.Run("error - LIST sub-chunk", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 4+24+30)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32BE(t, src, IDfmt)
+		writeUint32LE(t, src, FMTChunkSize)
+		writeBytes(t, src, make([]byte, FMTChunkSize))
+		writeUint32BE(t, src, IDLIST)
+		writeUint32LE(t, src, 4+8+10)
+		writeUint32BE(t, src, IDINFO)
+		writeUint32BE(t, src, LabIART)
+		writeUint32LE(t, src, 10)
+		writeBytes(t, src, []byte{'a', 'b'})
+
+		rif := New()
+
+		// --- When ---
+		n, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		want := "" +
+			"error reading RIFF offset 58: LIST chunk at offset 36: " +
+			"error decoding LIST:IART chunk: " +
+			"error decoding INFO:IART chunk: unexpected EOF"
+		assert.ErrorEqual(t, want, err)
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, int64(58), n)
+
+		var der *DecodeError
+		assert.ErrorAs(t, &der, err)
+		assert.Equal(t, IDLIST, der.ID)
+		assert.Equal(t, int64(36), der.ChunkOffset)
+		assert.Equal(t, int64(58), der.Offset)
+	})
+
 	t.Run("error - chunk name cut in half", func(t *testing.T) {
 		// --- Given ---
 		src := bytes.NewBuffer(nil)
@@ -293,7 +380,9 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		n, err := rif.ReadFrom(src)
 
 		// --- Then ---
-		want := "error reading RIFF offset 14: unexpected EOF"
+		want := "" +
+			"error reading RIFF offset 14: chunk ID at offset 12: " +
+			"unexpected EOF"
 		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(14), n)
 		assert.Equal(t, uint32(4), rif.Size())
@@ -363,7 +452,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		want := "" +
-			"error reading RIFF offset 20: " +
+			"error reading RIFF offset 20: dddd chunk at offset 12: " +
 			"error decoding RAWC:dddd chunk: " +
 			"size too large"
 		assert.ErrorEqual(t, want, err)
@@ -389,7 +478,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		want := "" +
-			"error reading RIFF offset 23: " +
+			"error reading RIFF offset 23: dddd chunk at offset 12: " +
 			"error decoding RAWC:dddd chunk: " +
 			"unexpected EOF"
 		assert.ErrorEqual(t, want, err)
@@ -434,7 +523,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 
 		// --- Then ---
 		want := "" +
-			"error reading RIFF offset 40: " +
+			"error reading RIFF offset 40: fmt  chunk at offset 36: " +
 			"chunk fmt  (0x666d7420) already seen"
 		assert.ErrorEqual(t, want, err)
 	})

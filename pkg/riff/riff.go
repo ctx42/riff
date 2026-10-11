@@ -14,7 +14,10 @@ import (
 )
 
 // Compile time checks.
-var _ Chunk = (*RIFF)(nil)
+var (
+	_ Chunk = (*RIFF)(nil)
+	_ error = (*DecodeError)(nil)
+)
 
 // IDRIFF represents "RIFF" chunk ID.
 const IDRIFF uint32 = 0x52494646
@@ -81,10 +84,44 @@ const (
 
 	// errFmtEncode is the format of chunk encoding errors.
 	errFmtEncode = "error encoding %s chunk: %w"
-
-	// errFmtReadingRIFF is the format of RIFF chunk reading errors.
-	errFmtReadingRIFF = "error reading RIFF offset %d: %w"
 )
+
+// DecodeError is the error [RIFF.ReadFrom] returns when a chunk in the RIFF
+// chunk fails to decode. Offsets count bytes from the start of the input.
+type DecodeError struct {
+	// ID of the chunk. Zero when the chunk ID could not be read.
+	ID uint32
+
+	// Offset at which the chunk starts with its ID.
+	ChunkOffset int64
+
+	// Offset at which decoding stopped, the number of bytes read.
+	Offset int64
+
+	// Error that stopped decoding.
+	Err error
+}
+
+func (der *DecodeError) Error() string {
+	if der.Offset-der.ChunkOffset < 4 {
+		return fmt.Sprintf(
+			"error reading RIFF offset %d: chunk ID at offset %d: %v",
+			der.Offset,
+			der.ChunkOffset,
+			der.Err,
+		)
+	}
+	return fmt.Sprintf(
+		"error reading RIFF offset %d: %s chunk at offset %d: %v",
+		der.Offset,
+		Uint32(der.ID),
+		der.ChunkOffset,
+		der.Err,
+	)
+}
+
+// Unwrap returns the error that stopped decoding.
+func (der *DecodeError) Unwrap() error { return der.Err }
 
 // Maker returns a new chunk decoder.
 type Maker func() Chunk
@@ -186,6 +223,9 @@ func (rif *RIFF) IsRegistered(id uint32) bool {
 //
 // [RIFF.WriteTo] always writes a conforming file, with every pad byte and an
 // even RIFF size.
+//
+// A chunk that fails to decode makes ReadFrom return a [*DecodeError] with
+// the offsets of the chunk and of the failure.
 func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	rif.Reset()
 
@@ -216,20 +256,26 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	for {
+		start := cr.Count()
 		if id, err = cr.readUint32BE(); err != nil {
 			if !errors.Is(err, io.EOF) {
-				return cr.Count(), fmt.Errorf(
-					errFmtReadingRIFF,
-					cr.Count(),
-					err,
-				)
+				return cr.Count(), &DecodeError{
+					ChunkOffset: start,
+					Offset:      cr.Count(),
+					Err:         err,
+				}
 			}
 			break
 		}
 
 		_, err = rif.decodeChunk(id, cr)
 		if err != nil {
-			return cr.Count(), fmt.Errorf(errFmtReadingRIFF, cr.Count(), err)
+			return cr.Count(), &DecodeError{
+				ID:          id,
+				ChunkOffset: start,
+				Offset:      cr.Count(),
+				Err:         err,
+			}
 		}
 	}
 	// EOF reached. With ignored sizes nothing limits the input, but a RIFF
