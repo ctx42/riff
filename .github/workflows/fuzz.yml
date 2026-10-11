@@ -1,0 +1,49 @@
+# Fuzzes the decoder and encoder weekly. A failing input is uploaded as an
+# artifact; add it to pkg/riff/testdata/fuzz to reproduce it with go test.
+
+name: Fuzz
+
+on:
+  schedule:
+    - cron: '0 3 * * 1' # Mondays at 03:00 UTC.
+  workflow_dispatch:
+
+# The workflow declares the minimum required permissions.
+# This follows the principle of least privilege.
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - FuzzRIFF_ReadFrom_seeker
+          - FuzzRIFF_ReadFrom_loadData
+          - FuzzRIFF_WriteTo
+          - FuzzRIFF_ReadFrom_reuse
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
+        cache: true   # Enables module caching for faster runs.
+
+    - name: Fuzz
+      run: >-
+        go test ./pkg/riff -run '^$'
+        -fuzz '^${{ matrix.target }}$' -fuzztime 10m
+
+    - name: Upload failing input
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.target }}
+        path: pkg/riff/testdata/fuzz/${{ matrix.target }}
