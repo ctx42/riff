@@ -506,6 +506,51 @@ func Test_ChunkLIST_Reset(t *testing.T) {
 	})
 }
 
+func Test_ChunkLIST_getSub(t *testing.T) {
+	t.Run("new decoder", func(t *testing.T) {
+		// --- Given ---
+		ch := LIST(nil)
+		ch.ListType = IDadtl
+
+		// --- When ---
+		have := ch.getSub(IDlabl)
+
+		// --- Then ---
+		assert.SameType(t, &ChunkLABL{}, have)
+	})
+
+	t.Run("reuse pooled decoder of same list type", func(t *testing.T) {
+		// --- Given ---
+		ch := LIST(nil)
+		ch.ListType = IDadtl
+		sub := ch.getSub(IDlabl)
+		ch.chunks = Chunks{sub}
+		ch.Reset()
+		ch.ListType = IDadtl
+
+		// --- When ---
+		have := ch.getSub(IDlabl)
+
+		// --- Then ---
+		assert.Same(t, sub, have)
+	})
+
+	t.Run("no reuse for other list type", func(t *testing.T) {
+		// --- Given ---
+		ch := LIST(nil)
+		ch.ListType = IDadtl
+		ch.chunks = Chunks{ch.getSub(IDlabl)}
+		ch.Reset()
+		ch.ListType = IDINFO
+
+		// --- When ---
+		have := ch.getSub(IDlabl)
+
+		// --- Then ---
+		assert.SameType(t, &ChunkINFO{}, have)
+	})
+}
+
 func Test_ChunkLIST_subMaker_tabular(t *testing.T) {
 	tt := []struct {
 		testN string

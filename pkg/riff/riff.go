@@ -281,7 +281,8 @@ func (rif *RIFF) WriteTo(w io.Writer) (int64, error) {
 	return sum, nil
 }
 
-// Reset returns the decoded chunks to the registry pool; chunks set by
+// Reset resets the decoded chunks and returns them to the registry pools, so
+// chunks taken from [RIFF.Chunks] must not be used afterwards; chunks set by
 // [RIFF.Modify] are dropped instead.
 func (rif *RIFF) Reset() {
 	if rif.borrowed {
@@ -289,8 +290,9 @@ func (rif *RIFF) Reset() {
 		rif.borrowed = false
 		return
 	}
+	reg := rif.registry()
 	for _, ch := range rif.chunks {
-		rif.registry().Put(ch)
+		reg.release(ch)
 	}
 	rif.chunks = rif.chunks[:0]
 }
@@ -310,7 +312,6 @@ func (rif *RIFF) decodeChunk(id uint32, r io.Reader) (int64, error) {
 		return 0, fmt.Errorf("chunk %s (0x%x) already seen", Uint32(id), id)
 	}
 	dec := rif.registry().Get(id)
-	dec.Reset()
 	n, err := dec.ReadFrom(r)
 	if err != nil {
 		return n, err

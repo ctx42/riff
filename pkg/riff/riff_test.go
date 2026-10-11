@@ -556,6 +556,24 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		assert.Equal(t, uint32(220), rif.Size())
 	})
 
+	t.Run("reuse - raw and list sub-chunk decoders", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+		must.Value(rif.ReadFrom(bytes.NewReader(kitchenSink(t))))
+		raw := rif.Chunks().First(IDUNKN)
+		labl := rif.Chunks()[3].Chunks().First(IDlabl)
+		iart := rif.Chunks()[2].Chunks().First(LabIART)
+
+		// --- When ---
+		_, err := rif.ReadFrom(bytes.NewReader(kitchenSink(t)))
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Same(t, raw, rif.Chunks().First(IDUNKN))
+		assert.Same(t, labl, rif.Chunks()[3].Chunks().First(IDlabl))
+		assert.Same(t, iart, rif.Chunks()[2].Chunks().First(LabIART))
+	})
+
 	t.Run("reuse - sub-chunk decoder of other list type", func(t *testing.T) {
 		// --- Given ---
 		rif := New()

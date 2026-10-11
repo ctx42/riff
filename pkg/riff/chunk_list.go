@@ -94,8 +94,6 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	if ch.ListType, err = cr.readUint32BE(); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), err)
 	}
-	mkr := ch.subMaker()
-
 	// Decode sub-chunks until all bytes declared in size are read.
 	for cr.Count()-4 < int64(size) {
 		var id uint32
@@ -105,9 +103,8 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 
 		dec := ch.registry().GetNoRaw(id)
 		if dec == nil {
-			dec = mkr(id)
+			dec = ch.getSub(id)
 		}
-		dec.Reset()
 
 		_, err = dec.ReadFrom(cr)
 		if err != nil {
@@ -172,16 +169,30 @@ func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (ch *ChunkLIST) Reset() {
+	typ := ch.ListType
 	ch.ListType = 0
 	if ch.borrowed {
 		ch.chunks = nil
 		ch.borrowed = false
 		return
 	}
+	reg := ch.registry()
 	for _, dec := range ch.chunks {
-		ch.registry().Put(dec)
+		if !reg.tryPut(dec) {
+			reg.putSub(typ, ch.opts, dec)
+		}
 	}
 	ch.chunks = ch.chunks[:0]
+}
+
+// getSub returns a decoder for a sub-chunk with an unregistered id: a pooled
+// one made for the same list type and options, or a new one from the list
+// type maker.
+func (ch *ChunkLIST) getSub(id uint32) Chunk {
+	if dec := ch.registry().getSub(ch.ListType, id, ch.opts); dec != nil {
+		return dec
+	}
+	return ch.subMaker()(id)
 }
 
 // registry returns the chunk decoder registry, creating an empty one when
