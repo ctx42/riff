@@ -396,6 +396,57 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 			"chunk fmt  (0x666d7420) already seen"
 		assert.ErrorEqual(t, want, err)
 	})
+
+	t.Run("reuse - sub-chunk decoder of other list type", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+		must.Value(rif.ReadFrom(bytes.NewReader(kitchenSink(t))))
+
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 26)
+		writeUint32BE(t, src, TypeWAVE)
+		writeUint32BE(t, src, IDLIST)
+		writeUint32LE(t, src, 14)
+		writeUint32BE(t, src, IDINFO)
+		writeUint32BE(t, src, IDltxt)
+		writeUint32LE(t, src, 2)
+		writeBytes(t, src, []byte{'a', 0})
+
+		// --- When ---
+		_, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		lst := rif.Chunks().First(IDLIST)
+		assert.SameType(t, &ChunkINFO{}, lst.Chunks().First(IDltxt))
+	})
+
+	t.Run("reuse - top-level chunk with list sub-chunk ID", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+		must.Value(rif.ReadFrom(bytes.NewReader(kitchenSink(t))))
+
+		src := bytes.NewBuffer(nil)
+		writeUint32BE(t, src, IDRIFF)
+		writeUint32LE(t, src, 38)
+		writeUint32BE(t, src, TypeWAVE)
+		for range 2 { // Reusing both lists pools their sub-chunks.
+			writeUint32BE(t, src, IDLIST)
+			writeUint32LE(t, src, 4)
+			writeUint32BE(t, src, IDINFO)
+		}
+		writeUint32BE(t, src, LabIART)
+		writeUint32LE(t, src, 2)
+		writeBytes(t, src, []byte{'a', 0})
+
+		// --- When ---
+		_, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.SameType(t, &ChunkRAWC{}, rif.Chunks().First(LabIART))
+	})
 }
 
 func Test_RIFF_ReadFrom_tabular(t *testing.T) {

@@ -47,6 +47,33 @@ func Test_Registry_Register(t *testing.T) {
 	assert.SameType(t, &ChunkRAWC{}, reg.Get(IDUNKN))
 }
 
+func Test_Registry_Put(t *testing.T) {
+	t.Run("registered", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		reg.Register(IDfmt, FMTMake())
+		ch := FMT()
+
+		// --- When ---
+		reg.Put(ch)
+
+		// --- Then ---
+		assert.Same(t, ch, reg.GetNoRaw(IDfmt))
+	})
+
+	t.Run("not registered", func(t *testing.T) {
+		// --- Given ---
+		reg := NewRegistry(RAWCMake(WithLoadData()))
+		ch := RAWC(IDUNKN)
+
+		// --- When ---
+		reg.Put(ch)
+
+		// --- Then ---
+		assert.Nil(t, reg.GetNoRaw(IDUNKN))
+	})
+}
+
 func Test_Registry_Get(t *testing.T) {
 	t.Run("reuse pooled decoder", func(t *testing.T) {
 		// --- Given ---

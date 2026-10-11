@@ -35,9 +35,15 @@ func (reg *Registry) Register(id uint32, maker Maker) {
 	reg.makers[id] = maker
 }
 
-// Put returns the chunk decoder ch to the pool for reuse.
+// Put returns the chunk decoder ch to the pool for reuse. A decoder for an
+// unregistered ID is dropped: it was made by a raw or a LIST type specific
+// maker, so reusing it for the same ID elsewhere would decode the chunk with
+// the wrong decoder.
 func (reg *Registry) Put(ch Chunk) {
 	id := ch.ID()
+	if !reg.Has(id) {
+		return
+	}
 	if _, ok := reg.pool[id]; !ok {
 		reg.pool[id] = make([]Chunk, 0, 4)
 	}
@@ -45,7 +51,7 @@ func (reg *Registry) Put(ch Chunk) {
 }
 
 // Get returns a decoder for id from the pool, or a new one from its maker.
-// For an unregistered id with no pooled decoder it returns a raw decoder.
+// For an unregistered id it returns a new raw decoder.
 func (reg *Registry) Get(id uint32) Chunk {
 	ch := reg.GetNoRaw(id)
 	if ch == nil {

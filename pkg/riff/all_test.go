@@ -4,6 +4,7 @@
 package riff
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 
@@ -58,4 +59,74 @@ func skip4B(t tester.T, r io.Reader) {
 func isAllRead(r io.Reader) bool {
 	_, err := r.Read(make([]byte, 1))
 	return err == io.EOF
+}
+
+// kitchenSink returns a RIFF file with every built-in chunk type, odd sized
+// chunks, and an unknown chunk.
+func kitchenSink(t tester.T) []byte {
+	t.Helper()
+
+	fmtc := &bytes.Buffer{}
+	writeUint32BE(t, fmtc, IDfmt)           // Chunk ID.
+	writeUint32LE(t, fmtc, 20)              // Chunk size.
+	writeBytes(t, fmtc, make([]byte, 16))   // Static fields.
+	writeUint16LE(t, fmtc, 2)               // Extra size.
+	writeBytes(t, fmtc, []byte{0x01, 0x02}) // Extra.
+
+	smpl := &bytes.Buffer{}
+	writeUint32BE(t, smpl, IDsmpl)                // Chunk ID.
+	writeUint32LE(t, smpl, 36+24+3)               // Chunk size.
+	writeBytes(t, smpl, make([]byte, 28))         // Static fields.
+	writeUint32LE(t, smpl, 1)                     // Sample loop count.
+	writeUint32LE(t, smpl, 3)                     // Sampler data size.
+	writeBytes(t, smpl, make([]byte, 24))         // Sample loop.
+	writeBytes(t, smpl, []byte{0x01, 0x02, 0x03}) // Sampler data.
+	writeBytes(t, smpl, []byte{0})                // Padding byte.
+
+	info := &bytes.Buffer{}
+	writeUint32BE(t, info, IDLIST)                // Chunk ID.
+	writeUint32LE(t, info, 4+12+12)               // Chunk size.
+	writeUint32BE(t, info, IDINFO)                // List type.
+	writeUint32BE(t, info, LabIART)               // Sub-chunk ID.
+	writeUint32LE(t, info, 3)                     // Sub-chunk size.
+	writeBytes(t, info, []byte{'a', 'b', 0, 0})   // Text and padding byte.
+	writeUint32BE(t, info, LabISFT)               // Sub-chunk ID.
+	writeUint32LE(t, info, 4)                     // Sub-chunk size.
+	writeBytes(t, info, []byte{'a', 'b', 'c', 0}) // Text.
+
+	adtl := &bytes.Buffer{}
+	writeUint32BE(t, adtl, IDLIST)              // Chunk ID.
+	writeUint32LE(t, adtl, 4+16+30)             // Chunk size.
+	writeUint32BE(t, adtl, IDadtl)              // List type.
+	writeUint32BE(t, adtl, IDlabl)              // Sub-chunk ID.
+	writeUint32LE(t, adtl, 7)                   // Sub-chunk size.
+	writeUint32LE(t, adtl, 1)                   // Cue point ID.
+	writeBytes(t, adtl, []byte{'a', 'b', 0, 0}) // Label and padding byte.
+	writeUint32BE(t, adtl, IDltxt)              // Sub-chunk ID.
+	writeUint32LE(t, adtl, 22)                  // Sub-chunk size.
+	writeBytes(t, adtl, make([]byte, 20))       // Static fields.
+	writeBytes(t, adtl, []byte{'a', 0})         // Text.
+
+	rawc := &bytes.Buffer{}
+	writeUint32BE(t, rawc, IDUNKN)       // Chunk ID.
+	writeUint32LE(t, rawc, 1)            // Chunk size.
+	writeBytes(t, rawc, []byte{0x01, 0}) // Body and padding byte.
+
+	data := &bytes.Buffer{}
+	writeUint32BE(t, data, IDdata)                // Chunk ID.
+	writeUint32LE(t, data, 3)                     // Chunk size.
+	writeBytes(t, data, []byte{0x01, 0x02, 0x03}) // Samples.
+	writeBytes(t, data, []byte{0})                // Padding byte.
+
+	body := &bytes.Buffer{}
+	for _, ch := range []*bytes.Buffer{fmtc, smpl, info, adtl, rawc, data} {
+		writeBytes(t, body, ch.Bytes())
+	}
+
+	src := &bytes.Buffer{}
+	writeUint32BE(t, src, IDRIFF)               // Chunk ID.
+	writeUint32LE(t, src, uint32(4+body.Len())) // Chunk size.
+	writeUint32BE(t, src, TypeWAVE)             // RIFF type.
+	writeBytes(t, src, body.Bytes())            // Sub-chunks.
+	return src.Bytes()
 }
