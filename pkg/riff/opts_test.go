@@ -350,6 +350,7 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, int64(14), cr.Count())
 	})
 
 	t.Run("error - seeker skips past end", func(t *testing.T) {
@@ -369,7 +370,39 @@ func Test_ChunkReader_SkipN(t *testing.T) {
 
 		// --- Then ---
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
-		assert.Equal(t, int64(4), cr.Count())
+		assert.Equal(t, int64(14), cr.Count())
+		assert.Equal(t, int64(14), must.Value(src.Seek(0, io.SeekCurrent)))
+	})
+
+	t.Run("error - nested seeker skips past end", func(t *testing.T) {
+		// --- Given ---
+		cr0 := NewChunkReader(bytes.NewReader(make([]byte, 10)))
+		cr1 := NewChunkReader(cr0)
+
+		// --- When ---
+		err := cr1.SkipN(20)
+
+		// --- Then ---
+		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
+		assert.Equal(t, int64(10), cr0.Count())
+		assert.Equal(t, int64(10), cr1.Count())
+	})
+
+	t.Run("error - seek to end", func(t *testing.T) {
+		// --- Given ---
+		src := iokit.NewReadSeekerMock(t)
+		src.OnSeek(int64(19), io.SeekCurrent).Return(int64(19), nil).Once()
+		src.OnRead(mock.Any).Return(0, io.EOF).Once()
+		src.OnSeek(int64(0), io.SeekEnd).Return(int64(0), iokit.ErrRead).Once()
+
+		cr := NewChunkReader(src)
+
+		// --- When ---
+		err := cr.SkipN(20)
+
+		// --- Then ---
+		assert.ErrorIs(t, iokit.ErrRead, err)
+		assert.Equal(t, int64(0), cr.Count())
 	})
 
 	t.Run("seeker skips zero bytes", func(t *testing.T) {

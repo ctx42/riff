@@ -5,7 +5,6 @@ package riff
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -84,14 +83,9 @@ func FuzzRIFF_ReadFrom_seeker(f *testing.F) {
 		hn, hErr := have.ReadFrom(bytes.NewReader(data))
 
 		// --- Then ---
-		// The offset in a truncated input error depends on the reader.
-		assert.Equal(t, wErr == nil, hErr == nil)
-		wEOF := errors.Is(wErr, io.ErrUnexpectedEOF)
-		assert.Equal(t, wEOF, errors.Is(hErr, io.ErrUnexpectedEOF))
-		if wErr == nil && hErr == nil {
-			assert.Equal(t, wn, hn)
-			assert.Equal(t, want.Chunks().IDs(), have.Chunks().IDs())
-		}
+		assert.Equal(t, errStr(wErr), errStr(hErr))
+		assert.Equal(t, wn, hn)
+		assert.Equal(t, want.Chunks().IDs(), have.Chunks().IDs())
 	})
 }
 
