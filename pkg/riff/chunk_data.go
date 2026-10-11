@@ -99,8 +99,7 @@ func (ch *ChunkDATA) ReadFrom(r io.Reader) (int64, error) {
 	ch.size = size
 
 	if !ch.opts.LoadData() {
-		rs := RealSize(ch.size) // Skip padding byte if present.
-		if err = cr.SkipN(rs); err != nil {
+		if err = cr.skipBody(ch.size); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDdata), err)
 		}
 		return cr.Count(), nil

@@ -161,6 +161,17 @@ func Test_ReadPaddingIf(t *testing.T) {
 		assert.ErrorIs(t, io.ErrUnexpectedEOF, err)
 		assert.Equal(t, int64(0), n)
 	})
+	t.Run("error - non-zero pad byte", func(t *testing.T) {
+		// --- Given ---
+		src := bytes.NewReader([]byte{1})
+
+		// --- When ---
+		n, err := ReadPaddingIf(src, 3)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrPadByte, err)
+		assert.Equal(t, int64(1), n)
+	})
 }
 
 func Test_WriteIDAndSize(t *testing.T) {

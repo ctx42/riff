@@ -520,6 +520,47 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 	})
 }
 
+func Test_RIFF_ReadFrom_padByte_tabular(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		off  int    // Offset of the pad byte in kitchenSink.
+		opts OptsFn // Decoding options.
+		seek bool   // Source implements io.Seeker.
+	}{
+		{"smpl", 111, WithLoadData(), true},
+		{"INFO", 135, WithLoadData(), true},
+		{"labl", 175, WithLoadData(), true},
+		{"raw load data", 215, WithLoadData(), true},
+		{"raw skip seeker", 215, WithOpts(Opts{}), true},
+		{"raw skip no seeker", 215, WithOpts(Opts{}), false},
+		{"data load data", 227, WithLoadData(), true},
+		{"data skip seeker", 227, WithOpts(Opts{}), true},
+		{"data skip no seeker", 227, WithOpts(Opts{}), false},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			data := kitchenSink(t)
+			data[tc.off] = 0xFF
+
+			var src io.Reader = bytes.NewReader(data)
+			if !tc.seek {
+				src = nonSeeker{src}
+			}
+
+			rif := New(tc.opts)
+
+			// --- When ---
+			_, err := rif.ReadFrom(src)
+
+			// --- Then ---
+			assert.ErrorIs(t, ErrPadByte, err)
+		})
+	}
+}
+
 func Test_RIFF_ReadFrom_tabular(t *testing.T) {
 	rif := New()
 

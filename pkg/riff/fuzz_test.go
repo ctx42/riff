@@ -19,9 +19,6 @@ import (
 // used as a fuzz seed.
 const fuzzSeedMax = 1 << 16
 
-// nonSeeker hides the [io.Seeker] implementation of the wrapped reader.
-type nonSeeker struct{ io.Reader }
-
 // fuzzSeeds returns the kitchen sink file and the sample files with their
 // data chunk shrunk to a few bytes.
 func fuzzSeeds(t tester.T) [][]byte {

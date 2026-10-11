@@ -183,8 +183,9 @@ func (ch *ChunkFMT) ReadFrom(r io.Reader) (int64, error) {
 
 		// If the length of extra format bytes is odd, it means the padding
 		// byte was added to the end.
-		_, err = ReadPaddingIf(cr, uint32(es))
-		if err != nil {
+		// The extra bytes are padded to an even length. Unlike a chunk pad
+		// byte, the value of this one is not defined.
+		if err = discardPaddingIf(cr, uint32(es)); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDfmt), err)
 		}
 	}

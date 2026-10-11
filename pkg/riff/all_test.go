@@ -183,3 +183,6 @@ func (ch *sizedChunk) Raw() bool                         { return false }
 func (ch *sizedChunk) ReadFrom(io.Reader) (int64, error) { return 0, nil }
 func (ch *sizedChunk) WriteTo(io.Writer) (int64, error)  { return 0, nil }
 func (ch *sizedChunk) Reset()                            {}
+
+// nonSeeker hides the [io.Seeker] implementation of the wrapped reader.
+type nonSeeker struct{ io.Reader }

@@ -145,58 +145,75 @@ func (cr *ChunkReader) Read(p []byte) (n int, err error) {
 // bytes are left; either way the bytes that were left are counted and
 // skipped.
 func (cr *ChunkReader) SkipN(n uint32) error {
-	_, err := cr.skipN(int64(n))
+	_, _, err := cr.skipN(int64(n))
+	return err
+}
+
+// skipBody skips a chunk body of size bytes and its padding byte. It returns
+// [ErrPadByte] when the padding byte is not zero.
+func (cr *ChunkReader) skipBody(size uint32) error {
+	_, last, err := cr.skipN(int64(RealSize(size)))
+	if err == nil && size%2 != 0 && last != 0 {
+		return ErrPadByte
+	}
 	return err
 }
 
 // skipN skips num bytes like [ChunkReader.SkipN] and returns the number of
-// bytes skipped, fewer than num only with an error.
-func (cr *ChunkReader) skipN(num int64) (int64, error) {
+// bytes skipped, fewer than num only with an error, and the last byte
+// skipped.
+func (cr *ChunkReader) skipN(num int64) (int64, byte, error) {
 	if !cr.canRead(num) {
-		return 0, io.ErrUnexpectedEOF
+		return 0, 0, io.ErrUnexpectedEOF
+	}
+	if num == 0 {
+		return 0, 0, nil
 	}
 
 	// Handle nested chunk readers.
 	if pcr, ok := cr.src.(*ChunkReader); ok {
-		m, err := pcr.skipN(num)
+		m, last, err := pcr.skipN(num)
 		cr.moveCursors(m)
-		return m, err
+		return m, last, err
 	}
 
 	// When src implements Seeker, we can just skip n bytes. Seeking past the
 	// end succeeds, so read the last skipped byte to prove it exists.
+	var last [1]byte
 	if skr, ok := cr.src.(io.Seeker); ok {
-		if num == 0 {
-			return 0, nil
-		}
 		pos, err := skr.Seek(num-1, io.SeekCurrent)
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
-		if _, err = io.ReadFull(cr.src, make([]byte, 1)); err != nil {
+		if _, err = io.ReadFull(cr.src, last[:]); err != nil {
 			if !errors.Is(err, io.EOF) {
-				return 0, err
+				return 0, 0, err
 			}
 			// Truncated input: stop at the end and count the bytes that were
 			// left, as reading them would.
 			var end int64
 			if end, err = skr.Seek(0, io.SeekEnd); err != nil {
-				return 0, err
+				return 0, 0, err
 			}
 			m := min(max(end-(pos-(num-1)), 0), num)
 			cr.moveCursors(m)
-			return m, io.ErrUnexpectedEOF
+			return m, 0, io.ErrUnexpectedEOF
 		}
 		cr.moveCursors(num)
-		return num, nil
+		return num, last[0], nil
 	}
 
-	// If we cannot seek, we read data to black hole.
-	m, err := io.CopyN(io.Discard, cr, num)
+	// If we cannot seek, we read data to black hole, keeping the last byte.
+	m, err := io.CopyN(io.Discard, cr, num-1)
+	if err == nil {
+		var k int
+		k, err = io.ReadFull(cr, last[:])
+		m += int64(k)
+	}
 	if errors.Is(err, io.EOF) {
 		err = io.ErrUnexpectedEOF
 	}
-	return m, err
+	return m, last[0], err
 }
 
 // canRead reports whether n bytes can be read without passing the limit.

@@ -44,22 +44,41 @@ func RealSize(size uint32) uint32 {
 	return size
 }
 
-// ReadPaddingIf reads and discards the padding byte from r when size is odd.
-// It returns the number of bytes read, and [io.ErrUnexpectedEOF] when the
-// padding byte is missing.
+// ReadPaddingIf reads the padding byte from r when size is odd. It returns the
+// number of bytes read, [io.ErrUnexpectedEOF] when the padding byte is
+// missing, and [ErrPadByte] when it is not zero.
 func ReadPaddingIf(r io.Reader, size uint32) (int64, error) {
 	if size%2 == 0 {
 		return 0, nil
 	}
 
-	n, err := io.CopyN(io.Discard, r, 1)
-	if err != nil {
-		if errors.Is(err, io.EOF) && n != 1 {
+	var pad [1]byte
+	if _, err := io.ReadFull(r, pad[:]); err != nil {
+		if errors.Is(err, io.EOF) {
 			err = io.ErrUnexpectedEOF
 		}
 		return 0, err
 	}
-	return n, nil
+	if pad[0] != 0 {
+		return 1, ErrPadByte
+	}
+	return 1, nil
+}
+
+// discardPaddingIf reads and discards a padding byte of any value from r when
+// size is odd. It returns [io.ErrUnexpectedEOF] when the byte is missing.
+func discardPaddingIf(r io.Reader, size uint32) error {
+	if size%2 == 0 {
+		return nil
+	}
+
+	if _, err := io.ReadFull(r, make([]byte, 1)); err != nil {
+		if errors.Is(err, io.EOF) {
+			err = io.ErrUnexpectedEOF
+		}
+		return err
+	}
+	return nil
 }
 
 // WriteIDAndSize writes the chunk id (big endian) and size (little endian)

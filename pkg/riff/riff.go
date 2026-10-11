@@ -63,6 +63,10 @@ var (
 	// content.
 	ErrChunkSizeMismatch = errors.New("chunk size mismatch")
 
+	// ErrPadByte is returned when the pad byte after odd-sized chunk data is
+	// not zero.
+	ErrPadByte = errors.New("non-zero pad byte")
+
 	// ErrSkipDataMode is returned when a chunk decoded without
 	// [WithLoadData] is written or edited.
 	ErrSkipDataMode = errors.New(
