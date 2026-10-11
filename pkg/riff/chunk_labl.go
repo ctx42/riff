@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Compile time checks.
@@ -21,10 +22,6 @@ const LABLChunkSize uint32 = 4
 // Point. This information is often displayed next to markers or flags in
 // digital audio editors.
 type ChunkLABL struct {
-	// Chunk size in bytes.
-	// The ID, size field, and padding byte are not counted in the chunk size.
-	size uint32
-
 	// The Cue Point ID specifies the sample point that corresponds to
 	// this text label by providing the ID of a Cue Point defined in the
 	// Cue Point List. The ID that associates this label with a Cue Point
@@ -59,15 +56,28 @@ func LABL(opts ...OptsFn) *ChunkLABL {
 }
 
 func (ch *ChunkLABL) ID() uint32     { return IDlabl }
-func (ch *ChunkLABL) Size() uint32   { return ch.size }
 func (ch *ChunkLABL) Type() uint32   { return 0 }
 func (ch *ChunkLABL) Multi() bool    { return true }
 func (ch *ChunkLABL) Chunks() Chunks { return nil }
 func (ch *ChunkLABL) Raw() bool      { return false }
 
+// Size returns the chunk size computed from its current content.
+func (ch *ChunkLABL) Size() uint32 {
+	return LABLChunkSize + size32(len(ch.label))
+}
+
 // Label returns a reader for the label without trailing zero bytes.
 func (ch *ChunkLABL) Label() io.Reader {
 	return bytes.NewReader(TrimZeroRight(ch.label))
+}
+
+// SetLabel sets the label. The label is stored as a zero-terminated string,
+// so a zero byte is appended when label does not end with one. It returns
+// [ErrTooLarge] when the label does not fit the 32-bit chunk size.
+func (ch *ChunkLABL) SetLabel(label []byte) error {
+	var err error
+	ch.label, err = setZSTR(ch.label, label, math.MaxUint32-LABLChunkSize)
+	return err
 }
 
 func (ch *ChunkLABL) ReadFrom(r io.Reader) (int64, error) {
@@ -76,9 +86,8 @@ func (ch *ChunkLABL) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, ch.errDecode(err)
 	}
-	ch.size = size
 
-	if ch.size < LABLChunkSize {
+	if size < LABLChunkSize {
 		return cr.Count(), ch.errDecode(ErrTooShort)
 	}
 
@@ -87,14 +96,14 @@ func (ch *ChunkLABL) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	// Subtract the cue point ID field size.
-	ch.label, err = readBytes(cr, ch.label, int(ch.size-LABLChunkSize))
+	ch.label, err = readBytes(cr, ch.label, int(size-LABLChunkSize))
 	if err != nil {
 		return cr.Count(), ch.errDecode(err)
 	}
 
 	// If the length of label bytes is odd, it means the padding byte was added
 	// to the end.
-	_, err = ReadPaddingIf(cr, ch.size)
+	_, err = ReadPaddingIf(cr, size)
 	if err != nil {
 		return cr.Count(), ch.errDecode(err)
 	}
@@ -111,8 +120,9 @@ func (ch *ChunkLABL) errDecode(err error) error {
 func (ch *ChunkLABL) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
+	size := ch.Size()
 	b := ch.cr.buf[:] // The reader is idle while encoding.
-	n, err := writeIDAndSize(w, b, IDlabl, ch.size)
+	n, err := writeIDAndSize(w, b, IDlabl, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
@@ -130,7 +140,7 @@ func (ch *ChunkLABL) WriteTo(w io.Writer) (int64, error) {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 
-	n, err = writePaddingIf(w, b, ch.size)
+	n, err = writePaddingIf(w, b, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
@@ -140,7 +150,6 @@ func (ch *ChunkLABL) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (ch *ChunkLABL) Reset() {
-	ch.size = 0
 	ch.CuePointID = 0
 	ch.label = ch.label[:0]
 }

@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"runtime"
 	"testing"
 
@@ -47,6 +48,73 @@ func Test_INFO(t *testing.T) {
 	assert.True(t, have.Multi())
 	assert.Nil(t, have.Chunks())
 	assert.False(t, have.Raw())
+}
+
+func Test_ChunkINFO_SetText(t *testing.T) {
+	t.Run("add terminator", func(t *testing.T) {
+		// --- Given ---
+		ch := INFO(LabINAM)
+
+		// --- When ---
+		err := ch.SetText([]byte("title"))
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(6), ch.Size())
+		assert.Equal(t, []byte("title\x00"), ch.text)
+		assert.Equal(t, []byte("title"), must.Value(io.ReadAll(ch.Text())))
+	})
+
+	t.Run("terminated", func(t *testing.T) {
+		// --- Given ---
+		ch := INFO(LabINAM)
+
+		// --- When ---
+		err := ch.SetText([]byte("title\x00"))
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(6), ch.Size())
+		assert.Equal(t, []byte("title\x00"), ch.text)
+	})
+
+	t.Run("replace decoded text", func(t *testing.T) {
+		// --- Given ---
+		src := infoChunkTextLenEven(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		ch := INFO(LabIART)
+		must.Value(ch.ReadFrom(src))
+
+		// --- When ---
+		err := ch.SetText([]byte("x"))
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(2), ch.Size())
+		assert.Equal(t, []byte("x"), must.Value(io.ReadAll(ch.Text())))
+	})
+
+	t.Run("error - over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		ch := INFO(LabINAM)
+
+		// Fresh zero pages from the OS; never touched, so never resident. The
+		// length is a variable so the file still compiles where int is 32-bit.
+		n := uint64(math.MaxUint32) + 1
+		data := make([]byte, n)
+
+		// --- When ---
+		err := ch.SetText(data)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, uint32(0), ch.Size())
+	})
 }
 
 func Test_ChunkINFO_ReadFrom(t *testing.T) {
@@ -161,6 +229,27 @@ func Test_ChunkINFO_ReadFrom(t *testing.T) {
 }
 
 func Test_ChunkINFO_WriteTo(t *testing.T) {
+	t.Run("set text", func(t *testing.T) {
+		// --- Given ---
+		ch := INFO(LabINAM)
+		must.Nil(ch.SetText([]byte("abcd")))
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := ch.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(14), n)
+		want := []byte{
+			'I', 'N', 'A', 'M', // ID.
+			0x5, 0x0, 0x0, 0x0, // Size.
+			'a', 'b', 'c', 'd', 0x0, // Text.
+			0x0, // Padding.
+		}
+		assert.Equal(t, want, dst.Bytes())
+	})
+
 	t.Run("error - write", func(t *testing.T) {
 		// Writing less then 12 bytes should always result in an error.
 		for i := 12; i > 0; i-- {
@@ -236,7 +325,6 @@ func Test_ChunkINFO_WriteTo_tabular(t *testing.T) {
 func Test_ChunkINFO_Reset(t *testing.T) {
 	// --- Given ---
 	ch := INFO(LabIART)
-	ch.size = 3
 	ch.text = []byte{'a', 'b', 0}
 
 	// --- When ---

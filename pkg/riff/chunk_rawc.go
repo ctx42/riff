@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Compile time checks.
@@ -66,6 +67,22 @@ func (ch *ChunkRAWC) Raw() bool      { return true }
 // is empty.
 func (ch *ChunkRAWC) Body() io.Reader {
 	return bytes.NewReader(ch.data)
+}
+
+// SetBody sets the chunk body. It returns [ErrSkipDataMode] when the chunk was
+// created without [WithLoadData] and [ErrTooLarge] when body does not fit the
+// 32-bit chunk size.
+func (ch *ChunkRAWC) SetBody(body []byte) error {
+	if !ch.opts.LoadData() {
+		return ErrSkipDataMode
+	}
+	data, err := setBytes(ch.data, body, math.MaxUint32)
+	if err != nil {
+		return err
+	}
+	ch.data = data
+	ch.size = size32(len(data))
+	return nil
 }
 
 func (ch *ChunkRAWC) ReadFrom(r io.Reader) (int64, error) {

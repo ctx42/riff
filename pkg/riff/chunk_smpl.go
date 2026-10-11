@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Compile time checks.
@@ -173,16 +174,38 @@ func (ch *ChunkSMPL) Multi() bool    { return false }
 func (ch *ChunkSMPL) Chunks() Chunks { return nil }
 func (ch *ChunkSMPL) Raw() bool      { return false }
 
-// Size returns the chunk size computed from its current content.
+// Size returns the chunk size computed from its current content, capped at
+// [math.MaxUint32]. [ChunkSMPL.WriteTo] returns [ErrTooLarge] for content
+// that does not fit.
 func (ch *ChunkSMPL) Size() uint32 {
-	return SMPLChunkSize +
-		size32(len(ch.SampleLoops))*SampleLoopSize +
-		size32(len(ch.sampleData))
+	size := ch.size64()
+	if size > math.MaxUint32 {
+		return math.MaxUint32
+	}
+	return uint32(size)
+}
+
+// size64 returns the chunk size like [ChunkSMPL.Size], computed in 64 bits
+// so it does not wrap.
+func (ch *ChunkSMPL) size64() uint64 {
+	return uint64(SMPLChunkSize) +
+		uint64(len(ch.SampleLoops))*uint64(SampleLoopSize) +
+		uint64(len(ch.sampleData))
 }
 
 // SamplerData returns a reader for the sampler-specific data.
 func (ch *ChunkSMPL) SamplerData() io.Reader {
 	return bytes.NewReader(ch.sampleData)
+}
+
+// SetSamplerData sets the sampler-specific data that follows the sample
+// loops. It returns [ErrTooLarge] when the data does not fit the 32-bit chunk
+// size.
+func (ch *ChunkSMPL) SetSamplerData(data []byte) error {
+	var err error
+	room := math.MaxUint32 - SMPLChunkSize
+	ch.sampleData, err = setBytes(ch.sampleData, data, room)
+	return err
 }
 
 func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
@@ -244,6 +267,10 @@ func (ch *ChunkSMPL) ReadFrom(r io.Reader) (int64, error) {
 }
 
 func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
+	if ch.size64() > math.MaxUint32 {
+		return 0, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), ErrTooLarge)
+	}
+
 	var sum int64
 
 	size := ch.Size()

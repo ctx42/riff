@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Compile time checks.
@@ -82,16 +83,10 @@ func (lts *ltxtStatic) encode(b []byte) {
 // text label with a region or section of waveform data. This information
 // is often displayed in marked regions of a waveform in digital audio editors.
 type ChunkLTXT struct {
-	// Chunk size in bytes.
-	// The ID, size field, and padding byte are not counted in the chunk size.
-	size uint32
-
 	ltxtStatic
 
-	// Text is a null-terminated string of characters. If the number of
-	// characters in the string is not even, padding must be appended to
-	// the string. The appended padding is not considered in the note
-	// chunk's chunk size field.
+	// Text bytes. The specification does not require a terminating zero
+	// byte, but writers commonly add one.
 	text []byte
 
 	// Reader of the chunk content, reused across decodes.
@@ -116,15 +111,27 @@ func LTXT(opts ...OptsFn) *ChunkLTXT {
 }
 
 func (ch *ChunkLTXT) ID() uint32     { return IDltxt }
-func (ch *ChunkLTXT) Size() uint32   { return ch.size }
 func (ch *ChunkLTXT) Type() uint32   { return 0 }
 func (ch *ChunkLTXT) Multi() bool    { return true }
 func (ch *ChunkLTXT) Chunks() Chunks { return nil }
 func (ch *ChunkLTXT) Raw() bool      { return false }
 
+// Size returns the chunk size computed from its current content.
+func (ch *ChunkLTXT) Size() uint32 {
+	return LTXTChunkSize + size32(len(ch.text))
+}
+
 // Text returns a reader for the text without trailing zero bytes.
 func (ch *ChunkLTXT) Text() io.Reader {
 	return bytes.NewReader(TrimZeroRight(ch.text))
+}
+
+// SetText sets the text bytes as given. It returns [ErrTooLarge] when the
+// text does not fit the 32-bit chunk size.
+func (ch *ChunkLTXT) SetText(text []byte) error {
+	var err error
+	ch.text, err = setBytes(ch.text, text, math.MaxUint32-LTXTChunkSize)
+	return err
 }
 
 func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
@@ -133,9 +140,8 @@ func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, ch.errDecode(err)
 	}
-	ch.size = size
 
-	if ch.size < LTXTChunkSize {
+	if size < LTXTChunkSize {
 		return cr.Count(), ch.errDecode(ErrTooShort)
 	}
 
@@ -145,7 +151,7 @@ func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
 	}
 	ch.decode(b)
 
-	tl := int(ch.size - LTXTChunkSize) // Subtract ltxtStatic fields size.
+	tl := int(size - LTXTChunkSize) // Subtract ltxtStatic fields size.
 	ch.text, err = readBytes(cr, ch.text, tl)
 	if err != nil {
 		return cr.Count(), ch.errDecode(err)
@@ -153,7 +159,7 @@ func (ch *ChunkLTXT) ReadFrom(r io.Reader) (int64, error) {
 
 	// If the length of text bytes is odd, it means the padding byte was added
 	// to the end.
-	_, err = ReadPaddingIf(cr, ch.size)
+	_, err = ReadPaddingIf(cr, size)
 	if err != nil {
 		return cr.Count(), ch.errDecode(err)
 	}
@@ -169,8 +175,9 @@ func (ch *ChunkLTXT) errDecode(err error) error {
 func (ch *ChunkLTXT) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
+	size := ch.Size()
 	b := ch.cr.buf[:] // The reader is idle while encoding.
-	n, err := writeIDAndSize(w, b, IDltxt, ch.size)
+	n, err := writeIDAndSize(w, b, IDltxt, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
@@ -188,7 +195,7 @@ func (ch *ChunkLTXT) WriteTo(w io.Writer) (int64, error) {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 
-	n, err = writePaddingIf(w, b, ch.size)
+	n, err = writePaddingIf(w, b, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
@@ -198,7 +205,6 @@ func (ch *ChunkLTXT) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (ch *ChunkLTXT) Reset() {
-	ch.size = 0
 	ch.CuePointID = 0
 	ch.SamLen = 0
 	ch.PurID = 0

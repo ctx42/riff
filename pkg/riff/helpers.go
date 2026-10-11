@@ -179,6 +179,33 @@ func grow(b []byte, n int) []byte {
 	return tmp
 }
 
+// setBytes copies src into dst, reusing the capacity of dst. It returns
+// [ErrTooLarge] and dst unchanged when src is longer than room bytes.
+func setBytes(dst, src []byte, room uint32) ([]byte, error) {
+	if uint64(len(src)) > uint64(room) {
+		return dst, ErrTooLarge
+	}
+	dst = grow(dst, len(src))
+	copy(dst, src)
+	return dst, nil
+}
+
+// setZSTR works like setBytes for a zero-terminated string: it appends the
+// terminating zero byte when src does not end with one.
+func setZSTR(dst, src []byte, room uint32) ([]byte, error) {
+	n := len(src)
+	if n > 0 && src[n-1] == 0 {
+		return setBytes(dst, src, room)
+	}
+	if uint64(n) >= uint64(room) {
+		return dst, ErrTooLarge
+	}
+	dst = grow(dst, n+1)
+	copy(dst, src)
+	dst[n] = 0
+	return dst, nil
+}
+
 // minReadStep is the smallest number of bytes readBytes grows a buffer by.
 const minReadStep = 512
 

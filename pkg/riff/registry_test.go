@@ -178,7 +178,7 @@ func Test_Registry_putSub(t *testing.T) {
 	// --- Given ---
 	reg := NewRegistry(RAWCMake())
 	ch := INFO(LabIART)
-	ch.size = 3
+	ch.text = []byte{'a', 'b', 0}
 
 	// --- When ---
 	reg.putSub(IDINFO, Opts{}, ch)

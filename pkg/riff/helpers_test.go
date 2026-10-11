@@ -505,6 +505,95 @@ func Test_linkids(t *testing.T) {
 	assert.Equal(t, "RAWC:RIFF", have)
 }
 
+func Test_setBytes(t *testing.T) {
+	t.Run("reuse capacity", func(t *testing.T) {
+		// --- Given ---
+		dst := make([]byte, 1, 8)
+
+		// --- When ---
+		have, err := setBytes(dst, []byte{1, 2, 3}, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{1, 2, 3}, have)
+		assert.Equal(t, 8, cap(have))
+	})
+
+	t.Run("grow", func(t *testing.T) {
+		// --- When ---
+		have, err := setBytes(nil, []byte{1, 2, 3}, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{1, 2, 3}, have)
+	})
+
+	t.Run("error - over room", func(t *testing.T) {
+		// --- Given ---
+		dst := []byte{9}
+
+		// --- When ---
+		have, err := setBytes(dst, []byte{1, 2, 3}, 2)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, []byte{9}, have)
+	})
+}
+
+func Test_setZSTR(t *testing.T) {
+	t.Run("add terminator", func(t *testing.T) {
+		// --- When ---
+		have, err := setZSTR(nil, []byte{'a', 'b'}, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{'a', 'b', 0}, have)
+	})
+
+	t.Run("terminated", func(t *testing.T) {
+		// --- When ---
+		have, err := setZSTR(nil, []byte{'a', 'b', 0}, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{'a', 'b', 0}, have)
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		// --- When ---
+		have, err := setZSTR(nil, nil, 1)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{0}, have)
+	})
+
+	t.Run("error - terminator over room", func(t *testing.T) {
+		// --- Given ---
+		dst := []byte{9}
+
+		// --- When ---
+		have, err := setZSTR(dst, []byte{'a', 'b'}, 2)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, []byte{9}, have)
+	})
+
+	t.Run("error - terminated over room", func(t *testing.T) {
+		// --- Given ---
+		dst := []byte{9}
+
+		// --- When ---
+		have, err := setZSTR(dst, []byte{'a', 'b', 0}, 2)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, []byte{9}, have)
+	})
+}
+
 func Test_readBytes(t *testing.T) {
 	t.Run("within capacity", func(t *testing.T) {
 		// --- Given ---

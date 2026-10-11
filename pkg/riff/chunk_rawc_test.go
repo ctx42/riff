@@ -7,9 +7,11 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
+	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
 
@@ -24,6 +26,54 @@ func Test_RAWC(t *testing.T) {
 	assert.True(t, have.Multi())
 	assert.Len(t, 0, have.Chunks())
 	assert.True(t, have.Raw())
+}
+
+func Test_ChunkRAWC_SetBody(t *testing.T) {
+	t.Run("set", func(t *testing.T) {
+		// --- Given ---
+		ch := RAWC(IDUNKN, WithLoadData())
+
+		// --- When ---
+		err := ch.SetBody([]byte{0, 1, 2})
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(3), ch.Size())
+		assert.Equal(t, []byte{0, 1, 2}, must.Value(io.ReadAll(ch.Body())))
+	})
+
+	t.Run("error - skip data mode", func(t *testing.T) {
+		// --- Given ---
+		ch := RAWC(IDUNKN)
+
+		// --- When ---
+		err := ch.SetBody([]byte{0, 1, 2})
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrSkipDataMode, err)
+		assert.Equal(t, uint32(0), ch.Size())
+	})
+
+	t.Run("error - over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		ch := RAWC(IDUNKN, WithLoadData())
+
+		// Fresh zero pages from the OS; never touched, so never resident. The
+		// length is a variable so the file still compiles where int is 32-bit.
+		n := uint64(math.MaxUint32) + 1
+		data := make([]byte, n)
+
+		// --- When ---
+		err := ch.SetBody(data)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, uint32(0), ch.Size())
+	})
 }
 
 func Test_ChunkRAWC_ReadFrom(t *testing.T) {

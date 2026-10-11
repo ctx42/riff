@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Compile time checks.
@@ -134,11 +135,7 @@ type ChunkINFO struct {
 	// Chunk ID (label ID).
 	id uint32
 
-	// Chunk size in bytes.
-	// The ID, size field, and padding byte are not counted in the chunk size.
-	size uint32
-
-	// Label text.
+	// Label text, a zero-terminated string.
 	text []byte
 
 	// Reader of the chunk content, reused across decodes.
@@ -164,15 +161,26 @@ func INFO(id uint32, opts ...OptsFn) *ChunkINFO {
 }
 
 func (ch *ChunkINFO) ID() uint32     { return ch.id }
-func (ch *ChunkINFO) Size() uint32   { return ch.size }
 func (ch *ChunkINFO) Type() uint32   { return 0 }
 func (ch *ChunkINFO) Multi() bool    { return true }
 func (ch *ChunkINFO) Chunks() Chunks { return nil }
 func (ch *ChunkINFO) Raw() bool      { return false }
 
+// Size returns the chunk size computed from its current content.
+func (ch *ChunkINFO) Size() uint32 { return size32(len(ch.text)) }
+
 // Text returns a reader for the INFO text without trailing zero bytes.
 func (ch *ChunkINFO) Text() io.Reader {
 	return bytes.NewReader(TrimZeroRight(ch.text))
+}
+
+// SetText sets the INFO text. The text is stored as a zero-terminated string,
+// so a zero byte is appended when text does not end with one. It returns
+// [ErrTooLarge] when the text does not fit the 32-bit chunk size.
+func (ch *ChunkINFO) SetText(text []byte) error {
+	var err error
+	ch.text, err = setZSTR(ch.text, text, math.MaxUint32)
+	return err
 }
 
 func (ch *ChunkINFO) ReadFrom(r io.Reader) (int64, error) {
@@ -181,16 +189,15 @@ func (ch *ChunkINFO) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, linkids(IDINFO, ch.id), err)
 	}
-	ch.size = size
 
-	ch.text, err = readBytes(cr, ch.text, int(ch.size))
+	ch.text, err = readBytes(cr, ch.text, int(size))
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, ch.id), err)
 	}
 
 	// If the length of text bytes is odd, it means the padding byte was added
 	// to the end.
-	_, err = ReadPaddingIf(cr, ch.size)
+	_, err = ReadPaddingIf(cr, size)
 	if err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, linkids(IDINFO, ch.id), err)
 	}
@@ -201,8 +208,9 @@ func (ch *ChunkINFO) ReadFrom(r io.Reader) (int64, error) {
 func (ch *ChunkINFO) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
+	size := ch.Size()
 	b := ch.cr.buf[:] // The reader is idle while encoding.
-	n, err := writeIDAndSize(w, b, ch.id, ch.size)
+	n, err := writeIDAndSize(w, b, ch.id, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, ch.id), err)
@@ -214,7 +222,7 @@ func (ch *ChunkINFO) WriteTo(w io.Writer) (int64, error) {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, ch.id), err)
 	}
 
-	n, err = writePaddingIf(w, b, ch.size)
+	n, err = writePaddingIf(w, b, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDINFO, ch.id), err)
@@ -224,7 +232,6 @@ func (ch *ChunkINFO) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (ch *ChunkINFO) Reset() {
-	ch.size = 0
 	ch.text = ch.text[:0]
 }
 

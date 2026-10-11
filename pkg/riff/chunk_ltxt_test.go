@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
@@ -112,11 +113,47 @@ func Test_LTXT(t *testing.T) {
 
 	// --- Then ---
 	assert.Equal(t, IDltxt, have.ID())
-	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, LTXTChunkSize, have.Size())
 	assert.Equal(t, uint32(0), have.Type())
 	assert.True(t, have.Multi())
 	assert.Nil(t, have.Chunks())
 	assert.False(t, have.Raw())
+}
+
+func Test_ChunkLTXT_SetText(t *testing.T) {
+	t.Run("set", func(t *testing.T) {
+		// --- Given ---
+		ch := LTXT()
+
+		// --- When ---
+		err := ch.SetText([]byte("ab"))
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(22), ch.Size())
+		assert.Equal(t, []byte("ab"), ch.text)
+	})
+
+	t.Run("error - over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		ch := LTXT()
+
+		// Fresh zero pages from the OS; never touched, so never resident. The
+		// length is a variable so the file still compiles where int is 32-bit.
+		n := uint64(math.MaxUint32) + 1
+		data := make([]byte, n)
+
+		// --- When ---
+		err := ch.SetText(data)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, LTXTChunkSize, ch.Size())
+	})
 }
 
 func Test_ChunkLTXT_ReadFrom(t *testing.T) {
@@ -284,6 +321,29 @@ func Test_ChunkLTXT_errDecode(t *testing.T) {
 }
 
 func Test_ChunkLTXT_WriteTo(t *testing.T) {
+	t.Run("set text", func(t *testing.T) {
+		// --- Given ---
+		ch := LTXT()
+		ch.CuePointID = 1
+		must.Nil(ch.SetText([]byte("abc")))
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := ch.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(32), n)
+		want := []byte{
+			'l', 't', 'x', 't', // ID.
+			0x17, 0x0, 0x0, 0x0, // Size.
+			0x1, 0x0, 0x0, 0x0, // Cue point ID.
+		}
+		want = append(want, make([]byte, 16)...) // Other static fields.
+		want = append(want, 'a', 'b', 'c', 0x0)  // Text and padding.
+		assert.Equal(t, want, dst.Bytes())
+	})
+
 	t.Run("error - write", func(t *testing.T) {
 		// Writing less then 32 bytes should always result in an error.
 		for i := 32; i > 0; i-- {
@@ -342,7 +402,6 @@ func Test_ChunkLTXT_WriteTo_tabular(t *testing.T) {
 func Test_ChunkLTXT_Reset(t *testing.T) {
 	// --- Given ---
 	ch := LTXT()
-	ch.size = 3
 	ch.CuePointID = 1
 	ch.SamLen = 2
 	ch.PurID = 3
@@ -357,7 +416,7 @@ func Test_ChunkLTXT_Reset(t *testing.T) {
 
 	// --- Then ---
 	assert.Equal(t, IDltxt, ch.ID())
-	assert.Equal(t, uint32(0), ch.Size())
+	assert.Equal(t, LTXTChunkSize, ch.Size())
 	assert.Equal(t, uint32(0), ch.CuePointID)
 	assert.Equal(t, uint32(0), ch.SamLen)
 	assert.Equal(t, uint32(0), ch.PurID)

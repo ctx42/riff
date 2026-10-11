@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
@@ -215,6 +216,75 @@ func Test_ChunkSMPL_Size(t *testing.T) {
 		n, err := ch.WriteTo(dst)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(have)+8, n)
+	})
+
+	t.Run("capped over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		ch := SMPL()
+		ch.SampleLoops = append(ch.SampleLoops, &SampleLoop{})
+
+		// Fresh zero pages from the OS; never touched, so never resident.
+		ch.sampleData = make([]byte, math.MaxUint32-SMPLChunkSize)
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(math.MaxUint32), have)
+	})
+}
+
+func Test_ChunkSMPL_size64(t *testing.T) {
+	// --- Given ---
+	ch := SMPL()
+	ch.SampleLoops = append(ch.SampleLoops, &SampleLoop{})
+	ch.sampleData = []byte{0, 1, 2}
+
+	// --- When ---
+	have := ch.size64()
+
+	// --- Then ---
+	assert.Equal(t, uint64(63), have)
+}
+
+func Test_ChunkSMPL_SetSamplerData(t *testing.T) {
+	t.Run("set", func(t *testing.T) {
+		// --- Given ---
+		ch := SMPL()
+
+		// --- When ---
+		err := ch.SetSamplerData([]byte{0, 1, 2})
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(39), ch.Size())
+		have := must.Value(io.ReadAll(ch.SamplerData()))
+		assert.Equal(t, []byte{0, 1, 2}, have)
+	})
+
+	t.Run("error - over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		ch := SMPL()
+
+		// Fresh zero pages from the OS; never touched, so never resident. The
+		// length is a variable so the file still compiles where int is 32-bit.
+		n := uint64(math.MaxUint32) + 1
+		data := make([]byte, n)
+
+		// --- When ---
+		err := ch.SetSamplerData(data)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, SMPLChunkSize, ch.Size())
 	})
 }
 
@@ -512,6 +582,52 @@ func Test_ChunkSMPL_ReadFrom(t *testing.T) {
 }
 
 func Test_ChunkSMPL_WriteTo(t *testing.T) {
+	t.Run("set sampler data", func(t *testing.T) {
+		// --- Given ---
+		ch := SMPL()
+		must.Nil(ch.SetSamplerData([]byte{0, 1, 2}))
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := ch.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(48), n)
+		assert.Equal(t, uint32(3), ch.SamplerDataCnt)
+		want := bytes.Join([][]byte{
+			{'s', 'm', 'p', 'l'},  // ID.
+			{0x27, 0x0, 0x0, 0x0}, // Size.
+			make([]byte, 32),      // Static fields.
+			{0x3, 0x0, 0x0, 0x0},  // Sampler data size.
+			{0x0, 0x1, 0x2, 0x0},  // Data and padding.
+		}, nil)
+		assert.Equal(t, want, dst.Bytes())
+	})
+
+	t.Run("error - over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		ch := SMPL()
+		ch.SampleLoops = append(ch.SampleLoops, &SampleLoop{})
+
+		// Fresh zero pages from the OS; never touched, so never resident.
+		ch.sampleData = make([]byte, math.MaxUint32-SMPLChunkSize)
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := ch.WriteTo(dst)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.ErrorEqual(t, "error encoding smpl chunk: size too large", err)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, 0, dst.Len())
+	})
+
 	t.Run("error - write", func(t *testing.T) {
 		// Writing less then 64 bytes should always result in an error.
 		for i := 64; i > 0; i-- {

@@ -73,13 +73,12 @@ func (ch *ChunkDATA) SetData(data []byte) error {
 	if !ch.opts.LoadData() {
 		return ErrSkipDataMode
 	}
-	l := len(data)
-	if uint64(l) > math.MaxUint32 {
-		return ErrTooLarge
+	data, err := setBytes(ch.data, data, math.MaxUint32)
+	if err != nil {
+		return err
 	}
-	ch.data = grow(ch.data, l)
-	copy(ch.data, data)
-	ch.size = uint32(l)
+	ch.data = data
+	ch.size = size32(len(data))
 	return nil
 }
 
