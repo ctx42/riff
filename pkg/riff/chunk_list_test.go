@@ -73,11 +73,38 @@ func Test_LIST(t *testing.T) {
 
 	// --- Then ---
 	assert.Equal(t, IDLIST, have.ID())
-	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, uint32(4), have.Size())
 	assert.Equal(t, uint32(0), have.Type())
 	assert.True(t, have.Multi())
 	assert.Nil(t, have.Chunks())
 	assert.False(t, have.Raw())
+}
+
+func Test_ChunkLIST_Size(t *testing.T) {
+	t.Run("no chunks", func(t *testing.T) {
+		// --- Given ---
+		ch := LIST(nil)
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(4), have)
+	})
+
+	t.Run("edited sub-chunk", func(t *testing.T) {
+		// --- Given ---
+		fmtc := FMT()
+		ch := LIST(nil)
+		ch.Modify(Chunks{fmtc})
+		fmtc.SetExtra([]byte{1, 2})
+
+		// --- When ---
+		have := ch.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(4+8+16+4), have)
+	})
 }
 
 func Test_ChunkLIST_ReadFrom(t *testing.T) {
@@ -372,7 +399,7 @@ func Test_ChunkLIST_Reset(t *testing.T) {
 		ch.Reset()
 
 		// --- Then ---
-		assert.Equal(t, uint32(0), ch.Size())
+		assert.Equal(t, uint32(4), ch.Size())
 		assert.Equal(t, uint32(0), ch.ListType)
 		assert.Len(t, 0, ch.Chunks())
 	})

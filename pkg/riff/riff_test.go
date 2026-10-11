@@ -23,7 +23,7 @@ func Test_New(t *testing.T) {
 
 	// --- Then ---
 	assert.Equal(t, IDRIFF, have.ID())
-	assert.Equal(t, uint32(0), have.Size())
+	assert.Equal(t, uint32(4), have.Size())
 	assert.Equal(t, uint32(0), have.Type())
 	assert.False(t, have.Multi())
 	assert.False(t, have.Raw())
@@ -41,7 +41,7 @@ func Test_Bare(t *testing.T) {
 
 		// --- Then ---
 		assert.Equal(t, IDRIFF, rif.ID())
-		assert.Equal(t, uint32(0), rif.Size())
+		assert.Equal(t, uint32(4), rif.Size())
 		assert.Equal(t, uint32(0), rif.Type())
 		assert.False(t, rif.Multi())
 		assert.False(t, rif.IsRegistered(IDfmt))
@@ -54,7 +54,7 @@ func Test_Bare(t *testing.T) {
 
 		// --- Then ---
 		assert.Equal(t, IDRIFF, have.ID())
-		assert.Equal(t, uint32(0), have.Size())
+		assert.Equal(t, uint32(4), have.Size())
 		assert.Equal(t, uint32(0), have.Type())
 		assert.False(t, have.Multi())
 		assert.False(t, have.IsRegistered(IDfmt))
@@ -89,6 +89,32 @@ func Test_Compose(t *testing.T) {
 		// --- Then ---
 		assert.Equal(t, rif.Size(), have.Size())
 		assert.Equal(t, len(chs.IDs()), len(have.Chunks().IDs()))
+	})
+}
+
+func Test_RIFF_Size(t *testing.T) {
+	t.Run("no chunks", func(t *testing.T) {
+		// --- Given ---
+		rif := New()
+
+		// --- When ---
+		have := rif.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(4), have)
+	})
+
+	t.Run("edited chunk", func(t *testing.T) {
+		// --- Given ---
+		rif := New(WithLoadData())
+		must.Value(rif.ReadFrom(oskit.Open(t, "testdata/kick.wav")))
+		rif.Chunks().First(IDfmt).(*ChunkFMT).SetExtra([]byte{1, 2})
+
+		// --- When ---
+		have := rif.Size()
+
+		// --- Then ---
+		assert.Equal(t, uint32(9004+4), have)
 	})
 }
 
@@ -233,7 +259,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		want := "RIFF declared 20 bytes, decoder read 16 bytes: unexpected EOF"
 		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(24), n)
-		assert.Equal(t, uint32(20), rif.Size())
+		assert.Equal(t, uint32(16), rif.Size())
 		assert.Len(t, 1, rif.Chunks())
 	})
 
@@ -254,7 +280,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		want := "error reading RIFF offset 14: unexpected EOF"
 		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(14), n)
-		assert.Equal(t, uint32(20), rif.Size())
+		assert.Equal(t, uint32(4), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
 	})
 
@@ -299,7 +325,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		want := "error decoding RIFF chunk: size too large"
 		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(4), n)
-		assert.Equal(t, uint32(0), rif.Size())
+		assert.Equal(t, uint32(4), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
 	})
 
@@ -326,7 +352,7 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 			"size too large"
 		assert.ErrorEqual(t, want, err)
 		assert.Equal(t, int64(20), n)
-		assert.Equal(t, uint32(16), rif.Size())
+		assert.Equal(t, uint32(4), rif.Size())
 		assert.Len(t, 0, rif.Chunks())
 	})
 

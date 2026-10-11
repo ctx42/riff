@@ -29,10 +29,6 @@ const (
 
 // ChunkLIST represents the "LIST" chunk holding a list of sub-chunks.
 type ChunkLIST struct {
-	// Chunk size in bytes.
-	// The ID, size field, and padding byte are not counted in the chunk size.
-	size uint32
-
 	// List type.
 	ListType uint32
 
@@ -70,20 +66,21 @@ func LIST(reg *Registry, opts ...OptsFn) *ChunkLIST {
 }
 
 func (ch *ChunkLIST) ID() uint32     { return IDLIST }
-func (ch *ChunkLIST) Size() uint32   { return ch.size }
 func (ch *ChunkLIST) Type() uint32   { return ch.ListType }
 func (ch *ChunkLIST) Multi() bool    { return true }
 func (ch *ChunkLIST) Chunks() Chunks { return ch.chunks }
 func (ch *ChunkLIST) Raw() bool      { return false }
+
+// Size returns the size of the list type field and the sub-chunks, computed
+// from the sub-chunks on every call.
+func (ch *ChunkLIST) Size() uint32 { return ListTypeSize + ch.chunks.Size() }
 
 func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	cr, size, err := ch.opts.ChunkReader(r)
 	if err != nil {
 		return 0, fmt.Errorf(errFmtDecode, Uint32(IDLIST), err)
 	}
-	ch.size = size
-
-	if ch.size < ListTypeSize {
+	if size < ListTypeSize {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDLIST), ErrTooShort)
 	}
 
@@ -105,7 +102,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	// Decode sub-chunks until all bytes declared in size are read.
-	for cr.Count()-4 < int64(ch.size) {
+	for cr.Count()-4 < int64(size) {
 		var id uint32
 		if err = ReadChunkID(cr, &id); err != nil {
 			return cr.Count(), fmt.Errorf(errFmtDecode, name, err)
@@ -125,7 +122,7 @@ func (ch *ChunkLIST) ReadFrom(r io.Reader) (int64, error) {
 		ch.chunks = append(ch.chunks, dec)
 	}
 
-	if cr.Count()-4 > int64(ch.size) {
+	if cr.Count()-4 > int64(size) {
 		return cr.Count(), fmt.Errorf(errFmtDecode, name, ErrChunkSizeMismatch)
 	}
 
@@ -138,9 +135,8 @@ func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	var sum int64
-	size := ch.chunks.Size() + 4 // Add four bytes for the list type.
 
-	n, err := WriteIDAndSize(w, IDLIST, size)
+	n, err := WriteIDAndSize(w, IDLIST, ch.Size())
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDLIST), err)
@@ -161,7 +157,6 @@ func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (ch *ChunkLIST) Reset() {
-	ch.size = 0
 	ch.ListType = 0
 	if ch.borrowed {
 		ch.chunks = nil
@@ -200,11 +195,9 @@ func adtlMake(opts ...OptsFn) IDMaker {
 	}
 }
 
-// Modify replaces the sub-chunks with chs and updates the chunk size.
-// [ChunkLIST.Reset] drops chs instead of returning them to the registry pool.
+// Modify replaces the sub-chunks with chs. [ChunkLIST.Reset] drops chs
+// instead of returning them to the registry pool.
 func (ch *ChunkLIST) Modify(chs Chunks) {
 	ch.chunks = chs
 	ch.borrowed = true
-	// Recalculate chunks size.
-	ch.size = 4 + ch.chunks.Size()
 }

@@ -89,10 +89,6 @@ type IDMaker func(id uint32) Chunk
 
 // RIFF represents a file in Resource Interchange File Format.
 type RIFF struct {
-	// Chunk size in bytes.
-	// The ID, size field, and padding byte are not counted in the chunk size.
-	size uint32
-
 	// Determines the type of the resource (e.g.: WAVE).
 	riffType uint32
 
@@ -150,11 +146,14 @@ func Compose(chs Chunks) *RIFF {
 }
 
 func (rif *RIFF) ID() uint32     { return IDRIFF }
-func (rif *RIFF) Size() uint32   { return rif.size }
 func (rif *RIFF) Type() uint32   { return rif.riffType }
 func (rif *RIFF) Multi() bool    { return false }
 func (rif *RIFF) Chunks() Chunks { return rif.chunks }
 func (rif *RIFF) Raw() bool      { return false }
+
+// Size returns the size of the RIFF type field and the chunks, computed from
+// the chunks on every call.
+func (rif *RIFF) Size() uint32 { return 4 + rif.chunks.Size() }
 
 // SetType sets the RIFF file type, such as [TypeWAVE].
 func (rif *RIFF) SetType(t uint32) { rif.riffType = t }
@@ -187,7 +186,7 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 
 	// Main chunk RIFF size should never be odd. Since it's a small infraction,
 	// we can simply round it up.
-	rif.size = RealSize(size)
+	size = RealSize(size)
 
 	if err = binary.Read(cr, be, &rif.riffType); err != nil {
 		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDRIFF), err)
@@ -213,18 +212,13 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 	// EOF reached.
 	readSize := uint32(cr.Count() - 8)
 
-	if !rif.opts.IgnoreDeclaredSize() && rif.size > readSize {
+	if !rif.opts.IgnoreDeclaredSize() && size > readSize {
 		return cr.Count(), fmt.Errorf(
 			"RIFF declared %d bytes, decoder read %d bytes: %w",
-			rif.size,
+			size,
 			readSize,
 			io.ErrUnexpectedEOF,
 		)
-	}
-
-	if rif.opts.IgnoreDeclaredSize() && rif.size != readSize {
-		// Size needs to be corrected.
-		rif.size = readSize
 	}
 
 	return cr.Count(), nil
@@ -233,10 +227,7 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 func (rif *RIFF) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
-	// Recalculate chunks size and add RIFF type.
-	rif.size = 4 + rif.chunks.Size()
-
-	n, err := WriteIDAndSize(w, IDRIFF, rif.size)
+	n, err := WriteIDAndSize(w, IDRIFF, rif.Size())
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDRIFF), err)
@@ -294,11 +285,9 @@ func (rif *RIFF) decodeChunk(id uint32, r io.Reader) (int64, error) {
 	return n, nil
 }
 
-// Modify replaces the chunks with chs and updates the RIFF size. [RIFF.Reset]
-// drops chs instead of returning them to the registry pool.
+// Modify replaces the chunks with chs. [RIFF.Reset] drops chs instead of
+// returning them to the registry pool.
 func (rif *RIFF) Modify(chs Chunks) {
 	rif.chunks = chs
 	rif.borrowed = true
-	// Recalculate chunks size.
-	rif.size = 4 + rif.chunks.Size()
 }
