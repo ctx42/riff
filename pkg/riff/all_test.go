@@ -130,3 +130,56 @@ func kitchenSink(t tester.T) []byte {
 	writeBytes(t, src, body.Bytes())            // Sub-chunks.
 	return src.Bytes()
 }
+
+// sparseReader reads size bytes of zeros overlaid with segments keyed by
+// offset, and seeks without reading. It simulates large inputs without
+// allocating them.
+type sparseReader struct {
+	size int64
+	pos  int64
+	segs map[int64][]byte
+}
+
+func (rdr *sparseReader) Read(p []byte) (int, error) {
+	if rdr.pos >= rdr.size {
+		return 0, io.EOF
+	}
+	n := min(int64(len(p)), rdr.size-rdr.pos)
+	clear(p[:n])
+	for off, seg := range rdr.segs {
+		lo := max(off, rdr.pos)
+		hi := min(off+int64(len(seg)), rdr.pos+n)
+		if lo < hi {
+			copy(p[lo-rdr.pos:hi-rdr.pos], seg[lo-off:hi-off])
+		}
+	}
+	rdr.pos += n
+	return int(n), nil
+}
+
+func (rdr *sparseReader) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart:
+		rdr.pos = offset
+
+	case io.SeekCurrent:
+		rdr.pos += offset
+
+	case io.SeekEnd:
+		rdr.pos = rdr.size + offset
+	}
+	return rdr.pos, nil
+}
+
+// sizedChunk is a chunk reporting a size without holding any data.
+type sizedChunk struct{ size uint32 }
+
+func (ch *sizedChunk) ID() uint32                        { return IDUNKN }
+func (ch *sizedChunk) Size() uint32                      { return ch.size }
+func (ch *sizedChunk) Type() uint32                      { return 0 }
+func (ch *sizedChunk) Multi() bool                       { return true }
+func (ch *sizedChunk) Chunks() Chunks                    { return nil }
+func (ch *sizedChunk) Raw() bool                         { return false }
+func (ch *sizedChunk) ReadFrom(io.Reader) (int64, error) { return 0, nil }
+func (ch *sizedChunk) WriteTo(io.Writer) (int64, error)  { return 0, nil }
+func (ch *sizedChunk) Reset()                            {}

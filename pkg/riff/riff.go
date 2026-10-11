@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Compile time checks.
@@ -209,7 +210,11 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 			return cr.Count(), fmt.Errorf(errFmtReadingRIFF, cr.Count(), err)
 		}
 	}
-	// EOF reached.
+	// EOF reached. With ignored sizes nothing limits the input, but a RIFF
+	// size is a 32-bit value.
+	if cr.Count()-8 > math.MaxUint32 {
+		return cr.Count(), fmt.Errorf(errFmtDecode, Uint32(IDRIFF), ErrTooLarge)
+	}
 	readSize := uint32(cr.Count() - 8)
 
 	if !rif.opts.IgnoreDeclaredSize() && size > readSize {
@@ -225,9 +230,14 @@ func (rif *RIFF) ReadFrom(r io.Reader) (int64, error) {
 }
 
 func (rif *RIFF) WriteTo(w io.Writer) (int64, error) {
+	size := 4 + rif.chunks.size64()
+	if size > math.MaxUint32 {
+		return 0, fmt.Errorf(errFmtEncode, Uint32(IDRIFF), ErrTooLarge)
+	}
+
 	var sum int64
 
-	n, err := WriteIDAndSize(w, IDRIFF, rif.Size())
+	n, err := WriteIDAndSize(w, IDRIFF, uint32(size))
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDRIFF), err)

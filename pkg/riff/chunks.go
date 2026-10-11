@@ -50,6 +50,20 @@ func (chs Chunks) Size() uint32 {
 	return size
 }
 
+// size64 returns the encoded size like [Chunks.Size], computed in 64 bits so
+// it does not wrap. LIST sub-chunks are summed the same way.
+func (chs Chunks) size64() uint64 {
+	var size uint64
+	for _, ch := range chs {
+		cs := uint64(ch.Size())
+		if lst, ok := ch.(*ChunkLIST); ok {
+			cs = uint64(ListTypeSize) + lst.chunks.size64()
+		}
+		size += cs + cs%2 + 8 // Add padding byte, chunk ID and size fields.
+	}
+	return size
+}
+
 // WriteTo writes all the chunks in the collection to w.
 func (chs Chunks) WriteTo(w io.Writer) (int64, error) {
 	var sum int64

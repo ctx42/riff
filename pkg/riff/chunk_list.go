@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Compile time checks.
@@ -134,9 +135,14 @@ func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
 		return 0, ErrSkipDataMode
 	}
 
+	size := uint64(ListTypeSize) + ch.chunks.size64()
+	if size > math.MaxUint32 {
+		return 0, fmt.Errorf(errFmtEncode, Uint32(IDLIST), ErrTooLarge)
+	}
+
 	var sum int64
 
-	n, err := WriteIDAndSize(w, IDLIST, ch.Size())
+	n, err := WriteIDAndSize(w, IDLIST, uint32(size))
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDLIST), err)

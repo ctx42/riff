@@ -5,9 +5,11 @@ package riff
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
+	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testing/pkg/tester"
 	"github.com/ctx42/testkit/pkg/iokit"
 )
@@ -149,4 +151,77 @@ func Test_isAllRead(t *testing.T) {
 		// --- Then ---
 		assert.False(t, have)
 	})
+}
+
+func Test_sparseReader_Read(t *testing.T) {
+	t.Run("zeros and segments", func(t *testing.T) {
+		// --- Given ---
+		rdr := &sparseReader{
+			size: 8,
+			segs: map[int64][]byte{1: {1, 2}, 6: {6, 7, 8}},
+		}
+
+		// --- When ---
+		have, err := io.ReadAll(rdr)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{0, 1, 2, 0, 0, 0, 6, 7}, have)
+	})
+
+	t.Run("segment across reads", func(t *testing.T) {
+		// --- Given ---
+		rdr := &sparseReader{size: 4, segs: map[int64][]byte{1: {1, 2}}}
+		have := make([]byte, 2)
+		must.Value(rdr.Read(have))
+
+		// --- When ---
+		n, err := rdr.Read(have)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, 2, n)
+		assert.Equal(t, []byte{2, 0}, have)
+	})
+
+	t.Run("EOF", func(t *testing.T) {
+		// --- Given ---
+		rdr := &sparseReader{size: 1, pos: 1}
+
+		// --- When ---
+		n, err := rdr.Read(make([]byte, 1))
+
+		// --- Then ---
+		assert.ErrorIs(t, io.EOF, err)
+		assert.Equal(t, 0, n)
+	})
+}
+
+func Test_sparseReader_Seek_tabular(t *testing.T) {
+	tt := []struct {
+		testN string
+
+		offset int64
+		whence int
+		want   int64
+	}{
+		{"start", 3, io.SeekStart, 3},
+		{"current", 3, io.SeekCurrent, 5},
+		{"end", -1, io.SeekEnd, 9},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- Given ---
+			rdr := &sparseReader{size: 10, pos: 2}
+
+			// --- When ---
+			have, err := rdr.Seek(tc.offset, tc.whence)
+
+			// --- Then ---
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want, have)
+			assert.Equal(t, tc.want, rdr.pos)
+		})
+	}
 }

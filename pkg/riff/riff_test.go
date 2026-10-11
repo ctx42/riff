@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"os"
 	"testing"
 
@@ -438,6 +439,35 @@ func Test_RIFF_ReadFrom(t *testing.T) {
 		assert.ErrorEqual(t, want, err)
 	})
 
+	t.Run("error - over 4 GiB with ignored size", func(t *testing.T) {
+		// --- Given ---
+		head := &bytes.Buffer{}
+		writeUint32BE(t, head, IDRIFF)
+		writeUint32LE(t, head, 4)
+		writeUint32BE(t, head, TypeWAVE)
+		writeUint32BE(t, head, IDJUNK)
+		writeUint32LE(t, head, math.MaxUint32-1)
+
+		tail := &bytes.Buffer{}
+		writeUint32BE(t, tail, IDJUNK)
+		writeUint32LE(t, tail, 16)
+
+		end := int64(20) + math.MaxUint32 - 1
+		src := &sparseReader{
+			size: end + 8 + 16,
+			segs: map[int64][]byte{0: head.Bytes(), end: tail.Bytes()},
+		}
+
+		rif := New(WithIgnoreSize())
+
+		// --- When ---
+		_, err := rif.ReadFrom(src)
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error decoding RIFF chunk: size too large", err)
+		assert.ErrorIs(t, ErrTooLarge, err)
+	})
+
 	t.Run("reuse - sub-chunk decoder of other list type", func(t *testing.T) {
 		// --- Given ---
 		rif := New()
@@ -567,6 +597,38 @@ func Test_RIFF_WriteTo(t *testing.T) {
 		assert.Equal(t, uint32(27074), rif.Size()+8)
 		want := "ebdf4fefcbbb804b44cddbc50521ba29f833e05c"
 		assert.Equal(t, want, testkit.SHA1Reader(dst))
+	})
+
+	t.Run("error - chunks over 4 GiB", func(t *testing.T) {
+		// --- Given ---
+		rif := Compose(Chunks{&sizedChunk{1 << 31}, &sizedChunk{1 << 31}})
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := rif.WriteTo(dst)
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding RIFF chunk: size too large", err)
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, 0, dst.Len())
+	})
+
+	t.Run("error - list over 4 GiB", func(t *testing.T) {
+		// --- Given ---
+		lst := LIST(nil, WithLoadData())
+		lst.Modify(Chunks{&sizedChunk{1 << 31}, &sizedChunk{1 << 31}})
+		rif := Compose(Chunks{lst})
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := rif.WriteTo(dst)
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding RIFF chunk: size too large", err)
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, 0, dst.Len())
 	})
 
 	t.Run("error - writing header", func(t *testing.T) {

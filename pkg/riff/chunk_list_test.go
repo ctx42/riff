@@ -314,6 +314,21 @@ func Test_ChunkLIST_ReadFrom(t *testing.T) {
 }
 
 func Test_ChunkLIST_WriteTo(t *testing.T) {
+	t.Run("error - sub-chunks over 4 GiB", func(t *testing.T) {
+		// --- Given ---
+		ch := LIST(nil, WithLoadData())
+		ch.Modify(Chunks{&sizedChunk{1 << 31}, &sizedChunk{1 << 31}})
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := ch.WriteTo(dst)
+
+		// --- Then ---
+		assert.ErrorEqual(t, "error encoding LIST chunk: size too large", err)
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, 0, dst.Len())
+	})
 	t.Run("error - write", func(t *testing.T) {
 		// Writing less than 60 bytes should always result in an error.
 		for i := 60; i > 0; i-- {
