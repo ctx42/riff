@@ -132,6 +132,72 @@ func main() {
 }
 ```
 
+### Set a tag
+
+Tags live in `INFO` sub-chunks of a `LIST` chunk. This sets the title,
+replacing an existing one, and adds an `INFO` list when the file has none.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/ctx42/riff/pkg/riff"
+)
+
+func main() {
+	src, err := os.Open("sample.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer src.Close()
+
+	rif := riff.New(riff.WithLoadData())
+	if _, err = rif.ReadFrom(src); err != nil {
+		log.Fatal(err)
+	}
+
+	title := riff.INFO(riff.LabINAM)
+	if err = title.SetText([]byte("Kick")); err != nil {
+		log.Fatal(err)
+	}
+
+	// Find the INFO list, or add one.
+	chs := rif.Chunks()
+	var info *riff.ChunkLIST
+	for _, ch := range chs {
+		if lst, ok := ch.(*riff.ChunkLIST); ok && lst.Type() == riff.IDINFO {
+			info = lst
+			break
+		}
+	}
+	if info == nil {
+		info = riff.LIST(nil)
+		info.ListType = riff.IDINFO
+		chs = append(chs, info)
+	}
+	info.Modify(append(info.Chunks().Remove(riff.LabINAM), title))
+	rif.Modify(chs)
+
+	dst, err := os.Create("tagged.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err = rif.WriteTo(dst); err != nil {
+		log.Fatal(err)
+	}
+	if err = dst.Close(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+Other chunks have setters too: `ChunkLABL.SetLabel`, `ChunkLTXT.SetText`,
+`ChunkSMPL.SetSamplerData`, `ChunkRAWC.SetBody`, `ChunkDATA.SetData`, and
+`ChunkFMT.SetExtra`.
+
 ### Decode only selected chunks
 
 Build a `Registry` with the decoders you need and pass it to `Bare`. Chunks
@@ -202,6 +268,14 @@ its ID, as in [Decode only selected chunks](#decode-only-selected-chunks).
 
 They are decoded and encoded by `ChunkRAWC`. Decode with `WithLoadData` to
 keep their bodies so a decode, edit, encode round trip preserves them.
+
+### How do I find where a file is broken?
+
+When a chunk fails to decode, `RIFF.ReadFrom` returns a `*DecodeError`. Its
+`ChunkOffset` is where the chunk starts and `Offset` is where decoding
+stopped, both counted from the start of the input. Use `errors.As` to read
+them, or `errors.Is` to test for the cause, such as `io.ErrUnexpectedEOF` or
+`riff.ErrPadByte`.
 
 ### How strict is the decoder?
 

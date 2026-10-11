@@ -154,6 +154,60 @@ func ExampleRIFF_ReadFrom_reuse() {
 	// testdata/bass.wav 2
 }
 
+func Example_setTag() {
+	src, err := os.Open("testdata/kick.wav")
+	if err != nil {
+		panic(err)
+	}
+	defer func() { _ = src.Close() }()
+
+	rif := riff.New(riff.WithLoadData())
+	if _, err = rif.ReadFrom(src); err != nil {
+		panic(err)
+	}
+
+	title := riff.INFO(riff.LabINAM)
+	if err = title.SetText([]byte("Kick")); err != nil {
+		panic(err)
+	}
+
+	// Find the INFO list, or add one.
+	chs := rif.Chunks()
+	var info *riff.ChunkLIST
+	for _, ch := range chs {
+		if lst, ok := ch.(*riff.ChunkLIST); ok && lst.Type() == riff.IDINFO {
+			info = lst
+			break
+		}
+	}
+	if info == nil {
+		info = riff.LIST(nil)
+		info.ListType = riff.IDINFO
+		chs = append(chs, info)
+	}
+	info.Modify(append(info.Chunks().Remove(riff.LabINAM), title))
+	rif.Modify(chs)
+
+	dst := &bytes.Buffer{}
+	if _, err = rif.WriteTo(dst); err != nil {
+		panic(err)
+	}
+
+	// Decode the result again.
+	if _, err = rif.ReadFrom(dst); err != nil {
+		panic(err)
+	}
+	lst := rif.Chunks().First(riff.IDLIST).(*riff.ChunkLIST)
+	tag := lst.Chunks().First(riff.LabINAM).(*riff.ChunkINFO)
+	txt, err := io.ReadAll(tag.Text())
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(txt))
+	// Output:
+	// Kick
+}
+
 func ExampleRIFF_WriteTo() {
 	src, err := os.Open("testdata/kick.wav")
 	if err != nil {
