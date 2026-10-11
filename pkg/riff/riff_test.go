@@ -60,6 +60,21 @@ func Test_Bare(t *testing.T) {
 		assert.False(t, have.IsRegistered(IDfmt))
 		assert.False(t, have.IsRegistered(IDdata))
 	})
+
+	t.Run("nil registry with options", func(t *testing.T) {
+		// --- Given ---
+		want := kitchenSink(t)
+		rif := Bare(nil, WithLoadData())
+		must.Value(rif.ReadFrom(bytes.NewReader(want)))
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		_, err := rif.WriteTo(dst)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, want, dst.Bytes())
+	})
 }
 
 func Test_Compose(t *testing.T) {

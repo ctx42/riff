@@ -122,11 +122,11 @@ func New(opts ...OptsFn) *RIFF {
 }
 
 // Bare returns a new instance of [RIFF] decoding chunks with decoders from reg.
-// If reg is nil, a registry with only the raw chunk decoder ([ChunkRAWC])
-// skipping data is used.
+// If reg is nil, a registry with only the raw chunk decoder ([ChunkRAWC]) made
+// with opts is used.
 func Bare(reg *Registry, opts ...OptsFn) *RIFF {
 	if reg == nil {
-		reg = NewRegistry(RAWCMake())
+		reg = NewRegistry(RAWCMake(opts...))
 	}
 	rif := &RIFF{
 		chunks: make([]Chunk, 0, 4),
