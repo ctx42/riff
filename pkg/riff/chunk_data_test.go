@@ -6,6 +6,7 @@ package riff
 import (
 	"bytes"
 	"io"
+	"math"
 	"testing"
 	"time"
 
@@ -122,6 +123,25 @@ func Test_ChunkDATA_SetData(t *testing.T) {
 		assert.ErrorIs(t, ErrSkipDataMode, err)
 		assert.Equal(t, uint32(0), ch.Size())
 		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Data())))
+	})
+
+	t.Run("error - over 4 GiB", func(t *testing.T) {
+		if math.MaxInt <= math.MaxUint32 {
+			t.Skip("int cannot hold a length over 4 GiB")
+		}
+
+		// --- Given ---
+		ch := DATA(WithLoadData())
+
+		// Fresh zero pages from the OS; never touched, so never resident.
+		data := make([]byte, uint64(math.MaxUint32)+1)
+
+		// --- When ---
+		err := ch.SetData(data)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrTooLarge, err)
+		assert.Equal(t, uint32(0), ch.Size())
 	})
 }
 

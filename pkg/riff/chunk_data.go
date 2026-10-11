@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"time"
 )
 
@@ -63,12 +64,16 @@ func (ch *ChunkDATA) Data() io.Reader {
 }
 
 // SetData sets the chunk data. It returns [ErrSkipDataMode] when the chunk was
-// created without [WithLoadData].
+// created without [WithLoadData] and [ErrTooLarge] when data does not fit the
+// 32-bit chunk size.
 func (ch *ChunkDATA) SetData(data []byte) error {
 	if !ch.opts.LoadData() {
 		return ErrSkipDataMode
 	}
 	l := len(data)
+	if uint64(l) > math.MaxUint32 {
+		return ErrTooLarge
+	}
 	ch.data = grow(ch.data, l)
 	copy(ch.data, data)
 	ch.size = uint32(l)
