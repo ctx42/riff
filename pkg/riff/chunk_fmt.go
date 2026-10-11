@@ -5,7 +5,6 @@ package riff
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
@@ -71,6 +70,16 @@ func (fst *fmtStatic) decode(b []byte) {
 	fst.AvgByteRate = le.Uint32(b[8:])
 	fst.BlockAlign = le.Uint16(b[12:])
 	fst.BitsPerSample = le.Uint16(b[14:])
+}
+
+// encode writes the fields to b, little endian encoded.
+func (fst *fmtStatic) encode(b []byte) {
+	le.PutUint16(b[0:], fst.CompCode)
+	le.PutUint16(b[2:], fst.ChannelCnt)
+	le.PutUint32(b[4:], fst.SampleRate)
+	le.PutUint32(b[8:], fst.AvgByteRate)
+	le.PutUint16(b[12:], fst.BlockAlign)
+	le.PutUint16(b[14:], fst.BitsPerSample)
 }
 
 // ChunkFMT represents a format chunk containing information about
@@ -220,20 +229,23 @@ func (ch *ChunkFMT) WriteTo(w io.Writer) (int64, error) {
 		return 0, fmt.Errorf(errFmtEncode, Uint32(IDfmt), ErrTooLarge)
 	}
 
-	n, err := WriteIDAndSize(w, IDfmt, size)
+	b := ch.cr.buf[:] // The reader is idle while encoding.
+	n, err := writeIDAndSize(w, b, IDfmt, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)
 	}
 
-	if err = binary.Write(w, le, ch.fmtStatic); err != nil {
+	ch.encode(b)
+	if _, err = w.Write(b[:FMTChunkSize]); err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)
 	}
 	sum += int64(FMTChunkSize)
 
 	if eln > 0 || ch.WriteZeroExtra {
 		// Write size of extra bytes.
-		if err = binary.Write(w, le, uint16(eln)); err != nil {
+		le.PutUint16(b, uint16(eln))
+		if _, err = w.Write(b[:2]); err != nil {
 			return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)
 		}
 		sum += 2
@@ -245,7 +257,7 @@ func (ch *ChunkFMT) WriteTo(w io.Writer) (int64, error) {
 			return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)
 		}
 
-		n, err = WritePaddingIf(w, uint32(eln))
+		n, err = writePaddingIf(w, b, uint32(eln))
 		sum += n
 		if err != nil {
 			return sum, fmt.Errorf(errFmtEncode, Uint32(IDfmt), err)

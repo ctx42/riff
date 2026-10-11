@@ -5,7 +5,6 @@ package riff
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -112,13 +111,15 @@ func (ch *ChunkLABL) errDecode(err error) error {
 func (ch *ChunkLABL) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
-	n, err := WriteIDAndSize(w, IDlabl, ch.size)
+	b := ch.cr.buf[:] // The reader is idle while encoding.
+	n, err := writeIDAndSize(w, b, IDlabl, ch.size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 
-	if err = binary.Write(w, le, ch.CuePointID); err != nil {
+	le.PutUint32(b, ch.CuePointID)
+	if _, err = w.Write(b[:4]); err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 	sum += int64(LABLChunkSize)
@@ -129,7 +130,7 @@ func (ch *ChunkLABL) WriteTo(w io.Writer) (int64, error) {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)
 	}
 
-	n, err = WritePaddingIf(w, ch.size)
+	n, err = writePaddingIf(w, b, ch.size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDlabl), err)

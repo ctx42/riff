@@ -383,6 +383,20 @@ func Test_WriteIDAndSize(t *testing.T) {
 	})
 }
 
+func Test_writeIDAndSize(t *testing.T) {
+	// --- Given ---
+	dst := &bytes.Buffer{}
+	b := make([]byte, 8)
+
+	// --- When ---
+	n, err := writeIDAndSize(dst, b, IDRIFF, 124)
+
+	// --- Then ---
+	assert.NoError(t, err)
+	assert.Equal(t, int64(8), n)
+	assert.Equal(t, []byte{'R', 'I', 'F', 'F', 124, 0, 0, 0}, dst.Bytes())
+}
+
 func Test_WritePaddingIf(t *testing.T) {
 	t.Run("odd size", func(t *testing.T) {
 		// --- Given ---
@@ -423,6 +437,35 @@ func Test_WritePaddingIf(t *testing.T) {
 		assert.ErrorIs(t, iokit.ErrWrite, err)
 		assert.Equal(t, int64(0), n)
 		assert.Equal(t, []byte(nil), buf.Bytes())
+	})
+}
+
+func Test_writePaddingIf(t *testing.T) {
+	t.Run("odd size", func(t *testing.T) {
+		// --- Given ---
+		dst := &bytes.Buffer{}
+		b := []byte{0xFF}
+
+		// --- When ---
+		n, err := writePaddingIf(dst, b, 3)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), n)
+		assert.Equal(t, []byte{0}, dst.Bytes())
+	})
+
+	t.Run("even size", func(t *testing.T) {
+		// --- Given ---
+		dst := &bytes.Buffer{}
+
+		// --- When ---
+		n, err := writePaddingIf(dst, []byte{0xFF}, 4)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), n)
+		assert.Equal(t, 0, dst.Len())
 	})
 }
 

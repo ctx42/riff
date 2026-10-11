@@ -5,7 +5,6 @@ package riff
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -116,6 +115,19 @@ func (sst *smplStatic) decode(b []byte) {
 	sst.SMPTEOffset = le.Uint32(b[24:])
 	sst.SampleLoopCnt = le.Uint32(b[28:])
 	sst.SamplerDataCnt = le.Uint32(b[32:])
+}
+
+// encode writes the fields to b, little endian encoded.
+func (sst *smplStatic) encode(b []byte) {
+	le.PutUint32(b[0:], sst.Manufacturer)
+	le.PutUint32(b[4:], sst.Product)
+	le.PutUint32(b[8:], sst.SamplePeriod)
+	le.PutUint32(b[12:], sst.MIDIUnityNote)
+	le.PutUint32(b[16:], sst.MIDIPitchFraction)
+	le.PutUint32(b[20:], sst.SMPTEFormat)
+	le.PutUint32(b[24:], sst.SMPTEOffset)
+	le.PutUint32(b[28:], sst.SampleLoopCnt)
+	le.PutUint32(b[32:], sst.SamplerDataCnt)
 }
 
 // ChunkSMPL represents the "smpl" (sampler) chunk.
@@ -239,19 +251,22 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 	ch.SampleLoopCnt = size32(len(ch.SampleLoops))
 	ch.SamplerDataCnt = size32(len(ch.sampleData))
 
-	n, err := WriteIDAndSize(w, IDsmpl, size)
+	b := ch.cr.buf[:] // The reader is idle while encoding.
+	n, err := writeIDAndSize(w, b, IDsmpl, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), err)
 	}
 
-	if err = binary.Write(w, le, ch.smplStatic); err != nil {
+	ch.encode(b)
+	if _, err = w.Write(b[:SMPLChunkSize]); err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), err)
 	}
 	sum += int64(SMPLChunkSize)
 
-	for i := 0; i < len(ch.SampleLoops); i++ {
-		if err = binary.Write(w, le, ch.SampleLoops[i]); err != nil {
+	for _, slp := range ch.SampleLoops {
+		slp.encode(b)
+		if _, err = w.Write(b[:SampleLoopSize]); err != nil {
 			return sum, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), err)
 		}
 		sum += int64(SampleLoopSize)
@@ -266,7 +281,7 @@ func (ch *ChunkSMPL) WriteTo(w io.Writer) (int64, error) {
 		}
 	}
 
-	n, err = WritePaddingIf(w, size)
+	n, err = writePaddingIf(w, b, size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDsmpl), err)

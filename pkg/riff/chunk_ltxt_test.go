@@ -77,6 +77,23 @@ func Test_ltxtStatic_decode(t *testing.T) {
 	assert.Equal(t, want, lts)
 }
 
+func Test_ltxtStatic_encode(t *testing.T) {
+	// --- Given ---
+	want := make([]byte, 20)
+	for i := range want {
+		want[i] = byte(i + 1)
+	}
+	lts := &ltxtStatic{}
+	lts.decode(want)
+	have := make([]byte, 20)
+
+	// --- When ---
+	lts.encode(have)
+
+	// --- Then ---
+	assert.Equal(t, want, have)
+}
+
 func Test_LTXTMake(t *testing.T) {
 	// --- Given ---
 	mkr := LTXTMake(WithLoadData())

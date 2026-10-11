@@ -62,6 +62,16 @@ func (slp *SampleLoop) decode(b []byte) {
 	slp.PlayCnt = le.Uint32(b[20:])
 }
 
+// encode writes the fields to b, little endian encoded.
+func (slp *SampleLoop) encode(b []byte) {
+	le.PutUint32(b[0:], slp.CuePointID)
+	le.PutUint32(b[4:], slp.Type)
+	le.PutUint32(b[8:], slp.Start)
+	le.PutUint32(b[12:], slp.End)
+	le.PutUint32(b[16:], slp.Fraction)
+	le.PutUint32(b[20:], slp.PlayCnt)
+}
+
 // Reset sets all fields to zero.
 func (slp *SampleLoop) Reset() {
 	slp.CuePointID = 0

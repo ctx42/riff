@@ -150,6 +150,23 @@ func Test_fmtStatic_decode(t *testing.T) {
 	assert.Equal(t, want, fst)
 }
 
+func Test_fmtStatic_encode(t *testing.T) {
+	// --- Given ---
+	want := make([]byte, 16)
+	for i := range want {
+		want[i] = byte(i + 1)
+	}
+	fst := &fmtStatic{}
+	fst.decode(want)
+	have := make([]byte, 16)
+
+	// --- When ---
+	fst.encode(have)
+
+	// --- Then ---
+	assert.Equal(t, want, have)
+}
+
 func Test_ChunkFMT_Size(t *testing.T) {
 	t.Run("new chunk", func(t *testing.T) {
 		// --- Given ---

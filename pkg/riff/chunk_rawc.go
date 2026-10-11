@@ -109,7 +109,8 @@ func (ch *ChunkRAWC) WriteTo(w io.Writer) (int64, error) {
 
 	var sum int64
 
-	n, err := WriteIDAndSize(w, ch.id, ch.size)
+	b := ch.cr.buf[:] // The reader is idle while encoding.
+	n, err := writeIDAndSize(w, b, ch.id, ch.size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(idRAWC, ch.id), err)
@@ -121,7 +122,7 @@ func (ch *ChunkRAWC) WriteTo(w io.Writer) (int64, error) {
 		return sum, fmt.Errorf(errFmtEncode, linkids(idRAWC, ch.id), err)
 	}
 
-	n, err = WritePaddingIf(w, ch.size)
+	n, err = writePaddingIf(w, b, ch.size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(idRAWC, ch.id), err)

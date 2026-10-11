@@ -32,6 +32,23 @@ func Test_SampleLoop_decode(t *testing.T) {
 	assert.Equal(t, want, slp)
 }
 
+func Test_SampleLoop_encode(t *testing.T) {
+	// --- Given ---
+	want := make([]byte, 24)
+	for i := range want {
+		want[i] = byte(i + 1)
+	}
+	slp := &SampleLoop{}
+	slp.decode(want)
+	have := make([]byte, 24)
+
+	// --- When ---
+	slp.encode(have)
+
+	// --- Then ---
+	assert.Equal(t, want, have)
+}
+
 func Test_SampleLoop_Reset(t *testing.T) {
 	// --- Given ---
 	sl := &SampleLoop{}

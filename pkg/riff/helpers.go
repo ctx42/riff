@@ -118,22 +118,35 @@ func shortRead(size, read int64) bool {
 // WriteIDAndSize writes the chunk id (big endian) and size (little endian)
 // to w.
 func WriteIDAndSize(w io.Writer, id, size uint32) (int64, error) {
-	var sum int64
-	if err := binary.Write(w, be, id); err != nil {
+	var b [8]byte
+	return writeIDAndSize(w, b[:], id, size)
+}
+
+// writeIDAndSize works like [WriteIDAndSize], encoding into b, a scratch
+// buffer of at least 8 bytes, so it allocates nothing.
+func writeIDAndSize(w io.Writer, b []byte, id, size uint32) (int64, error) {
+	be.PutUint32(b[0:4], id)
+	if _, err := w.Write(b[0:4]); err != nil {
 		return 0, err
 	}
-	sum += 4
-	if err := binary.Write(w, le, size); err != nil {
-		return sum, err
+	le.PutUint32(b[4:8], size)
+	if _, err := w.Write(b[4:8]); err != nil {
+		return 4, err
 	}
-	sum += 4
-	return sum, nil
+	return 8, nil
 }
 
 // WritePaddingIf writes a zero padding byte to w when size is odd.
 func WritePaddingIf(w io.Writer, size uint32) (int64, error) {
+	return writePaddingIf(w, make([]byte, 1), size)
+}
+
+// writePaddingIf works like [WritePaddingIf], writing the byte from b, a
+// scratch buffer of at least one byte, so it allocates nothing.
+func writePaddingIf(w io.Writer, b []byte, size uint32) (int64, error) {
 	if size%2 == 1 {
-		n, err := w.Write([]byte{0})
+		b[0] = 0
+		n, err := w.Write(b[:1])
 		return int64(n), err
 	}
 	return 0, nil

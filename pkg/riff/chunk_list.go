@@ -4,7 +4,6 @@
 package riff
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
@@ -148,13 +147,15 @@ func (ch *ChunkLIST) WriteTo(w io.Writer) (int64, error) {
 
 	var sum int64
 
-	n, err := WriteIDAndSize(w, IDLIST, uint32(size))
+	b := ch.cr.buf[:] // The reader is idle while encoding.
+	n, err := writeIDAndSize(w, b, IDLIST, uint32(size))
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDLIST), err)
 	}
 
-	if err = binary.Write(w, be, ch.ListType); err != nil {
+	be.PutUint32(b, ch.ListType)
+	if _, err = w.Write(b[:4]); err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDLIST), err)
 	}
 	sum += 4

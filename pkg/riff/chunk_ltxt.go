@@ -5,7 +5,6 @@ package riff
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -66,6 +65,17 @@ func (lts *ltxtStatic) decode(b []byte) {
 	lts.Language = le.Uint16(b[14:])
 	lts.Dialect = le.Uint16(b[16:])
 	lts.CodePage = le.Uint16(b[18:])
+}
+
+// encode writes the fields to b, little endian encoded.
+func (lts *ltxtStatic) encode(b []byte) {
+	le.PutUint32(b[0:], lts.CuePointID)
+	le.PutUint32(b[4:], lts.SamLen)
+	le.PutUint32(b[8:], lts.PurID)
+	le.PutUint16(b[12:], lts.Country)
+	le.PutUint16(b[14:], lts.Language)
+	le.PutUint16(b[16:], lts.Dialect)
+	le.PutUint16(b[18:], lts.CodePage)
 }
 
 // ChunkLTXT represents the labeled text chunk. It is used to associate a
@@ -159,13 +169,15 @@ func (ch *ChunkLTXT) errDecode(err error) error {
 func (ch *ChunkLTXT) WriteTo(w io.Writer) (int64, error) {
 	var sum int64
 
-	n, err := WriteIDAndSize(w, IDltxt, ch.size)
+	b := ch.cr.buf[:] // The reader is idle while encoding.
+	n, err := writeIDAndSize(w, b, IDltxt, ch.size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 
-	if err = binary.Write(w, le, ch.ltxtStatic); err != nil {
+	ch.encode(b)
+	if _, err = w.Write(b[:LTXTChunkSize]); err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 	sum += int64(LTXTChunkSize)
@@ -176,7 +188,7 @@ func (ch *ChunkLTXT) WriteTo(w io.Writer) (int64, error) {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)
 	}
 
-	n, err = WritePaddingIf(w, ch.size)
+	n, err = writePaddingIf(w, b, ch.size)
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, linkids(IDadtl, IDltxt), err)

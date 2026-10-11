@@ -128,7 +128,7 @@ type ChunkReader struct {
 	cnt    int64            // Number of read bytes from reader.
 	offset int64            // Shift added to the value Count returns.
 	srcEOF bool             // Read hit the end of the source, not of a limit.
-	buf    [36]byte         // Scratch space for fixed-size fields.
+	buf    [36]byte         // Scratch for fixed-size fields, also for encoding.
 }
 
 // NewChunkReader returns a [ChunkReader] reading from r.

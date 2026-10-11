@@ -148,6 +148,23 @@ func Test_smplStatic_decode(t *testing.T) {
 	assert.Equal(t, want, sst)
 }
 
+func Test_smplStatic_encode(t *testing.T) {
+	// --- Given ---
+	want := make([]byte, 36)
+	for i := range want {
+		want[i] = byte(i + 1)
+	}
+	sst := &smplStatic{}
+	sst.decode(want)
+	have := make([]byte, 36)
+
+	// --- When ---
+	sst.encode(have)
+
+	// --- Then ---
+	assert.Equal(t, want, have)
+}
+
 func Test_SMPL(t *testing.T) {
 	// --- When ---
 	have := SMPL()

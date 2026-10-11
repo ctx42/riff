@@ -261,13 +261,15 @@ func (rif *RIFF) WriteTo(w io.Writer) (int64, error) {
 
 	var sum int64
 
-	n, err := WriteIDAndSize(w, IDRIFF, uint32(size))
+	b := rif.cr.buf[:] // The reader is idle while encoding.
+	n, err := writeIDAndSize(w, b, IDRIFF, uint32(size))
 	sum += n
 	if err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDRIFF), err)
 	}
 
-	if err = binary.Write(w, be, rif.riffType); err != nil {
+	be.PutUint32(b, rif.riffType)
+	if _, err = w.Write(b[:4]); err != nil {
 		return sum, fmt.Errorf(errFmtEncode, Uint32(IDRIFF), err)
 	}
 	sum += 4
