@@ -287,6 +287,44 @@ func Test_ChunkFMT_Duration(t *testing.T) {
 }
 
 func Test_ChunkFMT_ReadFrom(t *testing.T) {
+	t.Run("second read replaces extra bytes", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		first := fmtChunkWithExtraBytesEven(t)
+		skip4B(t, first) // Skip chunk ID.
+		must.Value(ch.ReadFrom(first))
+
+		src := fmtChunkWithoutExtraBytes(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, FMTChunkSize, ch.Size())
+		assert.Equal(t, []byte{}, must.Value(io.ReadAll(ch.Extra())))
+	})
+
+	t.Run("second read replaces zero extra flag", func(t *testing.T) {
+		// --- Given ---
+		ch := FMT()
+		first := fmtChunkWithExtraOfZeroLen(t)
+		skip4B(t, first) // Skip chunk ID.
+		must.Value(ch.ReadFrom(first))
+
+		src := fmtChunkWithoutExtraBytes(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.False(t, ch.WriteZeroExtra)
+		assert.Equal(t, FMTChunkSize, ch.Size())
+	})
+
 	t.Run("without extra bytes", func(t *testing.T) {
 		// --- Given ---
 		src := fmtChunkWithoutExtraBytes(t)

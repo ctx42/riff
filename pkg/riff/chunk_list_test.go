@@ -108,6 +108,25 @@ func Test_ChunkLIST_Size(t *testing.T) {
 }
 
 func Test_ChunkLIST_ReadFrom(t *testing.T) {
+	t.Run("second read replaces sub-chunks", func(t *testing.T) {
+		// --- Given ---
+		ch := LIST(nil)
+		first := listChunkTypeINFO(t)
+		skip4B(t, first) // Skip chunk ID.
+		must.Value(ch.ReadFrom(first))
+
+		src := listChunkTypeINFO(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Len(t, 1, ch.Chunks())
+		assert.Equal(t, uint32(16), ch.Size())
+	})
+
 	t.Run("missing final padding at end of input", func(t *testing.T) {
 		// --- Given ---
 		src := &bytes.Buffer{}

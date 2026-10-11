@@ -33,7 +33,8 @@ type Chunk interface {
 	// ([ChunkRAWC]).
 	Raw() bool
 
-	// ReadFrom reads bytes from r decoding and validating a chunk.
+	// ReadFrom reads bytes from r decoding and validating a chunk. The decoded
+	// chunk replaces any content of a previous ReadFrom.
 	// It expects r to be in a position right after the chunk ID.
 	// It returns the actual number of bytes read and an error, if any.
 	// If an error is returned, the number of read bytes might not be accurate.

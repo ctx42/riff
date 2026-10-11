@@ -176,6 +176,25 @@ func Test_ChunkSMPL_Size(t *testing.T) {
 }
 
 func Test_ChunkSMPL_ReadFrom(t *testing.T) {
+	t.Run("second read replaces loops", func(t *testing.T) {
+		// --- Given ---
+		ch := SMPL()
+		first := smplWithLoopsWithData(t)
+		skip4B(t, first) // Skip chunk ID.
+		must.Value(ch.ReadFrom(first))
+
+		src := smplWithoutLoopsNoData(t)
+		skip4B(t, src) // Skip chunk ID.
+
+		// --- When ---
+		_, err := ch.ReadFrom(src)
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Len(t, 0, ch.SampleLoops)
+		assert.Equal(t, uint32(36), ch.Size())
+	})
+
 	t.Run("without loops", func(t *testing.T) {
 		// --- Given ---
 		src := smplWithoutLoopsNoData(t)
