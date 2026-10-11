@@ -8,9 +8,9 @@ import (
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/ctx42/memfs/pkg/memfs"
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
 	"github.com/ctx42/testkit/pkg/iokit"
@@ -1048,60 +1048,53 @@ func Test_RIFF_Modify(t *testing.T) {
 	})
 }
 
-func Benchmark_RIFFReuse(b *testing.B) {
-	tt := []struct {
-		pth string
+// benchFiles are the sample files the benchmarks decode and encode.
+var benchFiles = []string{
+	"testdata/kick.wav",             // fmt and data.
+	"testdata/bwf.wav",              // 14 chunks, LIST and raw chunks.
+	"testdata/listinfo.wav",         // LIST INFO.
+	"testdata/flloop.wav",           // smpl.
+	"testdata/misaligned-chunk.wav", // 3.4 MB.
+}
+
+func Benchmark_RIFF_ReadFrom(b *testing.B) {
+	modes := []struct {
+		name string
+		opts []OptsFn
 	}{
-		{"testdata/11k16bitpcm.wav"},
-		{"testdata/11k8bitpcm.wav"},
-		{"testdata/11kadpcm.wav"},
-		{"testdata/11kgsm.wav"},
-		{"testdata/11kulaw.wav"},
-		{"testdata/32bit.wav"},
-		{"testdata/8bit.wav"},
-		{"testdata/8k16bitpcm.wav"},
-		{"testdata/8k8bitpcm.wav"},
-		{"testdata/8kadpcm.wav"},
-		{"testdata/8kcelp.wav"},
-		{"testdata/8kgsm.wav"},
-		{"testdata/8kmp316.wav"},
-		{"testdata/8kmp38.wav"},
-		{"testdata/8ksbc12.wav"},
-		{"testdata/8ktruespeech.wav"},
-		{"testdata/8kulaw.wav"},
-		{"testdata/bass.wav"},
-		{"testdata/bwf.wav"},
-		{"testdata/dirty-kick-24b441k.wav"},
-		{"testdata/flloop.wav"},
-		{"testdata/junkKick.wav"},
-		{"testdata/kick-16b441k.wav"},
-		{"testdata/kick.wav"},
-		{"testdata/listChunkInHeader.wav"},
-		{"testdata/listinfo.wav"},
-		{"testdata/misaligned-chunk.wav"},
-		{"testdata/padded24b.wav"},
-		{"testdata/sample16bit.wav"},
-		{"testdata/sample.avi"},
-		{"testdata/sample.rmi"},
-		{"testdata/sample.wav"},
+		{"meta", nil},
+		{"load", []OptsFn{WithLoadData()}},
 	}
 
-	rif := New(WithLoadData())
+	for _, mode := range modes {
+		for _, pth := range benchFiles {
+			b.Run(mode.name+"/"+filepath.Base(pth), func(b *testing.B) {
+				data := must.Value(os.ReadFile(pth))
+				src := bytes.NewReader(data)
+				rif := New(mode.opts...)
 
-	for _, tc := range tt {
-		b.Run(tc.pth, func(b *testing.B) {
-			b.StopTimer()
-			buf := must.Value(memfs.NewFile("file"))
-			_, err := buf.ReadFrom(oskit.Open(b, tc.pth))
-			if err != nil {
-				b.Fatal(err)
-			}
+				b.ReportAllocs()
+				for b.Loop() {
+					src.Reset(data)
+					if _, err := rif.ReadFrom(src); err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+		}
+	}
+}
 
-			b.StartTimer()
+func Benchmark_RIFF_WriteTo(b *testing.B) {
+	for _, pth := range benchFiles {
+		b.Run(filepath.Base(pth), func(b *testing.B) {
+			data := must.Value(os.ReadFile(pth))
+			rif := New(WithLoadData())
+			must.Value(rif.ReadFrom(bytes.NewReader(data)))
+
 			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
-				buf.SeekStart()
-				if _, err := rif.ReadFrom(buf); err != nil {
+			for b.Loop() {
+				if _, err := rif.WriteTo(io.Discard); err != nil {
 					b.Fatal(err)
 				}
 			}
