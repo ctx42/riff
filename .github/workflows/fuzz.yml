@@ -13,6 +13,9 @@ on:
 permissions:
   contents: read
 
+env:
+  C42_CC_RUN_ID: github-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
+
 jobs:
   fuzz:
     runs-on: ubuntu-latest
