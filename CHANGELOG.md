@@ -1,3 +1,7 @@
+## v0.1.1 (Sun, 18 Oct 2026 08:24:43 UTC)
+- ci: set C42_CC_RUN_ID in the workflow environment.
+- chore(deps): update dependencies.
+
 ## v0.1.0 (Sun, 11 Oct 2026 11:55:13 UTC)
 - chore: scaffold project.
 - feat: import riff from github.com/rzajac/riff.
